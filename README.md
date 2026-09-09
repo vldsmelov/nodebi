@@ -1,0 +1,1387 @@
+# Node BI
+
+Node BI is a web-based Business Intelligence platform for building analytical workflows and dashboards from Excel data using a visual node-based interface.
+
+The MVP allows a user to:
+
+* create a BI project;
+* upload an Excel workbook;
+* inspect worksheets and columns;
+* build a visual transformation workflow;
+* preview intermediate datasets;
+* create charts and KPI visualizations;
+* assemble a dashboard;
+* save the project;
+* reopen the project after application restart.
+
+---
+
+# 1. Product Concept
+
+The core interaction model is:
+
+```text
+Excel
+  ↓
+Transformation Nodes
+  ↓
+Prepared Dataset
+  ↓
+Visualization
+  ↓
+Dashboard
+```
+
+Example workflow:
+
+```text
+Excel Source
+      ↓
+Filter
+      ↓
+Calculated Column
+      ↓
+Group By
+      ↓
+Bar Chart
+```
+
+Example calculated column:
+
+```text
+revenue = quantity * price
+```
+
+Example aggregation:
+
+```text
+Group by:
+category
+
+Aggregation:
+SUM(revenue)
+```
+
+---
+
+# 2. MVP Scope
+
+## Data Sources
+
+MVP:
+
+* Excel `.xlsx`
+* Excel `.xlsm` where practical
+
+Post-MVP candidates:
+
+* CSV
+* PostgreSQL
+* MySQL
+* REST API
+* Google Sheets
+
+---
+
+## Transformation Nodes
+
+MVP nodes:
+
+* Select Columns
+* Rename Columns
+* Filter
+* Sort
+* Limit
+* Calculated Column
+* Group By / Aggregate
+* Join
+* Union
+* Pivot
+
+---
+
+## Visualization Nodes
+
+MVP visualizations:
+
+* Table
+* KPI
+* Bar Chart
+* Line Chart
+* Area Chart
+* Pie / Donut Chart
+* Scatter Chart
+
+---
+
+## Dashboard
+
+The MVP dashboard supports:
+
+* adding visualizations;
+* removing widgets;
+* dragging widgets;
+* resizing widgets;
+* persisting layout.
+
+---
+
+# 3. Architecture Overview
+
+Node BI is implemented as a modular monolith.
+
+```text
+┌──────────────────────────────────────┐
+│              Frontend                │
+│                                      │
+│ Next.js                              │
+│ React                                │
+│ TypeScript                           │
+│ React Flow                           │
+│ ECharts                              │
+└──────────────────┬───────────────────┘
+                   │
+                   │ REST / JSON
+                   ▼
+┌──────────────────────────────────────┐
+│               Backend                │
+│                                      │
+│ FastAPI                              │
+│                                      │
+│ Project Service                      │
+│ Source Service                       │
+│ Workflow Service                     │
+│ Execution Service                    │
+│ Dashboard Service                    │
+│                                      │
+│ Workflow DAG                         │
+│ Node Registry                        │
+│ Node Executors                       │
+│ Dataset / Schema                     │
+│ Formula Engine                       │
+└───────────────┬───────────┬──────────┘
+                │           │
+                ▼           ▼
+          PostgreSQL    File Storage
+                │
+                ▼
+         Uploaded Excel
+```
+
+The frontend does not perform authoritative analytical transformations.
+
+The execution path is:
+
+```text
+Node Editor
+    ↓
+Workflow JSON
+    ↓
+Backend Validation
+    ↓
+Execution Planner
+    ↓
+Node Executors
+    ↓
+Polars / DuckDB
+    ↓
+Dataset Result
+```
+
+---
+
+# 4. Technology Stack
+
+## Frontend
+
+* Next.js
+* React
+* TypeScript
+* React Flow
+* TanStack Query
+* Zustand
+* Apache ECharts
+* Tailwind CSS
+* shadcn/ui
+
+## Backend
+
+* Python
+* FastAPI
+* Pydantic
+* SQLAlchemy
+* Alembic
+* Polars
+* DuckDB where useful
+* openpyxl
+
+## Persistence
+
+* PostgreSQL
+
+## File Storage
+
+MVP:
+
+* local filesystem through `StorageProvider`
+
+Future:
+
+* S3
+* MinIO
+* Azure Blob Storage
+
+## Infrastructure
+
+* Docker
+* Docker Compose
+
+---
+
+# 5. Repository Documentation
+
+Before making significant changes, read the project documentation.
+
+## `AGENTS.md`
+
+Defines how autonomous coding agents must work inside the repository.
+
+Includes:
+
+* development lifecycle;
+* testing requirements;
+* scope rules;
+* architecture discipline;
+* QA requirements;
+* completion rules.
+
+---
+
+## `PRODUCT_SPEC.md`
+
+Defines what the product must do.
+
+Includes:
+
+* target users;
+* MVP behavior;
+* user journeys;
+* node requirements;
+* dashboard behavior;
+* explicit non-goals;
+* product acceptance criteria.
+
+---
+
+## `ARCHITECTURE.md`
+
+Defines how the product is technically structured.
+
+Includes:
+
+* frontend/backend boundaries;
+* domain model;
+* workflow format;
+* NodeDefinition;
+* NodeExecutor;
+* schema propagation;
+* persistence;
+* APIs;
+* execution model;
+* storage;
+* testing architecture.
+
+---
+
+## `TASKS.md`
+
+Contains the autonomous implementation roadmap.
+
+Current roadmap:
+
+```text
+M0  Product and Architecture Baseline
+M1  Repository Bootstrap
+M2  Persistence Foundation
+M3  Project Management
+M4  Excel Data Sources
+M5  Dataset and Schema Domain
+M6  Workflow Persistence and Node Registry
+M7  Workflow Editor
+M8  Validation and Schema Propagation
+M9  Execution Engine
+M10 Core Transformation Nodes
+M11 Advanced Transformation Nodes
+M12 Visualization System
+M13 Dashboard System
+M14 Persistence and Recovery Hardening
+M15 QA / Security / Performance / UX
+M16 MVP Release Gate
+```
+
+---
+
+## `STATUS.md`
+
+Contains the current development snapshot.
+
+Use it to determine:
+
+* current milestone;
+* current task;
+* blockers;
+* test status;
+* next task.
+
+A fresh development session should read `STATUS.md` before starting work.
+
+---
+
+## `DECISIONS.md`
+
+Contains architecture decision records.
+
+Examples:
+
+* why the backend is a modular monolith;
+* why Polars is the primary dataframe engine;
+* how workflow execution works;
+* how formulas are secured;
+* how visualization configuration is stored.
+
+---
+
+# 6. Repository Structure
+
+Target repository structure:
+
+```text
+/
+├── AGENTS.md
+├── PRODUCT_SPEC.md
+├── ARCHITECTURE.md
+├── TASKS.md
+├── STATUS.md
+├── DECISIONS.md
+├── README.md
+│
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── features/
+│   ├── lib/
+│   ├── stores/
+│   ├── types/
+│   └── tests/
+│
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── application/
+│   │   ├── domain/
+│   │   ├── infrastructure/
+│   │   ├── models/
+│   │   ├── repositories/
+│   │   ├── schemas/
+│   │   └── main.py
+│   │
+│   ├── migrations/
+│   └── tests/
+│
+├── fixtures/
+│   └── excel/
+│
+├── tests/
+│   └── e2e/
+│
+├── docker/
+├── docker-compose.yml
+└── .env.example
+```
+
+The exact structure may evolve during implementation.
+
+Architectural boundaries defined in `ARCHITECTURE.md` must remain intact.
+
+---
+
+# 7. Development Status
+
+Current phase:
+
+```text
+M10 — Core Transformation Nodes
+```
+
+Milestones M0 through M9 are complete. The React Flow editor, graph autosave, structural validation, schema propagation, target-branch execution, bounded caching, generic node preview, and schema-aware Select Columns, Rename Columns, and type-aware Filter transformations are implemented. M10 is in progress.
+
+Always inspect:
+
+```text
+STATUS.md
+```
+
+for the current authoritative development state.
+
+---
+
+# 8. Local Development
+
+Copy `.env.example` to `.env` only when you need to override the safe development defaults, then run:
+
+```bash
+docker compose up --build --wait
+```
+
+This starts:
+
+* frontend;
+* backend;
+* PostgreSQL.
+
+Open `http://localhost:3000`. The API documentation is at `http://localhost:8000/docs`.
+
+Local quality checks:
+
+```powershell
+cd backend
+py -3.13 -m venv .venv
+.\.venv\Scripts\python -m pip install -e ".[dev]"
+.\.venv\Scripts\python -m pytest
+.\.venv\Scripts\ruff check .
+.\.venv\Scripts\ruff format --check .
+.\.venv\Scripts\mypy app
+
+cd ..\frontend
+npm install
+npm run test
+npm run lint
+npm run typecheck
+npm run build
+```
+
+---
+
+# 9. Environment Configuration
+
+The repository should contain:
+
+```text
+.env.example
+```
+
+Expected configuration includes values similar to:
+
+```text
+DATABASE_URL=
+STORAGE_ROOT=
+MAX_UPLOAD_BYTES=
+MAX_PREVIEW_ROWS=
+LOG_LEVEL=
+```
+
+Additional configuration may be introduced during implementation.
+
+Never commit production secrets.
+
+---
+
+# 10. Database Setup
+
+Database schema changes are managed using Alembic.
+
+The expected fresh-environment lifecycle is:
+
+```text
+Create PostgreSQL database
+        ↓
+Run Alembic migrations
+        ↓
+Start backend
+```
+
+A fresh environment must not require manually creating database tables.
+
+Exact migration commands must be documented after backend bootstrap.
+
+Expected shape:
+
+```bash
+alembic upgrade head
+```
+
+Run the command from the backend environment as configured by the implementation.
+
+---
+
+# 11. Backend Development
+
+Target backend location:
+
+```text
+backend/
+```
+
+Main application:
+
+```text
+backend/app/main.py
+```
+
+Expected development responsibilities include:
+
+* FastAPI startup;
+* application configuration;
+* database connection;
+* repository layer;
+* workflow domain;
+* execution engine;
+* node registry;
+* dataset engine.
+
+Exact environment setup commands must be added during M1.
+
+---
+
+# 12. Frontend Development
+
+Target frontend location:
+
+```text
+frontend/
+```
+
+The frontend provides:
+
+* project management;
+* source upload;
+* workflow editor;
+* node configuration;
+* data preview;
+* visualizations;
+* dashboard editor.
+
+Exact package manager and commands must be documented after frontend bootstrap.
+
+Expected capabilities include commands for:
+
+```text
+development
+lint
+typecheck
+tests
+production build
+```
+
+Do not assume package-manager-specific commands until the repository bootstrap establishes them.
+
+---
+
+# 13. Health Checks
+
+The backend should expose:
+
+```text
+GET /health
+```
+
+Purpose:
+
+Confirms that the application process is running.
+
+And:
+
+```text
+GET /ready
+```
+
+Purpose:
+
+Confirms that critical dependencies are available.
+
+At minimum, readiness should consider PostgreSQL connectivity.
+
+---
+
+# 14. API
+
+Primary API prefix:
+
+```text
+/api/v1
+```
+
+Examples:
+
+```text
+GET    /api/v1/projects
+POST   /api/v1/projects
+
+POST   /api/v1/projects/{project_id}/sources/excel
+
+GET    /api/v1/workflows/{workflow_id}
+
+POST   /api/v1/workflows/{workflow_id}/validate
+
+POST   /api/v1/workflows/{workflow_id}/nodes/{node_id}/preview
+```
+
+See `ARCHITECTURE.md` for the expected API model.
+
+---
+
+# 15. Workflow Model
+
+A workflow is a directed acyclic graph.
+
+Conceptually:
+
+```json
+{
+  "nodes": [],
+  "edges": []
+}
+```
+
+Each node contains:
+
+```text
+id
+type
+version
+position
+config
+```
+
+Each edge contains:
+
+```text
+source node
+source port
+target node
+target port
+```
+
+The backend is authoritative for graph validation.
+
+---
+
+# 16. Node Architecture
+
+Node behavior must follow the common architecture:
+
+```text
+NodeDefinition
+      +
+NodeExecutor
+      +
+NodeRegistry
+```
+
+Conceptually:
+
+```text
+NodeDefinition
+ ├── type
+ ├── version
+ ├── input ports
+ ├── output ports
+ ├── config schema
+ └── schema inference behavior
+```
+
+Execution:
+
+```text
+NodeInstance
+      ↓
+NodeRegistry
+      ↓
+NodeExecutor
+      ↓
+Dataset Result
+```
+
+Do not implement generic execution using large node-type conditional chains.
+
+---
+
+# 17. Dataset Model
+
+Excel is a source adapter.
+
+It is not the analytical data model.
+
+The execution engine operates on:
+
+```text
+Dataset
++
+DatasetSchema
++
+ColumnSchema
+```
+
+Logical data types include:
+
+```text
+STRING
+INTEGER
+FLOAT
+BOOLEAN
+DATE
+DATETIME
+UNKNOWN
+```
+
+---
+
+# 18. Schema Propagation
+
+Schema propagation is part of the MVP.
+
+Example:
+
+```text
+Excel Source
+
+quantity : INTEGER
+price    : FLOAT
+
+        ↓
+
+Calculated Column
+
+revenue = quantity * price
+
+        ↓
+
+Output
+
+quantity : INTEGER
+price    : FLOAT
+revenue  : FLOAT
+```
+
+Downstream node configuration should use these resolved schemas.
+
+---
+
+# 19. Excel Handling
+
+Uploaded Excel files are treated as immutable source artifacts.
+
+The system should:
+
+* inspect worksheets;
+* infer schema;
+* preview rows;
+* load selected worksheets into Dataset representation.
+
+The application must never execute workbook macros.
+
+User filenames are metadata only.
+
+Backend-generated storage keys are used for actual storage.
+
+---
+
+# 20. Formula Security
+
+Calculated Column expressions must never use:
+
+```python
+eval(...)
+```
+
+or:
+
+```python
+exec(...)
+```
+
+User expressions must be parsed using a controlled allowlisted expression system.
+
+Initial supported syntax should include:
+
+```text
++
+-
+*
+/
+()
+column references
+numeric constants
+```
+
+Example:
+
+```text
+quantity * price
+```
+
+---
+
+# 21. Preview Behavior
+
+Node previews are bounded.
+
+The browser must not receive entire datasets by default.
+
+Preview responses should include:
+
+* schema;
+* limited rows;
+* execution status;
+* execution duration;
+* row count when practical.
+
+Server-side limits are authoritative.
+
+---
+
+# 22. Visualization Model
+
+The application persists semantic visualization configuration.
+
+Example:
+
+```text
+type: bar
+
+X:
+category
+
+Y:
+sum_revenue
+
+title:
+Revenue by Category
+```
+
+The frontend converts semantic configuration into Apache ECharts options.
+
+Generated ECharts internals are not the primary persistent product model.
+
+---
+
+# 23. Dashboard Model
+
+Dashboards contain visualization widgets.
+
+Widget layout uses logical grid coordinates:
+
+```text
+x
+y
+width
+height
+```
+
+The dashboard must support:
+
+* drag;
+* resize;
+* save;
+* reload.
+
+A failed widget should not prevent unrelated widgets from rendering.
+
+---
+
+# 24. Persistence
+
+Persistent product state includes:
+
+```text
+Projects
+Data Source Metadata
+Workflows
+Nodes
+Edges
+Node Configuration
+Visualizations
+Dashboards
+Widget Layouts
+```
+
+Transient execution state includes:
+
+```text
+DataFrames
+Preview Results
+Execution Cache
+Generated Chart Options
+```
+
+Transient state may be deleted without losing the user's project.
+
+---
+
+# 25. Testing
+
+Testing is part of feature implementation.
+
+Required test categories include:
+
+* domain unit tests;
+* executor tests;
+* Excel integration tests;
+* database integration tests;
+* API integration tests;
+* frontend behavior tests;
+* end-to-end tests.
+
+---
+
+# 26. Acceptance Fixtures
+
+The repository should contain deterministic workbook fixtures.
+
+Primary fixture:
+
+```text
+fixtures/excel/sales.xlsx
+```
+
+Suggested columns:
+
+```text
+order_id
+order_date
+country
+category
+product
+quantity
+price
+```
+
+Canonical calculation:
+
+```text
+revenue = quantity * price
+```
+
+The fixture should include:
+
+* multiple countries;
+* multiple categories;
+* multiple dates;
+* null values;
+* representative numeric data.
+
+---
+
+# 27. Canonical MVP Acceptance Journey
+
+The MVP is not complete until this flow succeeds.
+
+## Step 1 — Project
+
+Create:
+
+```text
+Sales Analysis
+```
+
+---
+
+## Step 2 — Excel
+
+Upload:
+
+```text
+sales.xlsx
+```
+
+Select:
+
+```text
+Sales
+```
+
+Preview the data.
+
+---
+
+## Step 3 — Workflow
+
+Create:
+
+```text
+Excel Source
+      ↓
+Filter
+      ↓
+Calculated Column
+      ↓
+Group By
+      ↓
+Bar Chart
+```
+
+Configure Filter:
+
+```text
+country = Korea
+```
+
+Configure Calculated Column:
+
+```text
+revenue = quantity * price
+```
+
+Configure Group By:
+
+```text
+Dimension:
+category
+
+Aggregation:
+SUM(revenue)
+```
+
+Configure Bar Chart:
+
+```text
+X:
+category
+
+Y:
+sum_revenue
+```
+
+---
+
+## Step 4 — KPI
+
+Create a KPI representing:
+
+```text
+Total Revenue
+```
+
+---
+
+## Step 5 — Dashboard
+
+Add:
+
+* Revenue by Category Bar Chart;
+* Total Revenue KPI.
+
+Then:
+
+* move widgets;
+* resize widgets;
+* save layout.
+
+---
+
+## Step 6 — Recovery
+
+Reload the browser.
+
+Verify:
+
+* source still exists;
+* workflow still exists;
+* nodes retain positions;
+* edges remain;
+* configuration remains;
+* visualizations remain;
+* dashboard remains;
+* widget layout remains.
+
+---
+
+## Step 7 — Restart
+
+Restart the normal application stack.
+
+Verify:
+
+* project remains;
+* workbook remains available;
+* workflow executes again;
+* dashboard renders.
+
+---
+
+# 28. Quality Gate
+
+Before declaring MVP complete:
+
+Backend:
+
+```text
+tests pass
+lint passes
+database migrations pass
+```
+
+Frontend:
+
+```text
+tests pass
+lint passes
+TypeScript typecheck passes
+production build passes
+```
+
+E2E:
+
+```text
+canonical MVP journey passes
+```
+
+Defects:
+
+```text
+P0 = 0
+P1 = 0
+```
+
+---
+
+# 29. Development Workflow for Codex
+
+Autonomous coding agents must use:
+
+```text
+READ
+ ↓
+PLAN
+ ↓
+IMPLEMENT
+ ↓
+TEST
+ ↓
+FIX
+ ↓
+TEST AGAIN
+ ↓
+REVIEW
+ ↓
+DOCUMENT
+ ↓
+UPDATE STATUS
+ ↓
+CONTINUE
+```
+
+Do not stop after every normal task asking for permission.
+
+See:
+
+```text
+AGENTS.md
+```
+
+for complete agent rules.
+
+---
+
+# 30. Starting a New Coding Session
+
+A new Codex session should begin by reading:
+
+```text
+AGENTS.md
+STATUS.md
+TASKS.md
+PRODUCT_SPEC.md
+ARCHITECTURE.md
+DECISIONS.md
+```
+
+Then inspect:
+
+```text
+repository
+git status
+git diff
+existing tests
+```
+
+After that, resume from the first unfinished actionable task.
+
+---
+
+# 31. Resume Prompt
+
+A minimal resume instruction for Codex is:
+
+```text
+Read AGENTS.md, STATUS.md, TASKS.md,
+PRODUCT_SPEC.md, ARCHITECTURE.md and DECISIONS.md.
+
+Inspect the current repository state and git diff.
+
+Resume autonomous development from the first
+unfinished actionable task.
+
+Do not repeat completed work.
+
+Follow the development protocol in AGENTS.md.
+
+Continue through TASKS.md until the MVP Definition
+of Done is satisfied or a genuine blocker prevents
+all meaningful progress.
+```
+
+---
+
+# 32. Current MVP Non-Goals
+
+Do not expand MVP into:
+
+* authentication;
+* multi-user collaboration;
+* organizations;
+* enterprise permissions;
+* row-level security;
+* scheduled refresh;
+* SQL connectors;
+* Google Sheets;
+* REST connectors;
+* realtime streaming;
+* mobile workflow editor;
+* PDF export;
+* PowerPoint export;
+* plugin marketplace;
+* distributed execution;
+* AI workflow generation;
+* natural-language analytics.
+
+These may be addressed after the core product is validated.
+
+---
+
+# 33. Security Baseline
+
+Even in single-user MVP mode:
+
+* validate API input;
+* validate uploaded files;
+* enforce upload limits;
+* prevent path traversal;
+* never execute workbook macros;
+* never evaluate arbitrary formula code;
+* do not commit secrets;
+* use backend-generated storage keys;
+* avoid exposing stack traces as normal user errors.
+
+---
+
+# 34. Performance Baseline
+
+The MVP targets workbook-scale analytical workloads.
+
+Important rules:
+
+* transformations run server-side;
+* previews are bounded;
+* chart point counts are bounded;
+* avoid unnecessary workbook reloads;
+* avoid Python row-by-row loops where vectorized operations exist;
+* cache repeated execution when justified.
+
+Do not introduce distributed infrastructure without demonstrated need.
+
+---
+
+# 35. Architecture Change Process
+
+When a significant architectural change is required:
+
+1. identify the concrete problem;
+2. evaluate alternatives;
+3. create or update an ADR in `DECISIONS.md`;
+4. update `ARCHITECTURE.md`;
+5. update affected tasks;
+6. implement the change;
+7. test the migration or changed behavior.
+
+Do not silently diverge from documented architecture.
+
+---
+
+# 36. Product Scope Change Process
+
+When MVP scope changes intentionally:
+
+1. update `PRODUCT_SPEC.md`;
+2. update `TASKS.md`;
+3. record significant reasoning in `DECISIONS.md`;
+4. update `STATUS.md`;
+5. update this README if user-facing behavior changes.
+
+Do not allow implementation convenience to silently redefine product requirements.
+
+---
+
+# 37. Project State Files
+
+The following documents together form the persistent memory of the project:
+
+```text
+AGENTS.md
+PRODUCT_SPEC.md
+ARCHITECTURE.md
+TASKS.md
+STATUS.md
+DECISIONS.md
+README.md
+```
+
+Conversation history must not be required to continue development.
+
+---
+
+# 38. Current Status
+
+The current active milestone is:
+
+```text
+M4 — Excel Data Sources
+```
+
+M0 through M3 are complete. See the status snapshot for the next actionable task and verified checks.
+
+Always verify the current state in:
+
+```text
+STATUS.md
+```
+
+before beginning implementation.
+
+---
+
+# 39. MVP Goal
+
+The MVP succeeds when a user can take an ordinary Excel workbook and, without writing code:
+
+```text
+Import
+  ↓
+Transform
+  ↓
+Inspect
+  ↓
+Visualize
+  ↓
+Build Dashboard
+  ↓
+Save
+  ↓
+Return Later
+  ↓
+Continue Working
+```
+
+The goal is not to reproduce the entire functionality of mature enterprise BI platforms.
+
+The goal is to prove a reliable, understandable, extensible node-based BI workflow.

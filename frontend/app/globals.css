@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+}
+
+.glow {
+  position: fixed;
+  width: 36rem;
+  height: 36rem;
+  top: -16rem;
+  right: -8rem;
+  border-radius: 9999px;
+  background: #7fcf32;
+  opacity: 0.13;
+  filter: blur(90px);
+}
+
+.node-line {
+  position: absolute;
+  left: 2.55rem;
+  bottom: -0.85rem;
+  width: 1px;
+  height: 0.85rem;
+  background: rgba(183, 255, 90, 0.4);
+}
+
