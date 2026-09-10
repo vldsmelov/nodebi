@@ -13,9 +13,9 @@ from app.domain.nodes import (
     ValidationIssue,
     ValidationResult,
 )
+from app.domain.sources import SourceAccess
 from app.domain.workflows import NodeInstance
-from app.infrastructure.excel import ExcelWorkbookError, OpenPyxlWorkbookReader
-from app.models import DataSource
+from app.infrastructure.excel import ExcelWorkbookError
 
 
 class ExcelSourceConfig(BaseModel):
@@ -27,16 +27,10 @@ class ExcelSourceExecutor:
     def _config(self, node: NodeInstance) -> ExcelSourceConfig:
         return ExcelSourceConfig.model_validate(node.config)
 
-    def _source(self, node: NodeInstance, context: ExecutionContext) -> DataSource:
-        config = self._config(node)
-        source = (
-            context.source_repository.get(config.source_id)
-            if context.source_repository
-            else context.session.get(DataSource, config.source_id)
-        )
-        if source is None or source.project_id != context.project_id:
-            raise ExcelWorkbookError("The configured Excel source does not exist in this project.")
-        return source
+    def _access(self, context: ExecutionContext) -> SourceAccess:
+        if context.sources is None:
+            raise ExcelWorkbookError("Source access is unavailable.")
+        return context.sources
 
     def validate(
         self,
@@ -46,19 +40,8 @@ class ExcelSourceExecutor:
     ) -> ValidationResult:
         del input_schemas
         try:
-            source = self._source(node, context)
             config = self._config(node)
-            info = OpenPyxlWorkbookReader(context.storage).inspect(source.storage_key)
-            if config.sheet_name not in {sheet.name for sheet in info.sheets}:
-                return ValidationResult(
-                    (
-                        ValidationIssue(
-                            "WORKSHEET_NOT_FOUND",
-                            "Configured worksheet does not exist.",
-                            "sheet_name",
-                        ),
-                    )
-                )
+            self._access(context).validate(config.source_id, config.sheet_name)
         except (ExcelWorkbookError, ValueError) as exc:
             return ValidationResult((ValidationIssue("INVALID_EXCEL_SOURCE", str(exc)),))
         return ValidationResult()
@@ -70,13 +53,8 @@ class ExcelSourceExecutor:
         context: ExecutionContext,
     ) -> DatasetSchema:
         del input_schemas
-        source = self._source(node, context)
         config = self._config(node)
-        return (
-            OpenPyxlWorkbookReader(context.storage)
-            .load_sheet(source.storage_key, config.sheet_name)
-            .schema
-        )
+        return self._access(context).schema(config.source_id, config.sheet_name)
 
     def execute(
         self,
@@ -85,11 +63,12 @@ class ExcelSourceExecutor:
         context: ExecutionContext,
     ) -> Dataset:
         del inputs
-        source = self._source(node, context)
         config = self._config(node)
-        return OpenPyxlWorkbookReader(context.storage).load_sheet(
-            source.storage_key, config.sheet_name
-        )
+        return self._access(context).load(config.source_id, config.sheet_name)
+
+    def identity(self, node: NodeInstance, context: ExecutionContext) -> str:
+        config = self._config(node)
+        return self._access(context).identity(config.source_id, config.sheet_name)
 
 
 def excel_source_definition() -> NodeDefinition:
@@ -109,4 +88,5 @@ def excel_source_definition() -> NodeDefinition:
         schema_inference_mode=SchemaInferenceMode.STATIC,
         executor=ExcelSourceExecutor(),
         icon="file-spreadsheet",
+        cache_identity=ExcelSourceExecutor().identity,
     )

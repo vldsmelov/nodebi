@@ -2,8 +2,6 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -12,7 +10,6 @@ from app.domain.nodes import (
     NodeDefinition,
     NodeRegistry,
     PortDefinition,
-    UnknownNodeTypeError,
 )
 from app.domain.workflows import (
     NodeInstance,
@@ -24,18 +21,15 @@ from app.domain.workflows import (
 )
 from app.infrastructure.database import get_session
 from app.infrastructure.storage import StorageProvider, get_storage_provider
-from app.models import Project, Workflow, WorkflowEdge, WorkflowNode
+from app.models import Project, Workflow
 from app.nodes import get_node_registry
-from app.repositories.sqlalchemy import SqlAlchemySourceRepository, SqlAlchemyWorkflowRepository
+from app.repositories.sqlalchemy import SqlAlchemyWorkflowRepository
 from app.schemas.workflows import (
-    EdgePayload,
     GraphIssueRead,
     NodeCatalogRead,
     NodeDefinitionRead,
-    NodePayload,
     NodeSchemaRead,
     PortRead,
-    PositionPayload,
     PreviewRead,
     PreviewRequest,
     ResolvedColumnRead,
@@ -53,7 +47,9 @@ from app.services.execution import (
     default_execution_logger,
     get_execution_cache,
 )
+from app.services.source_access import ProjectSourceAccess
 from app.services.workflow_validation import GraphIssue, WorkflowSchemaResolver
+from app.services.workflows import read_workflow, save_graph
 
 router = APIRouter(tags=["workflows"])
 DatabaseSession = Annotated[Session, Depends(get_session)]
@@ -67,44 +63,6 @@ def _not_found() -> HTTPException:
     return HTTPException(
         status_code=404,
         detail={"code": "WORKFLOW_NOT_FOUND", "message": "Workflow does not exist."},
-    )
-
-
-def _read(session: Session, workflow: Workflow) -> WorkflowRead:
-    nodes = session.scalars(
-        select(WorkflowNode).where(WorkflowNode.workflow_id == workflow.id)
-    ).all()
-    edges = session.scalars(
-        select(WorkflowEdge).where(WorkflowEdge.workflow_id == workflow.id)
-    ).all()
-    return WorkflowRead(
-        id=workflow.id,
-        project_id=workflow.project_id,
-        name=workflow.name,
-        version=workflow.version,
-        nodes=[
-            NodePayload(
-                id=node.id,
-                type=node.node_type,
-                version=node.node_version,
-                position=PositionPayload(x=node.position_x, y=node.position_y),
-                config=node.config,
-                ui=node.ui_state,
-            )
-            for node in nodes
-        ],
-        edges=[
-            EdgePayload(
-                id=edge.id,
-                source_node_id=edge.source_node_id,
-                source_port=edge.source_port,
-                target_node_id=edge.target_node_id,
-                target_port=edge.target_port,
-            )
-            for edge in edges
-        ],
-        created_at=workflow.created_at,
-        updated_at=workflow.updated_at,
     )
 
 
@@ -126,7 +84,11 @@ def list_workflows(project_id: uuid.UUID, session: DatabaseSession) -> WorkflowL
     return WorkflowList(
         items=[
             WorkflowSummary(
-                id=item.id, project_id=item.project_id, name=item.name, version=item.version
+                id=item.id,
+                project_id=item.project_id,
+                name=item.name,
+                version=item.version,
+                revision=item.revision,
             )
             for item in items
         ]
@@ -149,12 +111,12 @@ def create_workflow(
     )
     session.commit()
     session.refresh(workflow)
-    return _read(session, workflow)
+    return read_workflow(session, workflow)
 
 
 @router.get("/api/v1/workflows/{workflow_id}", response_model=WorkflowRead)
 def get_workflow(workflow_id: uuid.UUID, session: DatabaseSession) -> WorkflowRead:
-    return _read(session, _workflow(session, workflow_id))
+    return read_workflow(session, _workflow(session, workflow_id))
 
 
 def _issue_read(issue: GraphIssue) -> GraphIssueRead:
@@ -169,7 +131,7 @@ def _issue_read(issue: GraphIssue) -> GraphIssueRead:
 
 
 def _domain_graph(session: Session, workflow: Workflow) -> WorkflowGraph:
-    payload = _read(session, workflow)
+    payload = read_workflow(session, workflow)
     return WorkflowGraph(
         id=workflow.id,
         project_id=workflow.project_id,
@@ -210,9 +172,7 @@ def _execution_context(
         workflow.project_id,
         workflow.id,
         uuid.uuid4(),
-        session,
-        storage,
-        source_repository=SqlAlchemySourceRepository(session),
+        sources=ProjectSourceAccess(workflow.project_id, session, storage, cache),
         cache=cache,
         logger=default_execution_logger(),
         settings=settings,
@@ -233,6 +193,7 @@ def resolve_workflow_schema(
     context = _execution_context(workflow, session, storage, settings, cache)
     result = WorkflowSchemaResolver(registry).resolve(graph, context)
     return WorkflowSchemaRead(
+        revision=workflow.revision,
         valid=result.valid,
         nodes=[
             NodeSchemaRead(
@@ -301,6 +262,7 @@ def preview_workflow_node(
     limit = min(payload.limit, settings.max_preview_rows)
     rows = result.output.frame.head(limit).to_dicts()
     return PreviewRead(
+        revision=workflow.revision,
         execution_id=result.execution_id,
         node_id=node_id,
         status=result.status.value,
@@ -315,76 +277,12 @@ def preview_workflow_node(
     )
 
 
-def _validate_graph(payload: WorkflowSave, registry: NodeRegistry) -> None:
-    node_ids = [node.id for node in payload.nodes]
-    edge_ids = [edge.id for edge in payload.edges]
-    if len(node_ids) != len(set(node_ids)) or len(edge_ids) != len(set(edge_ids)):
-        raise HTTPException(
-            status_code=422,
-            detail={"code": "DUPLICATE_GRAPH_ID", "message": "Node and edge IDs must be unique."},
-        )
-    known = set(node_ids)
-    for node in payload.nodes:
-        try:
-            registry.get(node.type, node.version)
-        except UnknownNodeTypeError as exc:
-            raise HTTPException(
-                status_code=422,
-                detail={"code": "INVALID_NODE", "message": str(exc), "node_id": str(node.id)},
-            ) from exc
-    for edge in payload.edges:
-        if edge.source_node_id not in known or edge.target_node_id not in known:
-            raise HTTPException(
-                status_code=422,
-                detail={"code": "INVALID_EDGE", "message": "Edge references a missing node."},
-            )
-
-
 @router.put("/api/v1/workflows/{workflow_id}", response_model=WorkflowRead)
 def save_workflow(
     workflow_id: uuid.UUID, payload: WorkflowSave, session: DatabaseSession, registry: Registry
 ) -> WorkflowRead:
     workflow = _workflow(session, workflow_id)
-    _validate_graph(payload, registry)
-    workflow.name = payload.name.strip()
-    nodes = [
-        WorkflowNode(
-            id=node.id,
-            workflow_id=workflow.id,
-            node_type=node.type,
-            node_version=node.version,
-            position_x=node.position.x,
-            position_y=node.position.y,
-            config=node.config,
-            ui_state=node.ui,
-        )
-        for node in payload.nodes
-    ]
-    edges = [
-        WorkflowEdge(
-            id=edge.id,
-            workflow_id=workflow.id,
-            source_node_id=edge.source_node_id,
-            source_port=edge.source_port,
-            target_node_id=edge.target_node_id,
-            target_port=edge.target_port,
-        )
-        for edge in payload.edges
-    ]
-    try:
-        SqlAlchemyWorkflowRepository(session).save_graph(workflow, nodes, edges)
-        session.commit()
-    except IntegrityError as exc:
-        session.rollback()
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "code": "INVALID_GRAPH",
-                "message": "Workflow graph could not be saved atomically.",
-            },
-        ) from exc
-    session.refresh(workflow)
-    return _read(session, workflow)
+    return save_graph(session, workflow, payload, registry)
 
 
 @router.delete("/api/v1/workflows/{workflow_id}", status_code=204)
@@ -409,6 +307,8 @@ def _definition_read(definition: NodeDefinition) -> NodeDefinitionRead:
         type=definition.type,
         version=definition.version,
         category=definition.category.value,
+        config_schema=definition.config_schema.model_json_schema(),
+        schema_inference_mode=definition.schema_inference_mode.value,
         display_name=definition.display_name,
         description=definition.description,
         icon=definition.icon,

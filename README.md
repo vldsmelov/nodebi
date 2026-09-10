@@ -427,6 +427,63 @@ for the current authoritative development state.
 
 # 8. Local Development
 
+## Astra revision checks (2026-09-10)
+
+The prior implementation and the architecture review are recorded in
+`docs/ASTRA_HANDOFF.md` and `docs/ARCHITECTURE_REVIEW.md`.
+
+Additional checks from `frontend/`:
+
+```powershell
+npm run api:generate
+npm run api:check
+npm run test
+npx playwright install chromium
+npm run test:e2e
+```
+
+Browser tests expect the documented Compose stack on localhost ports 3000/8000.
+They create and remove their own projects. Override `NODEBI_E2E_URL` and
+`NODEBI_E2E_API` for other test endpoints.
+
+Run backend checks with real PostgreSQL in addition to SQLite:
+
+```powershell
+cd backend
+$env:NODEBI_TEST_POSTGRES_URL = 'postgresql+psycopg://nodebi:nodebi_dev@127.0.0.1:5432/nodebi?connect_timeout=5'
+.\.venv\Scripts\python -m pytest
+```
+
+Tests migrate private UUID schemas and remove only those schemas. They cover
+concurrent writers, graph ownership, migration roundtrips and ORM drift. The two
+PostgreSQL-only cases skip on the SQLite half of the matrix.
+
+Workflow saves now require `expected_revision`. HTTP 409 preserves the local draft;
+retry does not force an overwrite. Draft recovery is scoped to the browser tab and
+survives page reload/navigation. Closing the tab ends its session draft storage.
+Workflow format `version` is independent of the returned edit `revision`.
+
+Uploaded files are immutable. Workbook materialization is bounded to 250,000 rows,
+1,024 columns and 2,000,000 cells; expanded archive size is limited to 256 MiB and
+10,000 entries. Oversized inputs produce an error, not a truncated analytical result.
+Data preview type inference describes the returned sample; execution schema uses the
+whole permitted sheet. The execution cache retains at most 32 entries and 256 MiB
+of estimated dataframe storage; Python/engine overhead is additional.
+
+Source/project deletions queue file cleanup atomically. Failed cleanup is retried
+at startup and can be retried manually from the backend environment:
+
+```powershell
+python -m app.services.file_cleanup
+```
+
+The frontend public API URL is a Docker build argument because Next.js embeds it
+during compilation. Rebuild the frontend after changing `NEXT_PUBLIC_API_URL`.
+
+Vitest is updated to 4.1.11. The js-yaml 4.3.2 override fixes a transitive development
+dependency advisory; current npm audit is clean. API types use openapi-typescript
+and browser tests use Playwright; these are development dependencies.
+
 Copy `.env.example` to `.env` only when you need to override the safe development defaults, then run:
 
 ```bash

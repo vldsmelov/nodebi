@@ -30,6 +30,7 @@ export default function WorkflowPage() {
   const refreshSchema = useCallback(() => {
     if (effectiveWorkflowId) {
       void client.invalidateQueries({ queryKey: ["workflow-schema", effectiveWorkflowId] });
+      void client.invalidateQueries({ queryKey: ["workflow", effectiveWorkflowId] });
     }
   }, [client, effectiveWorkflowId]);
   const error = workflows.error ?? workflow.error ?? catalog.error ?? sources.error ?? create.error;

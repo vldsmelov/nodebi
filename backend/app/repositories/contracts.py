@@ -37,6 +37,7 @@ class WorkflowRepository(Protocol):
         workflow: Workflow,
         nodes: Sequence[WorkflowNode],
         edges: Sequence[WorkflowEdge],
+        expected_revision: int | None = None,
     ) -> None: ...
 
 

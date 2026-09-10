@@ -1,12 +1,18 @@
 from datetime import date, datetime
 from typing import Any
-from zipfile import BadZipFile
+from zipfile import BadZipFile, ZipFile
 
 import polars as pl
 from openpyxl import load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
 
-from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema, LogicalType, polars_to_logical
+from app.domain.datasets import (
+    ColumnSchema,
+    Dataset,
+    DatasetSchema,
+    LogicalType,
+    logical_to_polars,
+)
 from app.domain.workbooks import (
     CellValue,
     ColumnInfo,
@@ -48,14 +54,24 @@ def _logical_type(values: list[CellValue]) -> tuple[LogicalType, bool]:
 
 
 def _columns(headers: tuple[Any, ...], data_rows: list[tuple[Any, ...]]) -> list[ColumnInfo]:
-    seen: dict[str, int] = {}
+    used: set[str] = set()
+    labels = [
+        (str(value).strip() if value is not None else "") or f"Column {index + 1}"
+        for index, value in enumerate(headers)
+    ]
+    reserved = set(labels)
     result: list[ColumnInfo] = []
     for index, raw_header in enumerate(headers):
         display_name = str(raw_header).strip() if raw_header is not None else ""
         display_name = display_name or f"Column {index + 1}"
-        occurrence = seen.get(display_name, 0) + 1
-        seen[display_name] = occurrence
-        engine_name = display_name if occurrence == 1 else f"{display_name}__{occurrence}"
+        engine_name = display_name
+        occurrence = 2
+        while engine_name in used:
+            engine_name = f"{display_name}__{occurrence}"
+            occurrence += 1
+            if engine_name in reserved:
+                engine_name = display_name
+        used.add(engine_name)
         values = [row[index] if index < len(row) else None for row in data_rows]
         logical_type, nullable = _logical_type(values)
         result.append(
@@ -78,6 +94,13 @@ class OpenPyxlWorkbookReader:
         stream = None
         try:
             stream = self.storage.open(storage_key)
+            with ZipFile(stream) as archive:
+                if (
+                    len(archive.infolist()) > 10_000
+                    or sum(member.file_size for member in archive.infolist()) > 256 * 1024 * 1024
+                ):
+                    raise ValueError("Workbook expanded size exceeds the supported limit.")
+            stream.seek(0)
             return stream, load_workbook(stream, read_only=True, data_only=True, keep_vba=False)
         except (BadZipFile, InvalidFileException, OSError, ValueError, KeyError) as exc:
             if stream is not None:
@@ -90,7 +113,7 @@ class OpenPyxlWorkbookReader:
             sheets = [
                 WorksheetInfo(
                     name=sheet.title,
-                    row_count=max(sheet.max_row - 1, 0),
+                    row_count=max((sheet.max_row or 1) - 1, 0),
                     column_count=sheet.max_column,
                 )
                 for sheet in workbook.worksheets
@@ -141,20 +164,35 @@ class OpenPyxlWorkbookReader:
             headers = next(iterator, ())
             if not headers or all(value is None for value in headers):
                 return Dataset(pl.DataFrame(), DatasetSchema(()), {"sheet_name": sheet_name})
-            rows = list(iterator)
+            if len(headers) > 1024:
+                raise ExcelWorkbookError("Worksheet exceeds the 1024-column limit.")
+            rows: list[tuple[Any, ...]] = []
+            for row in iterator:
+                if len(rows) >= 250_000 or (len(rows) + 1) * len(headers) > 2_000_000:
+                    raise ExcelWorkbookError(
+                        "Worksheet exceeds the 250000-row or 2000000-cell limit."
+                    )
+                rows.append(row)
             inferred = _columns(headers, rows)
+            # Polars' row inference samples a prefix. Our logical inference examines
+            # all rows and explicitly normalizes mixed values before construction.
             frame = pl.DataFrame(
-                rows,
-                schema=[column.engine_name for column in inferred],
-                orient="row",
-                strict=False,
+                [
+                    pl.Series(
+                        column.engine_name,
+                        [_coerce(row[index], column.logical_type) for row in rows],
+                        dtype=logical_to_polars(column.logical_type),
+                        strict=True,
+                    )
+                    for index, column in enumerate(inferred)
+                ]
             )
             columns = tuple(
                 ColumnSchema(
                     column_id=column.column_id,
                     engine_name=column.engine_name,
                     display_name=column.display_name,
-                    logical_type=polars_to_logical(frame.schema[column.engine_name]),
+                    logical_type=column.logical_type,
                     nullable=frame[column.engine_name].null_count() > 0,
                     metadata={"source_position": index},
                 )
@@ -173,4 +211,16 @@ class OpenPyxlWorkbookReader:
 def _serialize(value: Any) -> Any:
     if isinstance(value, (date, datetime)):
         return value.isoformat()
+    return value
+
+
+def _coerce(value: Any, logical_type: LogicalType) -> Any:
+    if value is None:
+        return None
+    if logical_type == LogicalType.STRING:
+        return str(_serialize(value))
+    if logical_type == LogicalType.FLOAT:
+        return float(value)
+    if logical_type == LogicalType.DATETIME and type(value) is date:
+        return datetime.combine(value, datetime.min.time())
     return value

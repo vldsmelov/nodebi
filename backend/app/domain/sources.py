@@ -1,0 +1,13 @@
+import uuid
+from typing import Protocol
+
+from app.domain.datasets import Dataset, DatasetSchema
+
+
+class SourceAccess(Protocol):
+    """Project-scoped immutable dataset access, independent of ORM and Excel."""
+
+    def validate(self, source_id: uuid.UUID, sheet_name: str) -> None: ...
+    def identity(self, source_id: uuid.UUID, sheet_name: str) -> str: ...
+    def schema(self, source_id: uuid.UUID, sheet_name: str) -> DatasetSchema: ...
+    def load(self, source_id: uuid.UUID, sheet_name: str) -> Dataset: ...

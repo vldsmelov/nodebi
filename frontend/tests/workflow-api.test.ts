@@ -35,6 +35,7 @@ describe("workflow API", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: "workflow-1" }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     const payload = {
+      expected_revision: 1,
       name: "Sales workflow",
       nodes: [{ id: "node-1", type: "excel_source", version: 1, position: { x: 10, y: 20 }, config: { source_id: "source-1", sheet_name: "Sales" }, ui: {} }],
       edges: [],

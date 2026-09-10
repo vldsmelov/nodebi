@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema, LogicalType
 from app.domain.nodes import ExecutionContext
 from app.domain.workflows import NodeInstance, Position
-from app.infrastructure.storage import LocalStorageProvider
 from app.nodes.filter import filter_definition
 
 SCHEMA = DatasetSchema(
@@ -34,9 +33,7 @@ DATASET = Dataset(
 
 
 def context(session: Session, tmp_path: Path) -> ExecutionContext:
-    return ExecutionContext(
-        uuid.uuid4(), uuid.uuid4(), uuid.uuid4(), session, LocalStorageProvider(tmp_path)
-    )
+    return ExecutionContext(uuid.uuid4(), uuid.uuid4(), uuid.uuid4(), None)
 
 
 def node(*conditions: dict[str, object], **single: object) -> NodeInstance:

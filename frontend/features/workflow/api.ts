@@ -1,18 +1,6 @@
 import type { NodeDefinition, NodePreview, Workflow, WorkflowSave, WorkflowSchemaResult, WorkflowSummary } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const result = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  if (!result.ok) {
-    const body = await result.json().catch(() => null);
-    throw new Error(body?.detail?.message ?? "The request could not be completed.");
-  }
-  return result.status === 204 ? (undefined as T) : result.json();
-}
+import { apiRequest as request } from "@/lib/api";
 
 export async function listWorkflows(projectId: string): Promise<WorkflowSummary[]> {
   const result = await request<{ items: WorkflowSummary[] }>(

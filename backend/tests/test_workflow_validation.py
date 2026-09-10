@@ -16,7 +16,6 @@ from app.domain.nodes import (
     ValidationResult,
 )
 from app.domain.workflows import NodeInstance, Position, WorkflowEdge, WorkflowGraph
-from app.infrastructure.storage import LocalStorageProvider
 from app.services.workflow_validation import (
     WorkflowGraphValidator,
     WorkflowSchemaResolver,
@@ -117,9 +116,7 @@ def test_cycle_detection_and_topological_order_are_deterministic() -> None:
 def test_schema_resolver_propagates_schema_per_node(session: Session, tmp_path: Path) -> None:
     source, transform = node(1, "source"), node(2, "transform")
     workflow = graph((transform, source), (edge(10, 1, 2),))
-    context = ExecutionContext(
-        workflow.project_id, workflow.id, uuid.uuid4(), session, LocalStorageProvider(tmp_path)
-    )
+    context = ExecutionContext(workflow.project_id, workflow.id, uuid.uuid4(), None)
 
     result = WorkflowSchemaResolver(registry()).resolve(workflow, context)
 
@@ -135,9 +132,7 @@ def test_unknown_until_execution_returns_warning(session: Session, tmp_path: Pat
     )
     source = node(1, "unknown")
     workflow = graph((source,), ())
-    context = ExecutionContext(
-        workflow.project_id, workflow.id, uuid.uuid4(), session, LocalStorageProvider(tmp_path)
-    )
+    context = ExecutionContext(workflow.project_id, workflow.id, uuid.uuid4(), None)
 
     result = WorkflowSchemaResolver(custom_registry).resolve(workflow, context)
 

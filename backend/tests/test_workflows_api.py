@@ -2,6 +2,7 @@ import uuid
 from io import BytesIO
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 from openpyxl import Workbook
 from sqlalchemy.engine import Engine
@@ -12,6 +13,70 @@ from app.infrastructure.database import get_session
 from app.infrastructure.storage import LocalStorageProvider, get_storage_provider
 from app.main import app
 from app.models import Project
+
+
+@pytest.mark.parametrize("foreign_kind", ["node", "edge"])
+def test_foreign_graph_ids_are_rejected_without_mutating_either_graph(
+    db_engine: Engine, foreign_kind: str
+) -> None:
+    project_id = uuid.uuid4()
+    with Session(db_engine) as session:
+        session.add(Project(id=project_id, name="Ownership"))
+        session.commit()
+    client = client_for(db_engine)
+    try:
+        graphs = []
+        for name in ("A", "B"):
+            workflow = client.post(
+                f"/api/v1/projects/{project_id}/workflows", json={"name": name}
+            ).json()
+            nodes = [
+                {
+                    "id": str(uuid.uuid4()),
+                    "type": "select_columns",
+                    "version": 1,
+                    "position": {"x": 0, "y": 0},
+                    "config": {},
+                }
+                for _ in range(2)
+            ]
+            saved = client.put(
+                f"/api/v1/workflows/{workflow['id']}",
+                json={
+                    "name": name,
+                    "expected_revision": 1,
+                    "nodes": nodes,
+                    "edges": [
+                        {
+                            "id": str(uuid.uuid4()),
+                            "source_node_id": nodes[0]["id"],
+                            "source_port": "dataset",
+                            "target_node_id": nodes[1]["id"],
+                            "target_port": "input",
+                        }
+                    ],
+                },
+            )
+            assert saved.status_code == 200
+            graphs.append(saved.json())
+        a, b = graphs
+        payload = {
+            "expected_revision": b["revision"],
+            "name": "Attempted rename",
+            "nodes": b["nodes"],
+            "edges": b["edges"],
+        }
+        if foreign_kind == "node":
+            payload["nodes"][0]["id"] = a["nodes"][0]["id"]
+            payload["edges"][0]["source_node_id"] = a["nodes"][0]["id"]
+        else:
+            payload["edges"][0]["id"] = a["edges"][0]["id"]
+        before = [client.get(f"/api/v1/workflows/{g['id']}").json() for g in graphs]
+        rejected = client.put(f"/api/v1/workflows/{b['id']}", json=payload)
+        assert rejected.status_code == 422
+        assert [client.get(f"/api/v1/workflows/{g['id']}").json() for g in graphs] == before
+    finally:
+        app.dependency_overrides.clear()
 
 
 def client_for(engine: Engine, tmp_path: Path | None = None) -> TestClient:
@@ -28,6 +93,32 @@ def client_for(engine: Engine, tmp_path: Path | None = None) -> TestClient:
     return TestClient(app)
 
 
+def test_stale_save_is_a_conflict_and_format_version_does_not_change(db_engine: Engine) -> None:
+    project_id = uuid.uuid4()
+    with Session(db_engine) as session:
+        session.add(Project(id=project_id, name="Concurrent edits"))
+        session.commit()
+    client = client_for(db_engine)
+    try:
+        created = client.post(
+            f"/api/v1/projects/{project_id}/workflows", json={"name": "Initial"}
+        ).json()
+        path = f"/api/v1/workflows/{created['id']}"
+        payload = {"name": "First tab", "nodes": [], "edges": [], "expected_revision": 1}
+        first = client.put(path, json=payload)
+        assert first.status_code == 200
+        second = client.put(path, json={**payload, "name": "Second tab"})
+        assert second.status_code == 409
+        assert second.json()["detail"]["code"] == "WORKFLOW_CONFLICT"
+        saved = client.get(path).json()
+        assert saved["name"] == "First tab"
+        assert saved["version"] == 1
+        assert saved["revision"] == 2
+        assert client.get(path + "/schema").json()["revision"] == 2
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_workflow_persist_reload_catalog_and_delete(db_engine: Engine) -> None:
     project_id = uuid.uuid4()
     source_id = uuid.uuid4()
@@ -40,6 +131,7 @@ def test_workflow_persist_reload_catalog_and_delete(db_engine: Engine) -> None:
     workflow_id = created.json()["id"]
     graph = {
         "name": "Sales flow",
+        "expected_revision": 1,
         "nodes": [
             {
                 "id": str(node_id),
@@ -60,7 +152,8 @@ def test_workflow_persist_reload_catalog_and_delete(db_engine: Engine) -> None:
 
     assert created.status_code == 201
     assert saved.status_code == 200
-    assert saved.json()["version"] == 2
+    assert saved.json()["version"] == 1
+    assert saved.json()["revision"] == 2
     assert reloaded.json()["nodes"][0]["config"]["sheet_name"] == "Sales"
     assert schemas.status_code == 200
     assert schemas.json()["valid"] is False
@@ -69,8 +162,8 @@ def test_workflow_persist_reload_catalog_and_delete(db_engine: Engine) -> None:
         client.get(f"/api/v1/projects/{project_id}/workflows").json()["items"][0]["name"]
         == "Sales flow"
     )
-    assert catalog.json()["items"][0]["type"] == "excel_source"
-    assert catalog.json()["items"][0]["output_ports"][0]["id"] == "dataset"
+    excel = next(item for item in catalog.json()["items"] if item["type"] == "excel_source")
+    assert excel["output_ports"][0]["id"] == "dataset"
     assert client.delete(f"/api/v1/workflows/{workflow_id}").status_code == 204
     assert client.get(f"/api/v1/workflows/{workflow_id}").status_code == 404
     app.dependency_overrides.clear()
@@ -105,6 +198,7 @@ def test_excel_rename_and_filter_execute_through_generic_preview_api(
         f"/api/v1/workflows/{workflow['id']}",
         json={
             "name": "Main",
+            "expected_revision": 1,
             "nodes": [
                 {
                     "id": str(node_id),
@@ -176,6 +270,7 @@ def test_invalid_graph_does_not_replace_saved_graph(db_engine: Engine) -> None:
     ).json()["id"]
     invalid = {
         "name": "Broken",
+        "expected_revision": 1,
         "nodes": [
             {
                 "id": str(uuid.uuid4()),
@@ -211,6 +306,7 @@ def test_known_unconfigured_node_is_saved_as_a_draft(db_engine: Engine) -> None:
         f"/api/v1/workflows/{workflow_id}",
         json={
             "name": "Draft",
+            "expected_revision": 1,
             "nodes": [
                 {
                     "id": str(node_id),

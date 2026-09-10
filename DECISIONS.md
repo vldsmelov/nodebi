@@ -1523,53 +1523,25 @@ Column IDs are not globally meaningful without their dataset/schema context. Rep
 
 ---
 
-# ADR-042 — Formula Parser Implementation
+# ADR-042 - Formula Parser Implementation
 
-Status:
+Date: 2026-09-10. Status: ACCEPTED.
 
-`ACCEPTED`
+Context: Calculated Column needs arithmetic with predictable types and no host-code execution.
+Decision: parse with Python ast in expression mode, then visit an explicit allowlist and
+construct Polars expressions directly. No eval, exec, Python bytecode compilation,
+functions, attributes, subscripts, imports or runtime name lookup are permitted.
+Supported syntax: numeric constants, fields, +, -, *, /, unary signs and parentheses.
+Bare identifiers refer to engine names; [column_id] references survive field renaming.
+Limit input to 4096 characters, 256 syntax nodes and 64 levels of visitor depth.
+Schema inference and execution share the same compiler. Numeric arithmetic uses Float64;
+nulls propagate, non-finite results fail explicitly with node attribution.
 
-Required before:
-
-M10.6.
-
-## Context
-
-Calculated Column requires safe arithmetic expression parsing.
-
-## Candidate Approaches
-
-### Custom small parser
-
-Possible grammar:
-
-* identifiers;
-* literals;
-* arithmetic;
-* parentheses;
-* allowlisted functions.
-
-Advantages:
-
-* total control;
-* small attack surface.
-
-### Existing expression parser library
-
-Advantages:
-
-* less parser code;
-* potentially richer syntax.
-
-Risks:
-
-* hidden execution capabilities;
-* unsafe callable access;
-* dependency complexity.
-
-## Required Decision
-
-Choose an implementation only after verifying that arbitrary host-language execution is impossible.
+Alternatives: a custom tokenizer/parser duplicates tested parsing infrastructure;
+third-party expression engines add unnecessary execution capabilities and dependencies.
+Consequences: floating point precision applies, including integer inputs above 2^53.
+This is not a decimal accounting engine. Additional functions require explicit contracts
+and security tests. Validation and adversarial cases are in test_arithmetic_nodes.py.
 
 ---
 
@@ -1649,7 +1621,7 @@ Record chosen library and rejected alternatives.
 
 Status:
 
-`PROPOSED`
+`SUPERSEDED BY ADR-052`
 
 Required before:
 
@@ -1718,7 +1690,7 @@ Inspection remains bounded in memory where openpyxl supports streaming. Downstre
 
 Status:
 
-`PROPOSED`
+`ACCEPTED ? implementation specified by ADR-053`
 
 Required before:
 
@@ -1748,7 +1720,7 @@ Choose exact tooling based on frontend build setup.
 
 Status:
 
-`PROPOSED`
+`ACCEPTED ? implementation specified by ADR-050`
 
 Required before:
 
@@ -1863,11 +1835,110 @@ Accepted architectural foundations:
 
 Major pending decisions:
 
-* precise column identity;
-* formula parser implementation;
-* visualization persistence details;
-* dashboard grid library;
-* execution cache implementation;
-* worksheet loading implementation;
-* API type generation;
-* autosave concurrency model.
+* visualization persistence details (ADR-043);
+* dashboard grid library (ADR-044).
+
+Review disposition and remaining limitations for ADR-001 through ADR-049 are recorded in
+`docs/ARCHITECTURE_REVIEW.md`.
+
+# ADR-050 — Workflow ownership and optimistic revision checks
+
+Date: 2026-09-09. Status: ACCEPTED.
+
+Context: merge-by-global-ID could move another workflow's node. `version` mixed
+format identity with an edit counter. Serialized browser requests alone cannot
+protect against two tabs/processes.
+
+Decision: reject foreign node/edge IDs before mutation; insert new rows rather than
+merging unknown IDs. Keep `version=1` as the format, add `revision`, and require
+`expected_revision` for saves. An atomic conditional update returns 409 on conflict.
+Migration 0002 preserves the previous counter as revision and resets format to 1.
+Schema and preview responses identify the revision they represent.
+
+Alternatives: request ordering alone does not protect other writers; resetting all
+existing projects is unnecessary. Consequence: save API clients must send revisions.
+
+# ADR-051 — Explicit Excel conversion and collision-safe column names
+
+Date: 2026-09-09. Status: ACCEPTED.
+
+Context: generated suffixes collided with literal Excel headers; Polars inferred
+only an initial row prefix and failed on later mixed values.
+
+Decision: reserve input labels before assigning suffixes, keep positional column
+IDs, infer each complete input column, normalize mixed values to strings and build
+typed Series. Nulls remain null; temporal strings use ISO representation. Source
+preview inference remains explicitly sample-based; execution schema examines the
+whole permitted worksheet. Column identity/lineage principles in ADR-041 remain.
+
+Alternatives: increasing a sampling prefix still misses later values; silently
+dropping incompatible values corrupts analytical input. Consequence: first source
+materialization scans the complete worksheet subject to explicit resource limits.
+
+# ADR-052 — Project-scoped source access and bounded reusable cache
+
+Date: 2026-09-09. Status: ACCEPTED. Supersedes ADR-045.
+
+Decision: ExecutionContext uses SourceAccess rather than SQLAlchemy Session or ORM
+entities. ProjectSourceAccess adapts persistence/storage and reuses immutable sheet
+materialization for schema and execution. Before a cached result can be returned,
+validate source project ownership and artifact availability. Cache identity includes
+project scope and immutable source storage identity; downstream keys include upstream
+identities and node IDs (derived output field identity). LRU is bounded by 32 entries and 256 MiB of estimated dataframe storage.
+Oversized results execute without being retained. Python object overhead remains an
+additional cost to measure in QA.
+
+Alternatives: Redis, distributed execution and full persistent result storage add
+unneeded infrastructure. Consequences: cache remains disposable; warm results cannot
+hide a deleted/missing source. First schema resolution may materialize a bounded sheet.
+
+# ADR-053 — Recoverable editor drafts and generated API contracts
+
+Date: 2026-09-09. Status: ACCEPTED.
+
+Decision: a per-workflow serialized writer coalesces edits and uses acknowledged
+server revisions. Pending drafts live in tab-scoped sessionStorage, survive page
+navigation/reload, and never implicitly overwrite a newer server revision. Leaving
+with unsaved edits warns the user. Explicit retry preserves the draft; discard/reload
+is a user action. Successful saves clear drafts. Closing the tab ends session draft
+storage; durable product state is the server-acknowledged graph.
+
+Generate TypeScript API contracts from FastAPI OpenAPI using openapi-typescript;
+`npm run api:check` detects drift. Specialized node forms use a component registry.
+Shared ApiError retains structured node/field/error identifiers.
+
+Alternatives: handwritten duplicated schemas drift; a universal JSON form reduces
+the usability of analytical controls. Consequence: Node configuration remains typed
+on the backend, with explicit UI adapters for each implemented node.
+
+# ADR-054 — Repeatable artifact cleanup
+
+Date: 2026-09-09. Status: ACCEPTED.
+
+Decision: source/project deletion atomically enqueues storage keys with database
+deletion. Cleanup removes files idempotently and only then removes queue rows.
+Failed uploads roll back their source metadata and compensate their stored artifact.
+Startup and `python -m app.services.file_cleanup` retry queued deletions.
+
+Alternatives: deleting files before committing risks broken references on rollback;
+ignoring storage failures permanently leaks files. Consequence: cleanup is eventually
+consistent and may require retry after a storage outage. A process/database failure
+before a compensation record is created still requires operational reconciliation.
+
+# ADR-055 - M10 arithmetic and aggregation semantics
+
+Date: 2026-09-10. Status: ACCEPTED.
+Context: analytical results need stable field identity and explicit empty/null behavior.
+Decision: Sort is stable, multi-key and nulls-last in both directions. Limit requires a
+strictly positive integer. Calculated fields use calc_<node UUID>; Group By preserves
+dimension IDs and assigns agg_<node UUID>_<index> to aggregation outputs. Reordering
+aggregations changes those IDs and requires downstream revalidation.
+Group By with no dimensions returns one global aggregate row. Count without a field
+counts rows; count(field) counts non-null values; distinct count excludes nulls.
+Sum/average use Float64; sum of no non-null values is null. Min/max preserve field type.
+Grouped empty input has no groups; global empty input has counts zero and other values null.
+Duplicate output names and nonnumeric sum/average are rejected. Backend performs all
+aggregation before preview limits; no analytical rows are silently dropped.
+Alternatives: preview-side aggregation gives wrong totals; arbitrary automatic coercion
+of text to numbers hides source problems. Consequence: configuration forms expose compatible
+operations and downstream references must be repaired after aggregation reorder.

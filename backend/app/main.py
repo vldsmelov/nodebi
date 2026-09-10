@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.errors import register_error_handlers
 from app.api.health import router as health_router
 from app.api.projects import router as projects_router
 from app.api.sources import router as sources_router
@@ -18,6 +19,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    register_error_handlers(application)
     application.include_router(health_router)
     application.include_router(projects_router)
     application.include_router(sources_router)

@@ -1,19 +1,18 @@
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from logging import Logger
 from typing import TYPE_CHECKING, Protocol
 
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
 from app.domain.datasets import Dataset, DatasetSchema
+from app.domain.sources import SourceAccess
 from app.domain.workflows import NodeInstance
-from app.infrastructure.storage import StorageProvider
 
 if TYPE_CHECKING:
     from app.config import Settings
-    from app.repositories.contracts import SourceRepository
 
 
 class ExecutionCache(Protocol):
@@ -54,9 +53,7 @@ class ExecutionContext:
     project_id: uuid.UUID
     workflow_id: uuid.UUID
     execution_id: uuid.UUID
-    session: Session
-    storage: StorageProvider
-    source_repository: "SourceRepository | None" = None
+    sources: SourceAccess | None = None
     cache: ExecutionCache | None = None
     logger: Logger | None = None
     settings: "Settings | None" = None
@@ -114,6 +111,7 @@ class NodeDefinition:
     schema_inference_mode: SchemaInferenceMode
     executor: NodeExecutor
     icon: str | None = None
+    cache_identity: Callable[[NodeInstance, ExecutionContext], str] | None = None
 
 
 class UnknownNodeTypeError(KeyError):

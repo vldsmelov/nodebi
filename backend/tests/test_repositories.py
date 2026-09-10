@@ -1,10 +1,14 @@
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 
 import pytest
 from sqlalchemy import func, select
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.domain.errors import WorkflowConflictError
 from app.models import (
     Dashboard,
     DataSource,
@@ -21,6 +25,106 @@ from app.repositories.sqlalchemy import (
     SqlAlchemyVisualizationRepository,
     SqlAlchemyWorkflowRepository,
 )
+
+
+def test_two_postgresql_writers_cannot_both_save_the_same_revision(db_engine: Engine) -> None:
+    if db_engine.dialect.name != "postgresql":
+        pytest.skip("Real concurrent transactions require the PostgreSQL test matrix")
+    with Session(db_engine) as session:
+        project = Project(name="Concurrency")
+        session.add(project)
+        session.flush()
+        workflow = Workflow(project_id=project.id, name="Initial")
+        session.add(workflow)
+        session.commit()
+        workflow_id = workflow.id
+    barrier = Barrier(2)
+
+    def write(name: str) -> str:
+        with Session(db_engine) as session:
+            workflow = session.get(Workflow, workflow_id)
+            assert workflow is not None
+            barrier.wait(timeout=10)
+            workflow.name = name
+            try:
+                SqlAlchemyWorkflowRepository(session).save_graph(
+                    workflow, [], [], expected_revision=1
+                )
+                session.commit()
+                return name
+            except WorkflowConflictError:
+                session.rollback()
+                return "conflict"
+
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        outcomes = list(workers.map(write, ("A", "B")))
+    assert outcomes.count("conflict") == 1
+    with Session(db_engine) as session:
+        stored = session.get(Workflow, workflow_id)
+        assert stored is not None
+        assert stored.revision == 2
+        assert stored.name in outcomes
+
+
+def test_rewire_edge_while_removing_previous_endpoint(session: Session) -> None:
+    project = Project(id=uuid.uuid4(), name="Rewire")
+    workflow = Workflow(id=uuid.uuid4(), project_id=project.id, name="Graph")
+    session.add_all([project, workflow])
+    session.commit()
+
+    def node() -> WorkflowNode:
+        return WorkflowNode(
+            id=uuid.uuid4(),
+            workflow_id=workflow.id,
+            node_type="select_columns",
+            node_version=1,
+            position_x=0,
+            position_y=0,
+            config={},
+            ui_state={},
+        )
+
+    old, target, replacement = node(), node(), node()
+    edge_id = uuid.uuid4()
+    repository = SqlAlchemyWorkflowRepository(session)
+    repository.save_graph(
+        workflow,
+        [old, target],
+        [
+            WorkflowEdge(
+                id=edge_id,
+                workflow_id=workflow.id,
+                source_node_id=old.id,
+                target_node_id=target.id,
+                source_port="dataset",
+                target_port="input",
+            )
+        ],
+    )
+    session.commit()
+    old_id = old.id
+    repository.save_graph(
+        workflow,
+        [target, replacement],
+        [
+            WorkflowEdge(
+                id=edge_id,
+                workflow_id=workflow.id,
+                source_node_id=replacement.id,
+                target_node_id=target.id,
+                source_port="dataset",
+                target_port="input",
+            )
+        ],
+    )
+    session.commit()
+    session.expire_all()
+    stored = session.get(WorkflowEdge, edge_id)
+    assert stored is not None
+    assert stored.source_node_id == replacement.id
+    assert stored.target_node_id == target.id
+    assert session.get(WorkflowNode, old_id) is None
+    assert workflow.revision == 3
 
 
 def test_project_repository_crud(session: Session) -> None:

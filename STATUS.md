@@ -1,56 +1,65 @@
 # Node BI Development Status
 
-Last updated: 2026-09-04
-
-Overall status: **IN PROGRESS**
+Last updated: 2026-09-10
+Overall status: **IN PROGRESS — MVP NOT COMPLETE**
 
 ## Current Milestone
 
-`M10 — Core Transformation Nodes` (`IN PROGRESS`)
+Astra architecture revision gate before M10 continuation.
 
 ## Current Task
 
-`M10.4 — Sort`
+M10 is verified. Prepare the early Bar Chart/KPI/dashboard slice; remaining review items stay tracked.
 
 ## Last Completed Task
 
-`M10.3 — Filter`
-
-Completed milestones: M0 through M9. M10 is in progress.
-
-## Current Repository State
-
-The application supports persistent projects, secure Excel sources, source-independent datasets, versioned node definitions, atomic workflow graph persistence, and Excel Source, Select Columns, Rename Columns, and Filter executors. Filter provides type-aware numeric, string, boolean, null, date, and datetime comparisons with AND composition; string containment is literal rather than regex-based. The frontend provides a React Flow canvas with a searchable categorized node library, schema-aware configuration, local port compatibility, deletion, debounced autosave, save feedback, preview, and schema/error display.
-
-The backend now provides reusable graph validation, cycle detection, deterministic topological ordering, per-node schema resolution, target-ancestor execution planning, typed runtime routing, structured execution failures, and a bounded content-addressed LRU cache. Generic preview execution is exposed at `POST /api/v1/workflows/{workflow_id}/nodes/{node_id}/preview`; the editor renders its bounded results.
+M10 Sort, Limit, safe arithmetic formulas, Calculated Column and Group By, including configuration UI and browser restoration. Revision fixes implemented:
+foreign graph ID rejection; Excel collision/mixed-type fixes; atomic workflow revisions;
+recoverable serialized autosave; source access abstraction; cache validation/memory limits;
+source/project artifact cleanup; generated OpenAPI types; editor configuration/card extraction.
 
 ## Test Status
 
-* Backend: 65 passing; Ruff, formatting, and strict mypy pass.
-* Frontend: 8 passing; ESLint, strict TypeScript, and production build pass.
-* Migrations: ORM drift check and PostgreSQL upgrade checks previously pass; no schema change was made in M7/M8.
-* Docker Compose: PostgreSQL, backend, and production frontend are healthy after rebuilding the current images.
-* Live workflow smoke: an `Excel Source → Filter` workflow with two AND conditions returned the expected two rows and unchanged seven-column schema. An invalid integer/string operator combination persisted as a draft and schema validation reported `INVALID_FILTER`.
-* E2E: no browser automation configured yet.
+* Backend: 155 passed, 2 SQLite-only skips (those cases pass in the PostgreSQL matrix).
+  Ruff and strict mypy pass (47 application source files).
+* Frontend: 14 tests, lint, typecheck and production build pass; OpenAPI drift check passes.
+* Playwright: 4 scenarios pass on Docker: two-tab conflict, failed-save recovery,
+  Excel preview/restoration and full M10 pipeline built through the editor.
+* Docker backend/frontend/PostgreSQL healthy; migrations applied without data reset.
+* npm audit last run: zero vulnerabilities. Backend dependency pinning remains a QA item.
+* Two upstream TestClient deprecation warnings remain.
+* Latest transaction snapshot fix passes the full local PostgreSQL test suite;
+  deployed backend image precedes that fix and should be rebuilt before next acceptance.
 
-Two upstream FastAPI/Starlette `TestClient` deprecation warnings remain; no product defect is known.
+## Known Defects and Review Items
 
-## Known Blockers
+* Original A01–A03 defects have fixes and regression coverage on SQLite/PostgreSQL.
+* Autosave conflict/recovery browser verification passes; additional slow-response/navigation cases remain.
+* Source deletion versus concurrent new workflow references needs final recovery hardening.
+* Abrupt upload failure before compensation can be queued may require artifact reconciliation.
+* M10 remainder, visualizations, dashboards and complete restart acceptance are unfinished.
+* Original findings and ADR-001–ADR-049 dispositions are preserved in
+  docs/ASTRA_HANDOFF.md and docs/ARCHITECTURE_REVIEW.md.
 
-None.
+## Blockers
 
-## Known Defects
+None currently. Docker Engine was started successfully; the previous outage is resolved.
+Use 127.0.0.1 rather than localhost for Python PostgreSQL connections in this environment.
 
-None recorded.
+## Next Tasks
 
-## Next Planned Tasks
+1. Record visualization/dashboard persistence decisions and implement the early slice.
+2. Finish remaining revision review items and backend dependency reproducibility.
+3. M11 and remaining M12/M13.
+4. M14–M16 recovery, QA and final release gates.
 
-1. Implement multi-column Sort with ascending and descending directions.
-2. Implement Limit with strict positive-value validation.
-3. Continue with the controlled Formula Engine required by Calculated Column.
+## Resume Context
 
-## Resume Notes
-
-The Compose stack is running with the latest backend and frontend images. Temporary Filter acceptance workflows were removed after successful validation. Optional Filter OR composition is deliberately deferred until condition grouping semantics are specified; AND covers the MVP requirement. ADR-049 records that registered but incomplete nodes are persisted as drafts while execution remains strictly validated.
-
-Always inspect `TASKS.md`, the working tree, and live container state before continuing.
+Git baseline commit: accc239. Revision and M10 changes are recorded in the checkpoint commit following that baseline.
+Database backup: .backups/before-astra-migrations-20260910.sql (ignored by Git).
+No database/source storage reset has been performed.
+Migration 0002 separates workflow format version from edit revision; migration 0003 adds
+retryable file cleanup. Existing save clients must send expected_revision.
+Run npm run api:generate after API changes; npm run api:check detects drift.
+PostgreSQL test opt-in: NODEBI_TEST_POSTGRES_URL=postgresql+psycopg://nodebi:nodebi_dev@127.0.0.1:5432/nodebi?connect_timeout=5.
+Tests create/drop only their private generated schemas.

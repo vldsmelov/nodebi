@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class PositionPayload(BaseModel):
@@ -30,14 +30,24 @@ class EdgePayload(BaseModel):
 class WorkflowCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
 
+    @field_validator("name")
+    @classmethod
+    def nonblank_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Workflow name must not be blank.")
+        return value
 
-class WorkflowSave(BaseModel):
+
+class WorkflowSave(WorkflowCreate):
+    expected_revision: int = Field(ge=1)
     name: str = Field(min_length=1, max_length=200)
     nodes: list[NodePayload]
     edges: list[EdgePayload]
 
 
 class WorkflowRead(BaseModel):
+    revision: int
     id: uuid.UUID
     project_id: uuid.UUID
     name: str
@@ -49,6 +59,7 @@ class WorkflowRead(BaseModel):
 
 
 class WorkflowSummary(BaseModel):
+    revision: int
     id: uuid.UUID
     project_id: uuid.UUID
     name: str
@@ -70,7 +81,9 @@ class PortRead(BaseModel):
 class NodeDefinitionRead(BaseModel):
     type: str
     version: int
-    category: str
+    category: Literal["source", "transform", "visualization"]
+    config_schema: dict[str, Any]
+    schema_inference_mode: Literal["static", "data_dependent", "unknown_until_execution"]
     display_name: str
     description: str
     icon: str | None
@@ -85,7 +98,7 @@ class NodeCatalogRead(BaseModel):
 class GraphIssueRead(BaseModel):
     code: str
     message: str
-    severity: str
+    severity: Literal["error", "warning"]
     node_id: uuid.UUID | None
     edge_id: uuid.UUID | None
     field: str | None
@@ -107,6 +120,7 @@ class NodeSchemaRead(BaseModel):
 
 
 class WorkflowSchemaRead(BaseModel):
+    revision: int
     valid: bool
     nodes: list[NodeSchemaRead]
     issues: list[GraphIssueRead]
@@ -117,9 +131,10 @@ class PreviewRequest(BaseModel):
 
 
 class PreviewRead(BaseModel):
+    revision: int
     execution_id: uuid.UUID
     node_id: uuid.UUID
-    status: str
+    status: Literal["succeeded"]
     columns: list[ResolvedColumnRead]
     rows: list[dict[str, Any]]
     returned_rows: int

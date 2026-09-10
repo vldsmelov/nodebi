@@ -5,9 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.infrastructure.database import get_session
+from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.models import Project
 from app.repositories.sqlalchemy import SqlAlchemyProjectRepository
 from app.schemas.projects import ProjectCreate, ProjectList, ProjectRead, ProjectUpdate
+from app.services.sources import SourceService
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 DatabaseSession = Annotated[Session, Depends(get_session)]
@@ -59,6 +61,7 @@ def update_project(
 def delete_project(
     project_id: uuid.UUID,
     session: DatabaseSession,
+    storage: Annotated[StorageProvider, Depends(get_storage_provider)],
     confirm: Annotated[bool, Query(description="Explicit destructive-action confirmation")] = False,
 ) -> Response:
     if not confirm:
@@ -71,6 +74,5 @@ def delete_project(
         )
     repository = SqlAlchemyProjectRepository(session)
     project = project_or_404(repository, project_id)
-    repository.delete(project)
-    session.commit()
+    SourceService(session, storage).delete_project(project)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

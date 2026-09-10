@@ -2,11 +2,61 @@ from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
 
+import pytest
 from openpyxl import Workbook
 
 from app.domain.workbooks import LogicalType, WorksheetLoadOptions
 from app.infrastructure.excel import OpenPyxlWorkbookReader
 from app.infrastructure.storage import LocalStorageProvider
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        ["a", "a", "a__2"],
+        ["a__2", "a", "a", "a__3"],
+        [None, "Column 1", "Column 1__2"],
+        ["a", "a", "a", "a__2", "a__3"],
+    ],
+)
+def test_header_suffixes_cannot_collide(tmp_path: Path, headers: list[str | None]) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(headers)
+    sheet.append(list(range(len(headers))))
+    stream = BytesIO()
+    workbook.save(stream)
+    stream.seek(0)
+    storage = LocalStorageProvider(tmp_path)
+    key = storage.save(stream, suffix=".xlsx")
+    reader = OpenPyxlWorkbookReader(storage)
+    preview = reader.preview_sheet(key, sheet.title, WorksheetLoadOptions())
+    dataset = reader.load_sheet(key, sheet.title)
+    names = [column.engine_name for column in preview.columns]
+    assert len(set(names)) == len(headers)
+    assert dataset.frame.columns == names
+    assert dataset.frame.row(0) == tuple(range(len(headers)))
+
+
+def test_full_sheet_inference_handles_late_mixed_values_and_nulls(tmp_path: Path) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(["mixed", "number"])
+    for number in range(101):
+        sheet.append([number, number])
+    sheet.append(["late text", 1.5])
+    sheet.append([None, None])
+    sheet.append(["last", 2])
+    stream = BytesIO()
+    workbook.save(stream)
+    stream.seek(0)
+    storage = LocalStorageProvider(tmp_path)
+    key = storage.save(stream, suffix=".xlsx")
+    dataset = OpenPyxlWorkbookReader(storage).load_sheet(key, sheet.title)
+    assert dataset.frame["mixed"].to_list() == [*map(str, range(101)), "late text", None, "last"]
+    assert dataset.schema.by_id("col_1").logical_type == LogicalType.STRING
+    assert dataset.schema.by_id("col_2").logical_type == LogicalType.FLOAT
+    assert dataset.frame["number"][101] == 1.5
 
 
 def workbook_bytes() -> BytesIO:

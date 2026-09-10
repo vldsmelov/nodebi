@@ -2811,6 +2811,12 @@ Deleting a visualization should remove or invalidate dashboard widgets referenci
 
 # 124. Versioning Strategy
 
+Revision update (ADR-050): `workflow.version` is the persisted format version and
+remains 1 for the current format. `workflow.revision` is a separate edit counter.
+Every save supplies `expected_revision`; an atomic conditional update rejects stale
+writes with HTTP 409 before graph mutation. Migration 0002 moves historical save
+counters into revision. Schema/preview responses include the graph revision.
+
 Three independent concepts may have versions:
 
 ```text
@@ -2860,6 +2866,11 @@ Persisting version now prevents a major compatibility problem later.
 ---
 
 # 126. Frontend Type Contracts
+
+API models are generated from FastAPI OpenAPI into `frontend/lib/api-schema.d.ts`.
+Feature modules import aliases from generated components. `npm run api:generate`
+updates the types; `npm run api:check` fails on drift. Node-specific analytical forms
+remain explicit components selected through a registry (ADR-053).
 
 Where practical, generate or synchronize TypeScript API types from backend OpenAPI definitions.
 
@@ -3310,6 +3321,13 @@ The architecture is considered successfully implemented when:
 
 # 152. Architecture Change Policy
 
+The Astra revision is recorded in ADR-050–ADR-054 and `docs/ARCHITECTURE_REVIEW.md`.
+ExecutionContext receives a source-access protocol, not ORM sessions. Source schema
+resolution and execution reuse bounded immutable materialization. Cache hits still
+validate source ownership and artifact availability; the LRU has both count and byte
+budgets. File deletion uses a transactional cleanup queue retried at startup or via
+`python -m app.services.file_cleanup`. See the ADRs for failure/recovery boundaries.
+
 This document may evolve during implementation.
 
 A meaningful architectural change should:
@@ -3385,3 +3403,15 @@ data semantics + execution + persistence
 ```
 
 The architecture should remain simple enough for a fast MVP while preserving the core boundaries required to evolve into a larger BI platform.
+
+## M10 implementation contracts (ADR-042 and ADR-055)
+
+The formula compiler parses an allowlisted arithmetic AST directly into Polars expressions.
+Schema inference and execution share it. Arithmetic and numeric sum/average use Float64;
+nulls propagate and non-finite results fail explicitly. Stable field references use [column_id].
+Group By supports dimensions or a global aggregate, with explicit count/null semantics.
+Node cache keys include node identity because calculated and aggregate output IDs derive from it.
+Workflow reads take a shared database row lock while collecting revision, nodes and edges.
+Save responses are constructed before committing the accepted revision, preventing a subsequent
+writer from changing what the first request acknowledges. Read locks currently live until the
+request transaction ends; long execution can delay saves and remains a performance QA item.

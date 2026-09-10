@@ -10,6 +10,7 @@ from functools import lru_cache
 from threading import Lock
 
 from app.domain.datasets import Dataset, DatasetSchema
+from app.domain.errors import NodeExecutionError
 from app.domain.nodes import ExecutionContext, NodeRegistry
 from app.domain.workflows import NodeInstance, WorkflowEdge, WorkflowGraph
 from app.services.workflow_validation import (
@@ -94,10 +95,14 @@ class ExecutionPlanner:
 
 
 class InMemoryExecutionCache:
-    def __init__(self, capacity: int = 32) -> None:
+    def __init__(self, capacity: int = 32, max_bytes: int = 256 * 1024 * 1024) -> None:
         if capacity < 1:
             raise ValueError("Cache capacity must be positive.")
         self.capacity = capacity
+        if max_bytes < 1:
+            raise ValueError("Cache memory budget must be positive.")
+        self.max_bytes = max_bytes
+        self.used_bytes = 0
         self._values: OrderedDict[str, Dataset] = OrderedDict()
         self._lock = Lock()
 
@@ -110,14 +115,23 @@ class InMemoryExecutionCache:
 
     def put(self, key: str, value: Dataset) -> None:
         with self._lock:
+            previous = self._values.pop(key, None)
+            if previous is not None:
+                self.used_bytes -= int(previous.frame.estimated_size())
+            size = int(value.frame.estimated_size())
+            if size > self.max_bytes:
+                return
             self._values[key] = value
+            self.used_bytes += size
             self._values.move_to_end(key)
-            while len(self._values) > self.capacity:
-                self._values.popitem(last=False)
+            while len(self._values) > self.capacity or self.used_bytes > self.max_bytes:
+                _, removed = self._values.popitem(last=False)
+                self.used_bytes -= int(removed.frame.estimated_size())
 
     def clear(self) -> None:
         with self._lock:
             self._values.clear()
+            self.used_bytes = 0
 
 
 @lru_cache
@@ -125,9 +139,14 @@ def get_execution_cache() -> InMemoryExecutionCache:
     return InMemoryExecutionCache()
 
 
-def cache_key(node: NodeInstance, upstream_keys: dict[str, str]) -> str:
+def cache_key(
+    node: NodeInstance, upstream_keys: dict[str, str], *, scope: str = "", artifact: str = ""
+) -> str:
     identity = {
         "type": node.type,
+        "node_id": str(node.id),
+        "scope": scope,
+        "artifact": artifact,
         "version": node.version,
         "config": node.config,
         "upstream": sorted(upstream_keys.items()),
@@ -182,22 +201,27 @@ class WorkflowExecutionService:
             )
             inputs = {edge.target_port: results[edge.source_node_id] for edge in inbound}
             upstream = {edge.target_port: identities[edge.source_node_id] for edge in inbound}
-            key = cache_key(node, upstream)
+            validation = definition.executor.validate(
+                node, {port: dataset.schema for port, dataset in inputs.items()}, context
+            )
+            if not validation.valid:
+                raise ExecutionFailure(
+                    "NODE_VALIDATION_FAILED",
+                    validation.issues[0].message,
+                    category="validation",
+                    execution_id=context.execution_id,
+                    node_id=node_id,
+                    issues=tuple(
+                        GraphIssue(i.code, i.message, node_id=node_id, field=i.field)
+                        for i in validation.issues
+                    ),
+                )
+            artifact = definition.cache_identity(node, context) if definition.cache_identity else ""
+            key = cache_key(node, upstream, scope=str(context.project_id), artifact=artifact)
             output = context.cache.get(key) if context.cache else None
             if output is not None:
                 cache_hits += 1
             else:
-                validation = definition.executor.validate(
-                    node, {port: dataset.schema for port, dataset in inputs.items()}, context
-                )
-                if not validation.valid:
-                    raise ExecutionFailure(
-                        "NODE_VALIDATION_FAILED",
-                        validation.issues[0].message,
-                        category="validation",
-                        execution_id=context.execution_id,
-                        node_id=node_id,
-                    )
                 try:
                     output = definition.executor.execute(node, inputs, context)
                 except Exception as exc:
@@ -211,7 +235,9 @@ class WorkflowExecutionService:
                     )
                     raise ExecutionFailure(
                         "NODE_EXECUTION_FAILED",
-                        str(exc),
+                        str(exc)
+                        if isinstance(exc, NodeExecutionError)
+                        else "The node could not run. Check its configuration and source data.",
                         category=category,
                         execution_id=context.execution_id,
                         node_id=node_id,

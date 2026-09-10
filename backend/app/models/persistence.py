@@ -22,6 +22,11 @@ from app.infrastructure.database import Base
 json_type = JSON().with_variant(JSONB(), "postgresql")
 
 
+class FileDeletion(Base):
+    __tablename__ = "file_deletions"
+    storage_key: Mapped[str] = mapped_column(String(500), primary_key=True)
+
+
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -63,6 +68,7 @@ class Workflow(TimestampMixin, Base):
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
 
 class WorkflowNode(TimestampMixin, Base):

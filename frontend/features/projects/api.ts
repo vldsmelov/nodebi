@@ -1,23 +1,6 @@
-export type Project = {
-  id: string;
-  name: string;
-  created_at: string;
-  updated_at: string;
-};
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    throw new Error(body?.detail?.message ?? "The request could not be completed.");
-  }
-  return response.status === 204 ? (undefined as T) : response.json();
-}
+import type { components } from "@/lib/api-schema";
+import { apiRequest as request } from "@/lib/api";
+export type Project = components["schemas"]["ProjectRead"];
 
 export async function listProjects(): Promise<Project[]> {
   const result = await request<{ items: Project[] }>("/api/v1/projects");

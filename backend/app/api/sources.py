@@ -1,11 +1,8 @@
 import uuid
 from dataclasses import asdict
-from pathlib import Path
-from tempfile import SpooledTemporaryFile
-from typing import Annotated, BinaryIO, cast
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -17,9 +14,10 @@ from app.infrastructure.excel import (
     WorksheetNotFoundError,
 )
 from app.infrastructure.storage import StorageProvider, get_storage_provider
-from app.models import DataSource, Project, Workflow, WorkflowNode
+from app.models import DataSource, Project
 from app.repositories.sqlalchemy import SqlAlchemySourceRepository
 from app.schemas.sources import DataSourceList, DataSourceRead, WorksheetPreviewRead
+from app.services.sources import SourceService
 
 router = APIRouter(tags=["data sources"])
 DatabaseSession = Annotated[Session, Depends(get_session)]
@@ -65,56 +63,9 @@ def upload_excel(
     settings: AppSettings,
     file: Annotated[UploadFile, File(description="Excel workbook")],
 ) -> DataSourceRead:
-    if session.get(Project, project_id) is None:
-        raise HTTPException(
-            status_code=404,
-            detail={"code": "PROJECT_NOT_FOUND", "message": "Project does not exist."},
-        )
-    filename = file.filename or "workbook"
-    suffix = Path(filename).suffix.lower()
-    if suffix not in SUPPORTED_EXTENSIONS:
-        raise HTTPException(
-            status_code=415,
-            detail={
-                "code": "UNSUPPORTED_FILE_TYPE",
-                "message": "Upload an .xlsx or .xlsm workbook.",
-            },
-        )
-    total = 0
-    with SpooledTemporaryFile(max_size=min(settings.max_upload_bytes, 8 * 1024 * 1024)) as buffer:
-        while chunk := file.file.read(1024 * 1024):
-            total += len(chunk)
-            if total > settings.max_upload_bytes:
-                raise HTTPException(
-                    status_code=413,
-                    detail={
-                        "code": "UPLOAD_TOO_LARGE",
-                        "message": f"Workbook exceeds the {settings.max_upload_bytes} byte limit.",
-                    },
-                )
-            buffer.write(chunk)
-        buffer.seek(0)
-        storage_key = storage.save(cast(BinaryIO, buffer), suffix=suffix)
-    try:
-        workbook = OpenPyxlWorkbookReader(storage).inspect(storage_key)
-    except ExcelWorkbookError as exc:
-        storage.delete(storage_key)
-        raise HTTPException(
-            status_code=422, detail={"code": "INVALID_WORKBOOK", "message": str(exc)}
-        ) from exc
-    source = DataSource(
-        project_id=project_id,
-        type="excel",
-        name=Path(filename).stem[:200] or "Workbook",
-        original_filename=filename[:500],
-        storage_key=storage_key,
-        file_size=total,
-        status="ready",
-        source_metadata={"workbook": asdict(workbook)},
+    source = SourceService(session, storage).upload(
+        project_id, file.filename or "workbook", file.file, settings
     )
-    SqlAlchemySourceRepository(session).add(source)
-    session.commit()
-    session.refresh(source)
     return _source_read(source)
 
 
@@ -160,18 +111,5 @@ def preview_sheet(
 @router.delete("/api/v1/sources/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_source(source_id: uuid.UUID, session: DatabaseSession, storage: Storage) -> Response:
     source = _source_or_404(session, source_id)
-    nodes = session.scalars(
-        select(WorkflowNode).join(Workflow).where(Workflow.project_id == source.project_id)
-    )
-    if any(str(node.config.get("source_id")) == str(source.id) for node in nodes):
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "code": "SOURCE_IN_USE",
-                "message": "Remove this source from its workflow before deleting it.",
-            },
-        )
-    SqlAlchemySourceRepository(session).delete(source)
-    session.commit()
-    storage.delete(source.storage_key)
+    SourceService(session, storage).delete(source)
     return Response(status_code=204)

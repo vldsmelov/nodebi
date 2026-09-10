@@ -18,7 +18,6 @@ from app.domain.nodes import (
     ValidationResult,
 )
 from app.domain.workflows import NodeInstance, Position, WorkflowEdge, WorkflowGraph
-from app.infrastructure.storage import LocalStorageProvider
 from app.services.execution import (
     ExecutionFailure,
     ExecutionPlanner,
@@ -134,8 +133,6 @@ def test_execution_routes_two_inputs_and_reuses_content_cache(
         graph.project_id,
         graph.id,
         uuid.uuid4(),
-        session,
-        LocalStorageProvider(tmp_path),
         cache=cache,
     )
     service = WorkflowExecutionService(registry)
@@ -161,9 +158,7 @@ def test_execution_failure_is_attributed_to_node(session: Session, tmp_path: Pat
     registry.register(make_definition("source", CountingExecutor(fail=True)))
     source = make_node(1, "source")
     graph = WorkflowGraph(uuid.uuid4(), uuid.uuid4(), "Graph", 1, (source,), ())
-    context = ExecutionContext(
-        graph.project_id, graph.id, uuid.uuid4(), session, LocalStorageProvider(tmp_path)
-    )
+    context = ExecutionContext(graph.project_id, graph.id, uuid.uuid4(), None)
 
     with pytest.raises(ExecutionFailure) as captured:
         WorkflowExecutionService(registry).execute(graph, source.id, context)

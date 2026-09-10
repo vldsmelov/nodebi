@@ -16,6 +16,7 @@ from app.domain.workflows import NodeInstance, Position
 from app.infrastructure.storage import LocalStorageProvider
 from app.models import DataSource, Project, Workflow
 from app.nodes.excel_source import excel_source_definition
+from app.services.source_access import ProjectSourceAccess
 
 
 def test_registry_is_versioned_and_protects_duplicates() -> None:
@@ -67,7 +68,9 @@ def test_excel_source_validates_infers_and_executes(session: Session, tmp_path: 
         Position(0, 0),
         {"source_id": str(source.id), "sheet_name": "Sales"},
     )
-    context = ExecutionContext(project.id, workflow.id, uuid.uuid4(), session, storage)
+    context = ExecutionContext(
+        project.id, workflow.id, uuid.uuid4(), ProjectSourceAccess(project.id, session, storage)
+    )
     executor = excel_source_definition().executor
 
     assert executor.validate(node, {}, context).valid

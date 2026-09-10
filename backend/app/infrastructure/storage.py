@@ -45,9 +45,13 @@ class LocalStorageProvider(StorageProvider):
         key = f"{uuid.uuid4().hex[:2]}/{uuid.uuid4().hex}{safe_suffix}"
         destination = self._resolve_key(key)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        with destination.open("xb") as target:
-            while chunk := content.read(1024 * 1024):
-                target.write(chunk)
+        try:
+            with destination.open("xb") as target:
+                while chunk := content.read(1024 * 1024):
+                    target.write(chunk)
+        except Exception:
+            destination.unlink(missing_ok=True)
+            raise
         return key
 
     def open(self, key: str) -> BinaryIO:

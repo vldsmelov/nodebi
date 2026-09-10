@@ -75,6 +75,24 @@ The MVP is complete only when:
 
 # 4. Milestone Dependency Graph
 
+## Astra revision gate (2026-09-09)
+
+Preserve completed milestone history; the findings below reopen their affected acceptance criteria.
+See `docs/ASTRA_HANDOFF.md` for provenance and the original defect reproductions.
+
+* `[x]` A01: reject foreign graph IDs atomically; regress on SQLite and PostgreSQL.
+* `[x]` A02/A03: collision-safe Excel headers and explicit full-sheet type conversion.
+* `[x]` A04/A05: separate format/revision, optimistic concurrency, durable autosave and stale-result handling.
+* `[x]` A06/A07: source validation before cache, scoped keys, memory bounds and source/schema reuse.
+* `[~]` A08: application boundaries, editor decomposition, generated API types and structured errors.
+* `[~]` A09: compensating upload cleanup and repeatable source/project file deletion.
+* `[ ]` A10: PostgreSQL regressions and browser acceptance automation.
+* `[ ]` Review ADR-001–ADR-049 individually and record evidence/limitations/disposition.
+* `[ ]` Revalidate deployment, resource limits, dependency reproducibility and documentation.
+* `[ ]` After M10, build an early Bar Chart + KPI + dashboard acceptance slice, then
+  complete M11 and all remaining M12/M13 requirements before M14–M16.
+
+
 ```text
 M0 Specification
       ↓
@@ -1222,20 +1240,20 @@ Optional if stable:
 
 ## M10.4 Sort
 
-* `[ ]` multi-column sort
-* `[ ]` ascending
-* `[ ]` descending
-* `[ ]` schema unchanged
-* `[ ]` tests
+* `[x]` multi-column sort
+* `[x]` ascending
+* `[x]` descending
+* `[x]` schema unchanged
+* `[x]` tests
 
 ---
 
 ## M10.5 Limit
 
-* `[ ]` positive limit
-* `[ ]` reject invalid limit
-* `[ ]` schema unchanged
-* `[ ]` tests
+* `[x]` positive limit
+* `[x]` reject invalid limit
+* `[x]` schema unchanged
+* `[x]` tests
 
 ---
 
@@ -1243,14 +1261,14 @@ Optional if stable:
 
 Before Calculated Column:
 
-* `[ ]` select parser strategy
-* `[ ]` record ADR
-* `[ ]` parse allowlisted arithmetic
-* `[ ]` build safe AST
-* `[ ]` reject arbitrary function access
-* `[ ]` reject imports/code execution
-* `[ ]` validate column references
-* `[ ]` infer output type
+* `[x]` select parser strategy
+* `[x]` record ADR
+* `[x]` parse allowlisted arithmetic
+* `[x]` build safe AST
+* `[x]` reject arbitrary function access
+* `[x]` reject imports/code execution
+* `[x]` validate column references
+* `[x]` infer output type
 
 Security tests are mandatory.
 
@@ -1258,14 +1276,14 @@ Security tests are mandatory.
 
 ## M10.7 Calculated Column
 
-* `[ ]` output field name
-* `[ ]` expression
-* `[ ]` formula validation
-* `[ ]` executor
-* `[ ]` schema inference
-* `[ ]` config UI
-* `[ ]` error UI
-* `[ ]` tests
+* `[x]` output field name
+* `[x]` expression
+* `[x]` formula validation
+* `[x]` executor
+* `[x]` schema inference
+* `[x]` config UI
+* `[x]` error UI
+* `[x]` tests
 
 Canonical acceptance:
 
@@ -1279,34 +1297,34 @@ revenue = quantity * price
 
 Group dimensions:
 
-* `[ ]` one field
-* `[ ]` multiple fields
+* `[x]` one field
+* `[x]` multiple fields
 
 Aggregations:
 
-* `[ ]` count
+* `[x]` count
 
-* `[ ]` sum
+* `[x]` sum
 
-* `[ ]` average
+* `[x]` average
 
-* `[ ]` min
+* `[x]` min
 
-* `[ ]` max
+* `[x]` max
 
-* `[ ]` distinct count if practical
+* `[x]` distinct count if practical
 
-* `[ ]` generated output names
+* `[x]` generated output names
 
-* `[ ]` custom output names where appropriate
+* `[x]` custom output names where appropriate
 
-* `[ ]` type validation
+* `[x]` type validation
 
-* `[ ]` schema inference
+* `[x]` schema inference
 
-* `[ ]` config UI
+* `[x]` config UI
 
-* `[ ]` tests
+* `[x]` tests
 
 Canonical acceptance:
 
@@ -1318,6 +1336,10 @@ sum revenue
 ---
 
 ## M10 Quality Gate
+
+Verified 2026-09-10: browser-built Excel -> Filter -> Calculated Column -> Group By,
+preview and reload restoration. 155 backend tests, 14 frontend tests, 4 browser scenarios.
+
 
 Canonical pipeline must work:
 
