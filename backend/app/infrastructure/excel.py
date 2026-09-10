@@ -135,11 +135,11 @@ class OpenPyxlWorkbookReader:
             sheet = workbook[sheet_name]
             iterator = sheet.iter_rows(values_only=True)
             headers = next(iterator, ())
-            if not headers or all(value is None for value in headers):
-                return WorksheetPreview(sheet_name, [], [], 0, False)
             sampled = []
             for _, row in zip(range(options.limit + 1), iterator, strict=False):
                 sampled.append(row)
+            if not headers or (all(value is None for value in headers) and not sampled):
+                return WorksheetPreview(sheet_name, [], [], 0, False)
             truncated = len(sampled) > options.limit
             data_rows = sampled[: options.limit]
             columns = _columns(headers, data_rows)
@@ -162,8 +162,6 @@ class OpenPyxlWorkbookReader:
                 raise WorksheetNotFoundError(f'Worksheet "{sheet_name}" does not exist.')
             iterator = workbook[sheet_name].iter_rows(values_only=True)
             headers = next(iterator, ())
-            if not headers or all(value is None for value in headers):
-                return Dataset(pl.DataFrame(), DatasetSchema(()), {"sheet_name": sheet_name})
             if len(headers) > 1024:
                 raise ExcelWorkbookError("Worksheet exceeds the 1024-column limit.")
             rows: list[tuple[Any, ...]] = []
@@ -173,6 +171,8 @@ class OpenPyxlWorkbookReader:
                         "Worksheet exceeds the 250000-row or 2000000-cell limit."
                     )
                 rows.append(row)
+            if not headers or (all(value is None for value in headers) and not rows):
+                return Dataset(pl.DataFrame(), DatasetSchema(()), {"sheet_name": sheet_name})
             inferred = _columns(headers, rows)
             # Polars' row inference samples a prefix. Our logical inference examines
             # all rows and explicitly normalizes mixed values before construction.

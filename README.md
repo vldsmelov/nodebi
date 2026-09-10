@@ -503,7 +503,7 @@ Local quality checks:
 ```powershell
 cd backend
 py -3.13 -m venv .venv
-.\.venv\Scripts\python -m pip install -e ".[dev]"
+.\.venv\Scripts\python -m pip install -r requirements-runtime.txt -c constraints-dev.txt -e ".[dev]"
 .\.venv\Scripts\python -m pytest
 .\.venv\Scripts\ruff check .
 .\.venv\Scripts\ruff format --check .
@@ -1463,3 +1463,11 @@ Bar charts reject more than 2000 points rather than silently truncating analytic
 KPI requires exactly one upstream row; missing values display as No value.
 Migration 0004 adds dashboard revisions. The early slice is not the full MVP: M11,
 remaining visualization types, dashboard management and QA are still tracked in TASKS.md.
+
+### Reproducible backend dependencies
+
+Runtime versions are pinned in backend/requirements-runtime.txt, including platform markers
+for Linux uvloop and Windows support packages. Development tool versions are constrained in
+backend/constraints-dev.txt. Install with `pip install -r requirements-runtime.txt -c constraints-dev.txt -e ".[dev]"`.
+Update these files deliberately and rerun PostgreSQL and browser acceptance. Docker installs
+runtime dependencies in a separate cached layer before copying application code.

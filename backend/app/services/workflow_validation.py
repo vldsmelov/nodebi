@@ -287,7 +287,17 @@ class WorkflowSchemaResolver:
                 all_issues.append(warning)
                 continue
             try:
-                schema = definition.executor.infer_schema(node, input_schemas, context)
+                if definition.schema_inference_mode == SchemaInferenceMode.DATA_DEPENDENT:
+                    # Execution depends on graph validation, so import at this boundary.
+                    from app.services.execution import WorkflowExecutionService
+
+                    schema = (
+                        WorkflowExecutionService(self.registry)
+                        .execute(graph, node_id, context)
+                        .schema
+                    )
+                else:
+                    schema = definition.executor.infer_schema(node, input_schemas, context)
                 schemas[node_id] = schema
                 results.append(NodeSchemaResult(node_id, schema))
             except Exception as exc:

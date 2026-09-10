@@ -76,3 +76,15 @@ and a real backend/PostgreSQL restart (NODEBI_E2E_RESTART=1). Latest finite-valu
 is locally verified and will enter the next backend image.
 MVP is not complete: M11, other charts, full dashboard management and QA remain.
 Checkpoint before early slice: e2987fb. Early-slice work is not yet committed.
+
+## M11 work in progress
+
+Join (inner/left), Union and bounded Pivot are implemented with UI forms. Nine focused
+regressions pass; full runtime-aligned backend suite: 168 passed plus two SQLite skips.
+Value-dependent schema resolution executes the Pivot ancestor branch through the shared
+cache, then propagates actual fields downstream. ADR-056 records matching/null/lineage/cap semantics.
+Runtime versions now match local and Docker, with a cached dependency layer. Latest regression
+also fixes blank-header-row data loss (test_excel.py); empty sheets still remain empty.
+M11 browser acceptance passes: two-input Join/Union and Pivot fields consumed by Select Columns.
+Next: remaining chart types, dashboard management and final QA.
+Early slice is committed as 47076ba; M11 and dependency lock changes are not yet committed.

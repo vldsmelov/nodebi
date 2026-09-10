@@ -1900,3 +1900,25 @@ aggregation before preview limits; no analytical rows are silently dropped.
 Alternatives: preview-side aggregation gives wrong totals; arbitrary automatic coercion
 of text to numbers hides source problems. Consequence: configuration forms expose compatible
 operations and downstream references must be repaired after aggregation reorder.
+
+# ADR-056 - Join, Union and value-dependent Pivot schemas
+
+Date: 2026-09-10. Status: ACCEPTED.
+Join supports inner/left with one key pair. Key types must match (unknown/null may adopt
+the other type); numeric conversions must be explicit upstream to avoid rounded join keys.
+Null keys do not match. Both key columns remain. Conflicting right names receive a
+collision-safe __right suffix; right IDs are namespaced by the join node and input side.
+A key-frequency preflight rejects output beyond 250000 rows, 1024 columns or 2000000 cells
+before allocating a many-to-many result. Left order is preserved, then right match order.
+Union matches names with compatible identical logical types, not source-local column IDs;
+it preserves left field order/IDs and records both origins. It applies the same output cap.
+
+Pivot supports one index, one pivot field and count/sum/average/min/max. It builds bounded
+conditional Polars aggregations (maximum 128 categories); null and literal '(empty)' remain
+distinct. Output IDs hash typed pivot values and node identity. Fields follow first occurrence;
+count excludes nulls, missing aggregates stay null except count zero. Sum/average use Float64.
+Schema resolution executes only a value-dependent node's ancestor branch through the common
+executor/cache, then propagates its actual schema to downstream controls. Static transforms
+continue to infer without execution. No preview sample is used to infer Pivot columns.
+Alternatives: inferring Pivot from a sample loses fields; unconstrained many-to-many joins can
+exhaust memory; silently casting numeric keys risks false matches above float precision limits.

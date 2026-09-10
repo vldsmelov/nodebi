@@ -17,6 +17,7 @@ from app.infrastructure.storage import LocalStorageProvider
         ["a__2", "a", "a", "a__3"],
         [None, "Column 1", "Column 1__2"],
         ["a", "a", "a", "a__2", "a__3"],
+        [None, None, None],
     ],
 )
 def test_header_suffixes_cannot_collide(tmp_path: Path, headers: list[str | None]) -> None:

@@ -195,7 +195,10 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
             else { const [source, sourceHandle] = event.target.value.split(":"); onConnect({ source, sourceHandle, target: selectedNode.id, targetHandle: port.id }); }
           }}><option value="">Disconnected</option>{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
-        {selectedNode ? <NodeConfiguration type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} onChange={updateSelectedConfig} /> : null}
+        {selectedNode ? <NodeConfiguration type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} inputColumns={Object.fromEntries((selectedNode.data.definition.input_ports ?? []).map(port => {
+          const edge = edges.find(e => e.target === selectedNode.id && e.targetHandle === port.id);
+          return [port.id, resolvedSchema?.nodes.find(n => n.node_id === edge?.source)?.columns ?? null];
+        }))} onChange={updateSelectedConfig} /> : null}
         {selectedNode && dirty && selectedInputColumns ? <p className="mt-2 text-xs text-amber-200">Field choices are from the last saved graph. Updating after save…</p> : null}
         {selectedNode?.data.definition.category === "visualization" && !dirty ? <div className="mt-4 h-72"><VisualizationView id={selectedNode.id} revision={saveState.revision} /></div> : null}
         {selectedNode ? <button onClick={() => preview.mutate(selectedNode.id)} disabled={preview.isPending || dirty} className="mt-5 w-full rounded-xl bg-[#b7ff5a] px-4 py-2.5 text-sm font-semibold text-[#11170d] disabled:opacity-40">{preview.isPending ? "Running preview…" : "Preview output"}</button> : null}

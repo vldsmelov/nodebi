@@ -1374,16 +1374,16 @@ M10.
 
 Support:
 
-* `[ ]` two dataset inputs
-* `[ ]` inner join
-* `[ ]` left join
-* `[ ]` one join key
-* `[ ]` compatible key validation
-* `[ ]` duplicate field strategy
-* `[ ]` schema inference
-* `[ ]` executor
-* `[ ]` config UI
-* `[ ]` tests
+* `[x]` two dataset inputs
+* `[x]` inner join
+* `[x]` left join
+* `[x]` one join key
+* `[x]` compatible key validation
+* `[x]` duplicate field strategy
+* `[x]` schema inference
+* `[x]` executor
+* `[x]` config UI
+* `[x]` tests
 
 Optional after stable implementation:
 
@@ -1395,26 +1395,26 @@ Optional after stable implementation:
 
 ## M11.2 Union
 
-* `[ ]` two inputs
-* `[ ]` matching column validation
-* `[ ]` type compatibility
-* `[ ]` deterministic column order
-* `[ ]` executor
-* `[ ]` config UI
-* `[ ]` tests
+* `[x]` two inputs
+* `[x]` matching column validation
+* `[x]` type compatibility
+* `[x]` deterministic column order
+* `[x]` executor
+* `[x]` config UI
+* `[x]` tests
 
 ---
 
 ## M11.3 Pivot
 
-* `[ ]` index/group field
-* `[ ]` pivot field
-* `[ ]` value field
-* `[ ]` aggregation
-* `[ ]` data-dependent schema handling
-* `[ ]` preview
-* `[ ]` config UI
-* `[ ]` tests
+* `[x]` index/group field
+* `[x]` pivot field
+* `[x]` value field
+* `[x]` aggregation
+* `[x]` data-dependent schema handling
+* `[x]` preview
+* `[x]` config UI
+* `[x]` tests
 
 ---
 
@@ -1422,16 +1422,19 @@ Optional after stable implementation:
 
 Test:
 
-* `[ ]` incompatible join keys
-* `[ ]` missing join key
-* `[ ]` duplicate column conflict
-* `[ ]` incompatible union
-* `[ ]` pivot with unexpected values
-* `[ ]` empty datasets
+* `[x]` incompatible join keys
+* `[x]` missing join key
+* `[x]` duplicate column conflict
+* `[x]` incompatible union
+* `[x]` pivot with unexpected values
+* `[x]` empty datasets
 
 ---
 
 ## M11 Acceptance
+
+Verified 2026-09-10: 9 focused node/schema tests and browser Join/Union/Pivot/downstream field-selection scenario.
+
 
 All transformation nodes listed in `PRODUCT_SPEC.md` operate through the common NodeExecutor architecture.
 
