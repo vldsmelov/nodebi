@@ -1442,3 +1442,24 @@ Continue Working
 The goal is not to reproduce the entire functionality of mature enterprise BI platforms.
 
 The goal is to prove a reliable, understandable, extensible node-based BI workflow.
+
+### Early visualization/dashboard acceptance
+
+Build a prepared aggregate and connect Bar Chart; use a separate global Group By for KPI.
+Chart configuration is stored only on the workflow node. The dashboard page lists these
+saved visualizations; add widgets, drag their header, resize the lower-right corner and
+click Save dashboard. Conflicting saves retain the local draft and return 409.
+
+`npm run test:e2e` exercises the full Excel/filter/revenue/group/bar/KPI/dashboard flow.
+For local Docker restart acceptance in PowerShell:
+
+```powershell
+$env:NODEBI_E2E_RESTART='1'
+npm run test:e2e
+```
+
+This opt-in restarts the development backend and PostgreSQL containers, preserving volumes.
+Bar charts reject more than 2000 points rather than silently truncating analytical data.
+KPI requires exactly one upstream row; missing values display as No value.
+Migration 0004 adds dashboard revisions. The early slice is not the full MVP: M11,
+remaining visualization types, dashboard management and QA are still tracked in TASKS.md.

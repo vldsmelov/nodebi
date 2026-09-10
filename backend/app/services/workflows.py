@@ -1,9 +1,21 @@
+import uuid
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.config import Settings
 from app.domain.errors import ApplicationError, GraphOwnershipError, WorkflowConflictError
-from app.domain.nodes import NodeRegistry, UnknownNodeTypeError
+from app.domain.nodes import ExecutionContext, NodeRegistry, UnknownNodeTypeError
+from app.domain.workflows import (
+    NodeInstance,
+    Position,
+    WorkflowGraph,
+)
+from app.domain.workflows import (
+    WorkflowEdge as DomainWorkflowEdge,
+)
+from app.infrastructure.storage import StorageProvider
 from app.models import Workflow, WorkflowEdge, WorkflowNode
 from app.repositories.sqlalchemy import SqlAlchemyWorkflowRepository
 from app.schemas.workflows import (
@@ -13,6 +25,9 @@ from app.schemas.workflows import (
     WorkflowRead,
     WorkflowSave,
 )
+from app.services.execution import InMemoryExecutionCache, default_execution_logger
+from app.services.source_access import ProjectSourceAccess
+from app.services.visualization_index import synchronize_visualizations
 
 
 def validate_draft(payload: WorkflowSave, registry: NodeRegistry) -> None:
@@ -64,6 +79,7 @@ def save_graph(
         SqlAlchemyWorkflowRepository(session).save_graph(
             workflow, nodes, edges, expected_revision=payload.expected_revision
         )
+        synchronize_visualizations(session, workflow, payload)
         result = read_workflow(session, workflow)
         session.commit()
     except WorkflowConflictError as exc:
@@ -121,4 +137,53 @@ def read_workflow(session: Session, workflow: Workflow) -> WorkflowRead:
         ],
         created_at=workflow.created_at,
         updated_at=workflow.updated_at,
+    )
+
+
+def domain_graph(session: Session, workflow: Workflow) -> WorkflowGraph:
+    payload = read_workflow(session, workflow)
+    return WorkflowGraph(
+        id=workflow.id,
+        project_id=workflow.project_id,
+        name=workflow.name,
+        version=workflow.version,
+        nodes=tuple(
+            NodeInstance(
+                node.id,
+                node.type,
+                node.version,
+                Position(node.position.x, node.position.y),
+                node.config,
+                node.ui,
+            )
+            for node in payload.nodes
+        ),
+        edges=tuple(
+            DomainWorkflowEdge(
+                edge.id,
+                edge.source_node_id,
+                edge.source_port,
+                edge.target_node_id,
+                edge.target_port,
+            )
+            for edge in payload.edges
+        ),
+    )
+
+
+def execution_context(
+    workflow: Workflow,
+    session: Session,
+    storage: StorageProvider,
+    settings: Settings,
+    cache: InMemoryExecutionCache,
+) -> ExecutionContext:
+    return ExecutionContext(
+        workflow.project_id,
+        workflow.id,
+        uuid.uuid4(),
+        sources=ProjectSourceAccess(workflow.project_id, session, storage, cache),
+        cache=cache,
+        logger=default_execution_logger(),
+        settings=settings,
     )

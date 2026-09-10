@@ -9,6 +9,7 @@ from app.nodes.limit import limit_definition
 from app.nodes.rename_columns import rename_columns_definition
 from app.nodes.select_columns import select_columns_definition
 from app.nodes.sort import sort_definition
+from app.nodes.visualization import visualization_definitions
 
 
 @lru_cache
@@ -22,4 +23,6 @@ def get_node_registry() -> NodeRegistry:
     registry.register(limit_definition())
     registry.register(calculated_column_definition())
     registry.register(group_by_definition())
+    for definition in visualization_definitions():
+        registry.register(definition)
     return registry

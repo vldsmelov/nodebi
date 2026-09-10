@@ -19,6 +19,8 @@ def register_error_handlers(app: FastAPI) -> None:
                 "detail": {
                     "code": exc.code,
                     "message": exc.message,
+                    "node_id": exc.node_id,
+                    "execution_id": exc.execution_id,
                 }
             },
         )

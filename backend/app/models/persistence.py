@@ -144,6 +144,7 @@ class Dashboard(TimestampMixin, Base):
         ForeignKey("projects.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
 
 class DashboardWidget(TimestampMixin, Base):

@@ -11,8 +11,18 @@ class NodeExecutionError(ValueError):
 
 
 class ApplicationError(Exception):
-    def __init__(self, code: str, message: str, status: int = 422) -> None:
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        status: int = 422,
+        *,
+        node_id: str | None = None,
+        execution_id: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.code = code
         self.message = message
         self.status = status
+        self.node_id = node_id
+        self.execution_id = execution_id

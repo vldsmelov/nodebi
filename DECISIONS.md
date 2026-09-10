@@ -1545,75 +1545,33 @@ and security tests. Validation and adversarial cases are in test_arithmetic_node
 
 ---
 
-# ADR-043 — Visualization Persistence Model
+# ADR-043 - Visualization persistence
 
-Status:
+Date: 2026-09-10. Status: ACCEPTED.
+Context: a visualization is both a terminal workflow node and a reusable dashboard reference.
+Decision: workflow node configuration is the sole source of semantic chart settings.
+Visualization rows form a project-scoped index synchronized in the graph-save transaction;
+the row ID equals its node ID. Its config stays empty; type/name are derived index metadata.
+Deleting a visualization node deletes its index and dashboard widgets; deleting an upstream
+node leaves the visualization editable with an explicit missing-input error.
+A visualization result is prepared Dataset plus a typed rendering specification returned
+by the presentation service. Terminal visualization nodes expose no downstream ports.
+KPI accepts exactly one prepared row. Bar charts accept at most 2000 rows and reject larger
+results explicitly. Aggregation belongs upstream; the chart never silently truncates totals.
+Alternatives: independent chart settings on both rows and nodes drift; dashboard-only charts
+break the documented node-based journey. Consequence: chart edits use workflow revisions.
 
-`PROPOSED`
+# ADR-044 - Dashboard grid and persistence
 
-Required before:
-
-M12.
-
-## Context
-
-Visualization exists both conceptually as a workflow output and as a reusable dashboard object.
-
-## Proposed Direction
-
-Use both:
-
-1. visualization node inside workflow;
-2. persistent Visualization entity referencing that workflow node.
-
-The workflow node defines semantic analytical visualization configuration.
-
-The persistent entity gives dashboards a stable reference.
-
-## Alternative
-
-Store all visualization persistence only as workflow nodes.
-
-## Required Decision
-
-Finalize deletion and ownership semantics before dashboard implementation.
-
----
-
-# ADR-044 — Dashboard Layout Library
-
-Status:
-
-`PROPOSED`
-
-Required before:
-
-M13.
-
-## Context
-
-Dashboard requires:
-
-* drag;
-* resize;
-* grid persistence.
-
-## Candidate Libraries
-
-Evaluate a mature React grid layout solution.
-
-Selection criteria:
-
-* React compatibility;
-* maintained project;
-* persistent grid coordinates;
-* resize behavior;
-* responsive support;
-* TypeScript quality.
-
-## Required Decision
-
-Record chosen library and rejected alternatives.
+Date: 2026-09-10. Status: ACCEPTED.
+Decision: react-grid-layout 2.2.4 with its typed v2 API handles drag/resize on a 12-column grid.
+Persist widget visualization references and integer x/y/width/height. Each widget loads its
+own visualization result so a broken chart does not block the rest of the dashboard.
+Dashboard saves require an expected revision, just as workflow saves do. Layout editing
+keeps a local draft and explicit save/retry rather than silently overwriting concurrent work.
+Alternatives: custom pointer/resize geometry adds unnecessary browser behavior to maintain;
+CSS grid alone cannot provide drag/resize. No chart configuration is copied into widgets.
+Reference: https://github.com/react-grid-layout/react-grid-layout (v2 API checked 2026-09-10).
 
 ---
 
@@ -1835,8 +1793,8 @@ Accepted architectural foundations:
 
 Major pending decisions:
 
-* visualization persistence details (ADR-043);
-* dashboard grid library (ADR-044).
+No architectural decisions remain pending for the early visualization/dashboard slice.
+M11 data-dependent schema details will be recorded before implementation.
 
 Review disposition and remaining limitations for ADR-001 through ADR-049 are recorded in
 `docs/ARCHITECTURE_REVIEW.md`.

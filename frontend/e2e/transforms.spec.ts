@@ -1,10 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { execFileSync } from "node:child_process";
 
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
 
 test("build and restore filtered revenue aggregation entirely in the editor", async ({ page, request }) => {
+  test.setTimeout(120000);
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Sales Analysis M10" } })).json();
   try {
     const upload = await request.post(`${api}/api/v1/projects/${project.id}/sources/excel`, {
@@ -51,6 +53,69 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     await page.locator(`.react-flow__node[data-id="${group.id}"]`).click();
     await page.getByRole("button", { name: "Preview output" }).click();
     await expect(page.getByRole("table")).toHaveText(preview.replaceAll("\t", "").replaceAll("\n", ""));
+    await page.getByTitle("Add Bar Chart").click();
+    const groupOption = page.getByLabel("Input input").locator("option").filter({ hasText: "Group By (" });
+    await page.getByLabel("Input input").selectOption((await groupOption.getAttribute("value"))!);
+    await page.getByLabel("Chart title").fill("Revenue by category");
+    await page.getByLabel("Chart category").selectOption({ label: "category" });
+    await page.getByLabel("Chart value").selectOption({ label: "total_revenue" });
+    await expect(page.getByRole("img", { name: "Revenue by category", exact: true })).toBeVisible();
+    await page.getByTitle("Add Group By").click();
+    const calculation = page.getByLabel("Input input").locator("option").filter({ hasText: "Calculated Column (" });
+    await page.getByLabel("Input input").selectOption((await calculation.getAttribute("value"))!);
+    await page.getByRole("button", { name: "Add aggregation" }).click();
+    await page.getByLabel("Aggregate field 1").selectOption({ label: "revenue" });
+    await page.getByLabel("Aggregation 1", { exact: true }).selectOption("sum");
+    await page.getByLabel("Aggregate name 1").fill("grand_total");
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const beforeKpi = await (await request.get(`${api}/api/v1/workflows/${saved.id}`)).json();
+    const globalGroup = beforeKpi.nodes.find((node: { type: string; config: { aggregations?: { name: string }[] } }) => node.type === "group_by" && node.config.aggregations?.[0]?.name === "grand_total");
+    await page.getByTitle("Add KPI").click();
+    await page.getByLabel("Input input").selectOption(`${globalGroup.id}:dataset`);
+    await page.getByLabel("Chart title").fill("Total revenue");
+    await page.getByLabel("Chart value").selectOption({ label: "grand_total" });
+    await expect(page.getByTestId("kpi-value")).toBeVisible();
+    const total = await page.getByTestId("kpi-value").innerText();
+    await page.goto(`/projects/${project.id}/dashboard`);
+    await page.getByRole("button", { name: "Create dashboard" }).click();
+    await page.getByLabel("Add visualization").selectOption({ label: "Revenue by category" });
+    await page.getByRole("button", { name: "Add widget" }).click();
+    await page.getByLabel("Add visualization").selectOption({ label: "Total revenue" });
+    await page.getByRole("button", { name: "Add widget" }).click();
+    await expect(page.getByTestId("kpi-value")).toHaveText(total);
+    const widgets = page.locator("[data-widget-id]");
+    await expect(widgets).toHaveCount(2);
+    const handle = await widgets.first().locator(".widget-handle").boundingBox();
+    if (!handle) throw new Error("Missing widget drag handle");
+    await page.mouse.move(handle.x + 30, handle.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(handle.x + 180, handle.y + 90, { steps: 12 });
+    await page.mouse.up();
+    const resize = await widgets.first().locator(".react-resizable-handle").boundingBox();
+    if (!resize) throw new Error("Missing widget resize handle");
+    await page.mouse.move(resize.x + 5, resize.y + 5);
+    await page.mouse.down();
+    await page.mouse.move(resize.x + 130, resize.y + 65, { steps: 12 });
+    await page.mouse.up();
+    await page.getByRole("button", { name: "Save dashboard" }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const dashboards = await (await request.get(`${api}/api/v1/projects/${project.id}/dashboards`)).json();
+    const layout = dashboards.items[0];
+    expect(layout.widgets.some((widget: { x: number; width: number; height: number }) => widget.x > 0 && (widget.width !== 6 || widget.height !== 8))).toBeTruthy();
+    if (process.env.NODEBI_E2E_RESTART === "1") {
+      execFileSync("docker", ["compose", "restart", "backend", "postgres"], { cwd: resolve(".."), timeout: 45000, windowsHide: true });
+      await expect.poll(async () => { try { return (await request.get(`${api}/ready`)).ok(); } catch { return false; } }, { timeout: 30000 }).toBeTruthy();
+    }
+    await page.reload();
+    await expect(page.getByTestId("kpi-value")).toHaveText(total);
+    const restored = await (await request.get(`${api}/api/v1/dashboards/${layout.id}`)).json();
+    expect(restored.widgets).toEqual(layout.widgets);
+    // A failed chart request must not hide the other widget.
+    const barId = beforeKpi.nodes.find((node: { type: string }) => node.type === "bar_chart").id;
+    await page.route(`**/api/v1/visualizations/${barId}/result`, route => route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ detail: { code: "TEST_WIDGET_ERROR", message: "Widget test error" } }) }));
+    await page.reload();
+    await expect(page.getByRole("alert").filter({ hasText: "Widget test error" })).toBeVisible();
+    await expect(page.getByTestId("kpi-value")).toHaveText(total);
   } finally {
     await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`);
   }

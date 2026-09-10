@@ -6,18 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.domain.nodes import (
-    ExecutionContext,
     NodeDefinition,
     NodeRegistry,
     PortDefinition,
-)
-from app.domain.workflows import (
-    NodeInstance,
-    Position,
-    WorkflowGraph,
-)
-from app.domain.workflows import (
-    WorkflowEdge as DomainWorkflowEdge,
 )
 from app.infrastructure.database import get_session
 from app.infrastructure.storage import StorageProvider, get_storage_provider
@@ -44,12 +35,19 @@ from app.services.execution import (
     ExecutionFailure,
     InMemoryExecutionCache,
     WorkflowExecutionService,
-    default_execution_logger,
     get_execution_cache,
 )
-from app.services.source_access import ProjectSourceAccess
 from app.services.workflow_validation import GraphIssue, WorkflowSchemaResolver
-from app.services.workflows import read_workflow, save_graph
+from app.services.workflows import (
+    domain_graph as _domain_graph,
+)
+from app.services.workflows import (
+    execution_context as _execution_context,
+)
+from app.services.workflows import (
+    read_workflow,
+    save_graph,
+)
 
 router = APIRouter(tags=["workflows"])
 DatabaseSession = Annotated[Session, Depends(get_session)]
@@ -127,55 +125,6 @@ def _issue_read(issue: GraphIssue) -> GraphIssueRead:
         node_id=issue.node_id,
         edge_id=issue.edge_id,
         field=issue.field,
-    )
-
-
-def _domain_graph(session: Session, workflow: Workflow) -> WorkflowGraph:
-    payload = read_workflow(session, workflow)
-    return WorkflowGraph(
-        id=workflow.id,
-        project_id=workflow.project_id,
-        name=workflow.name,
-        version=workflow.version,
-        nodes=tuple(
-            NodeInstance(
-                node.id,
-                node.type,
-                node.version,
-                Position(node.position.x, node.position.y),
-                node.config,
-                node.ui,
-            )
-            for node in payload.nodes
-        ),
-        edges=tuple(
-            DomainWorkflowEdge(
-                edge.id,
-                edge.source_node_id,
-                edge.source_port,
-                edge.target_node_id,
-                edge.target_port,
-            )
-            for edge in payload.edges
-        ),
-    )
-
-
-def _execution_context(
-    workflow: Workflow,
-    session: Session,
-    storage: StorageProvider,
-    settings: Settings,
-    cache: InMemoryExecutionCache,
-) -> ExecutionContext:
-    return ExecutionContext(
-        workflow.project_id,
-        workflow.id,
-        uuid.uuid4(),
-        sources=ProjectSourceAccess(workflow.project_id, session, storage, cache),
-        cache=cache,
-        logger=default_execution_logger(),
-        settings=settings,
     )
 
 

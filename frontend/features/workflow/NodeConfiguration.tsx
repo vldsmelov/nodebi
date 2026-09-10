@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { VisualizationConfiguration } from "./VisualizationConfiguration";
 import { CalculatedColumnConfiguration, GroupByConfiguration, LimitConfiguration, SortConfiguration } from "./ArithmeticConfiguration";
 type FilterCondition = { column_id: string; operator: string; value?: unknown };
 const comparisonOperators = ["equals", "not_equals", "greater_than", "greater_or_equal", "less_than", "less_or_equal"];
@@ -26,6 +27,8 @@ const configurations: Record<string, ComponentType<Props>> = {
   limit: LimitConfiguration,
   calculated_column: CalculatedColumnConfiguration,
   group_by: GroupByConfiguration,
+  bar_chart: VisualizationConfiguration,
+  kpi: VisualizationConfiguration,
 };
 export function NodeConfiguration(props: Props) {
   const Configuration = configurations[props.type];

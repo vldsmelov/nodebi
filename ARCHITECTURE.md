@@ -3415,3 +3415,14 @@ Workflow reads take a shared database row lock while collecting revision, nodes 
 Save responses are constructed before committing the accepted revision, preventing a subsequent
 writer from changing what the first request acknowledges. Read locks currently live until the
 request transaction ends; long execution can delay saves and remains a performance QA item.
+
+## Early presentation slice (ADR-043 and ADR-044)
+
+Bar Chart and KPI are terminal workflow nodes with schema-aware configuration. A synchronized
+Visualization index shares the node ID and contains no independent semantic config. The
+presentation service executes prepared data and returns a typed rendering specification.
+Dashboard widgets refer to that index. Removing a chart node removes its index and widgets;
+removing only an upstream node preserves an editable chart with an explicit input error.
+Dashboard saves use a separate optimistic revision and validate widget/visualization ownership.
+The frontend uses react-grid-layout 2.2.4 and isolates each widget request/error. Drag/resize
+changes are local until explicit save; a tab-local draft survives reload and failed requests.

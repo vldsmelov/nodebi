@@ -89,7 +89,7 @@ See `docs/ASTRA_HANDOFF.md` for provenance and the original defect reproductions
 * `[ ]` A10: PostgreSQL regressions and browser acceptance automation.
 * `[ ]` Review ADR-001–ADR-049 individually and record evidence/limitations/disposition.
 * `[ ]` Revalidate deployment, resource limits, dependency reproducibility and documentation.
-* `[ ]` After M10, build an early Bar Chart + KPI + dashboard acceptance slice, then
+* `[x]` After M10, build an early Bar Chart + KPI + dashboard acceptance slice, then
   complete M11 and all remaining M12/M13 requirements before M14–M16.
 
 

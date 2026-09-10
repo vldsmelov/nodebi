@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import type { DataSource } from "@/features/data-sources/api";
+import { VisualizationView } from "@/features/dashboard/VisualizationView";
 import { previewWorkflowNode, saveWorkflow } from "./api";
 import { WorkflowAutosave, type SaveState } from "./autosave";
 import { NodeConfiguration } from "./NodeConfiguration";
@@ -196,6 +197,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
         })}
         {selectedNode ? <NodeConfiguration type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} onChange={updateSelectedConfig} /> : null}
         {selectedNode && dirty && selectedInputColumns ? <p className="mt-2 text-xs text-amber-200">Field choices are from the last saved graph. Updating after save…</p> : null}
+        {selectedNode?.data.definition.category === "visualization" && !dirty ? <div className="mt-4 h-72"><VisualizationView id={selectedNode.id} revision={saveState.revision} /></div> : null}
         {selectedNode ? <button onClick={() => preview.mutate(selectedNode.id)} disabled={preview.isPending || dirty} className="mt-5 w-full rounded-xl bg-[#b7ff5a] px-4 py-2.5 text-sm font-semibold text-[#11170d] disabled:opacity-40">{preview.isPending ? "Running preview…" : "Preview output"}</button> : null}
         {selectedIssues.map((issue) => <p key={`${issue.code}:${issue.field}`} className={`mt-4 rounded-xl p-3 text-xs ${issue.severity === "error" ? "bg-red-400/10 text-red-200" : "bg-amber-400/10 text-amber-200"}`}>{issue.message}</p>)}
         {selectedSchema?.columns ? <section className="mt-6"><h3 className="text-xs uppercase tracking-[0.18em] text-white/35">Output fields</h3><div className="mt-3 space-y-2">{selectedSchema.columns.map((column) => <div key={column.column_id} className="flex items-center justify-between rounded-lg border border-white/8 px-3 py-2 text-xs"><span className="truncate">{column.display_name}</span><span className="ml-2 text-white/35">{column.logical_type}{column.nullable ? "?" : ""}</span></div>)}</div></section> : null}
