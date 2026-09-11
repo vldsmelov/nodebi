@@ -1,8 +1,10 @@
 from datetime import date, datetime
 from typing import Any
+from xml.etree.ElementTree import ParseError
 from zipfile import BadZipFile, ZipFile
 
 import polars as pl
+from defusedxml.common import DefusedXmlException  # type: ignore[import-untyped]
 from openpyxl import load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
 
@@ -102,7 +104,15 @@ class OpenPyxlWorkbookReader:
                     raise ValueError("Workbook expanded size exceeds the supported limit.")
             stream.seek(0)
             return stream, load_workbook(stream, read_only=True, data_only=True, keep_vba=False)
-        except (BadZipFile, InvalidFileException, OSError, ValueError, KeyError) as exc:
+        except (
+            BadZipFile,
+            InvalidFileException,
+            OSError,
+            ValueError,
+            KeyError,
+            ParseError,
+            DefusedXmlException,
+        ) as exc:
             if stream is not None:
                 stream.close()
             raise ExcelWorkbookError("The uploaded file is not a readable Excel workbook.") from exc
@@ -114,7 +124,7 @@ class OpenPyxlWorkbookReader:
                 WorksheetInfo(
                     name=sheet.title,
                     row_count=max((sheet.max_row or 1) - 1, 0),
-                    column_count=sheet.max_column,
+                    column_count=sheet.max_column or 0,
                 )
                 for sheet in workbook.worksheets
             ]
@@ -135,6 +145,8 @@ class OpenPyxlWorkbookReader:
             sheet = workbook[sheet_name]
             iterator = sheet.iter_rows(values_only=True)
             headers = next(iterator, ())
+            if len(headers) > 1024:
+                raise ExcelWorkbookError("Worksheet exceeds the 1024-column limit.")
             sampled = []
             for _, row in zip(range(options.limit + 1), iterator, strict=False):
                 sampled.append(row)
@@ -151,6 +163,8 @@ class OpenPyxlWorkbookReader:
                 for row in data_rows
             ]
             return WorksheetPreview(sheet_name, columns, rows, len(rows), truncated)
+        except (ParseError, DefusedXmlException) as exc:
+            raise ExcelWorkbookError("The worksheet contains invalid or unsafe XML.") from exc
         finally:
             workbook.close()
             stream.close()
@@ -203,6 +217,8 @@ class OpenPyxlWorkbookReader:
                 schema=DatasetSchema(columns),
                 metadata={"sheet_name": sheet_name},
             )
+        except (ParseError, DefusedXmlException) as exc:
+            raise ExcelWorkbookError("The worksheet contains invalid or unsafe XML.") from exc
         finally:
             workbook.close()
             stream.close()

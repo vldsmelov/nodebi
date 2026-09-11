@@ -64,3 +64,13 @@ and TASKS.md; this table preserves the original findings.
 6. M16: clean migrations/startup, all tests, browser journey and restart verification.
 
 No milestone becomes done solely because code or an empty persistence table exists.
+
+## Checkpoint 2026-09-11
+
+M10 and M11 are committed (e2987fb, 576d64a); early charts/dashboard are committed as 47076ba.
+All remaining required charts and multi-dashboard management are implemented and verified.
+Latest checks: 190 backend tests, 17 frontend tests, six browser scenarios together with real
+backend/PostgreSQL restart plus two slow-save/navigation browser scenarios separately.
+QA fixed a reproduced database-startup race and enabled Excel XML entity protection.
+The 50000-row smoke benchmark and remaining release work are in docs/QA_REPORT.md.
+MVP is not yet declared complete; continue from STATUS.md through M14-M16.

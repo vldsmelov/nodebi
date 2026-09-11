@@ -1,12 +1,18 @@
 import uuid
-from typing import Literal, cast
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.domain.errors import ApplicationError
+from app.domain.visualizations import CHART_TYPES
 from app.models import Dashboard, DashboardWidget, Project, Visualization
-from app.schemas.dashboards import DashboardRead, DashboardSave, VisualizationRead, WidgetPayload
+from app.schemas.dashboards import (
+    DashboardRead,
+    DashboardSave,
+    VisualizationRead,
+    WidgetConfig,
+    WidgetPayload,
+)
 
 
 class DashboardService:
@@ -44,6 +50,8 @@ class DashboardService:
                 WidgetPayload(
                     id=w.id,
                     visualization_id=w.visualization_id,
+                    title=w.title,
+                    config=WidgetConfig.model_validate(w.config),
                     x=w.position_x,
                     y=w.position_y,
                     width=w.width,
@@ -109,7 +117,8 @@ class DashboardService:
                     position_y=w.y,
                     width=w.width,
                     height=w.height,
-                    config={},
+                    title=w.title,
+                    config=w.config.model_dump(),
                 )
                 for w in payload.widgets
             ]
@@ -131,7 +140,7 @@ class DashboardService:
                 workflow_id=row.workflow_id,
                 node_id=row.source_node_id,
                 name=row.name,
-                type=cast(Literal["bar_chart", "kpi"], row.type),
+                type=row.type,
             )
             for row in self.session.scalars(
                 select(Visualization).where(
@@ -139,5 +148,5 @@ class DashboardService:
                     Visualization.source_node_id.is_not(None),
                 )
             )
-            if row.source_node_id is not None and row.type in {"bar_chart", "kpi"}
+            if row.source_node_id is not None and row.type in CHART_TYPES
         ]

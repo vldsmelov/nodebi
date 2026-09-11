@@ -86,9 +86,9 @@ See `docs/ASTRA_HANDOFF.md` for provenance and the original defect reproductions
 * `[x]` A06/A07: source validation before cache, scoped keys, memory bounds and source/schema reuse.
 * `[~]` A08: application boundaries, editor decomposition, generated API types and structured errors.
 * `[~]` A09: compensating upload cleanup and repeatable source/project file deletion.
-* `[ ]` A10: PostgreSQL regressions and browser acceptance automation.
-* `[ ]` Review ADR-001–ADR-049 individually and record evidence/limitations/disposition.
-* `[ ]` Revalidate deployment, resource limits, dependency reproducibility and documentation.
+* `[x]` A10: PostgreSQL regressions and browser acceptance automation.
+* `[~]` Review ADR-001–ADR-049 individually and record evidence/limitations/disposition.
+* `[~]` Revalidate deployment, resource limits, dependency reproducibility and documentation.
 * `[x]` After M10, build an early Bar Chart + KPI + dashboard acceptance slice, then
   complete M11 and all remaining M12/M13 requirements before M14–M16.
 
@@ -1444,7 +1444,7 @@ All transformation nodes listed in `PRODUCT_SPEC.md` operate through the common 
 
 Status:
 
-`[ ] TODO`
+`[x] DONE`
 
 Goal:
 
@@ -1462,11 +1462,11 @@ M11 is not required for initial visualization work.
 
 Implement:
 
-* `[ ]` Visualization entity
-* `[ ]` VisualizationSpec
-* `[ ]` semantic field encodings
-* `[ ]` number formatting config
-* `[ ]` chart configuration validation
+* `[x]` Visualization entity
+* `[x]` VisualizationSpec
+* `[x]` semantic field encodings
+* `[x]` number formatting config
+* `[x]` chart configuration validation
 
 ---
 
@@ -1474,20 +1474,20 @@ Implement:
 
 Finalize and record:
 
-* `[ ]` relation between workflow visualization nodes and persisted visualization entities
-* `[ ]` source node reference behavior
-* `[ ]` deletion semantics
+* `[x]` relation between workflow visualization nodes and persisted visualization entities
+* `[x]` source node reference behavior
+* `[x]` deletion semantics
 
 ---
 
 ## M12.3 Table
 
-* `[ ]` semantic config
-* `[ ]` bounded data endpoint
-* `[ ]` frontend table renderer
-* `[ ]` loading
-* `[ ]` empty state
-* `[ ]` errors
+* `[x]` semantic config
+* `[x]` bounded data endpoint
+* `[x]` frontend table renderer
+* `[x]` loading
+* `[x]` empty state
+* `[x]` errors
 
 ---
 
@@ -1495,66 +1495,66 @@ Finalize and record:
 
 Support:
 
-* `[ ]` metric field
-* `[ ]` single-value result
-* `[ ]` title
-* `[ ]` number format
-* `[ ]` frontend renderer
+* `[x]` metric field
+* `[x]` single-value result
+* `[x]` title
+* `[x]` number format
+* `[x]` frontend renderer
 
 ---
 
 ## M12.5 Bar Chart
 
-* `[ ]` X field
-* `[ ]` Y field
-* `[ ]` title
-* `[ ]` legend
-* `[ ]` frontend ECharts adapter
+* `[x]` X field
+* `[x]` Y field
+* `[x]` title
+* `[x]` legend
+* `[x]` frontend ECharts adapter
 
 ---
 
 ## M12.6 Line Chart
 
-* `[ ]` X field
-* `[ ]` Y field
-* `[ ]` optional series
-* `[ ]` date handling
-* `[ ]` renderer
+* `[x]` X field
+* `[x]` Y field
+* `[ ]` optional series (deferred; not required for MVP)
+* `[x]` date handling
+* `[x]` renderer
 
 ---
 
 ## M12.7 Area Chart
 
-* `[ ]` line-compatible semantic config
-* `[ ]` area rendering
-* `[ ]` tests
+* `[x]` line-compatible semantic config
+* `[x]` area rendering
+* `[x]` tests
 
 ---
 
 ## M12.8 Pie / Donut
 
-* `[ ]` category
-* `[ ]` value
-* `[ ]` pie mode
-* `[ ]` donut mode
-* `[ ]` renderer
+* `[x]` category
+* `[x]` value
+* `[x]` pie mode
+* `[x]` donut mode
+* `[x]` renderer
 
 ---
 
 ## M12.9 Scatter
 
-* `[ ]` numeric X
-* `[ ]` numeric Y
-* `[ ]` type-aware selector
-* `[ ]` renderer
+* `[x]` numeric X
+* `[x]` numeric Y
+* `[x]` type-aware selector
+* `[x]` renderer
 
 ---
 
 ## M12.10 Chart Data Limits
 
-* `[ ]` server-side maximum chart points
-* `[ ]` controlled warning/error behavior
-* `[ ]` no silent arbitrary aggregation
+* `[x]` server-side maximum chart points
+* `[x]` controlled warning/error behavior
+* `[x]` no silent arbitrary aggregation
 
 ---
 
@@ -1587,7 +1587,7 @@ Both must survive project reload.
 
 Status:
 
-`[ ] TODO`
+`[x] DONE`
 
 Goal:
 
@@ -1603,11 +1603,11 @@ M12.
 
 Backend CRUD:
 
-* `[ ]` create dashboard
-* `[ ]` list dashboards
-* `[ ]` get dashboard
-* `[ ]` rename dashboard
-* `[ ]` delete dashboard
+* `[x]` create dashboard
+* `[x]` list dashboards
+* `[x]` get dashboard
+* `[x]` rename dashboard
+* `[x]` delete dashboard
 
 ---
 
@@ -1615,33 +1615,33 @@ Backend CRUD:
 
 Support:
 
-* `[ ]` visualization ID
-* `[ ]` title
-* `[ ]` x
-* `[ ]` y
-* `[ ]` width
-* `[ ]` height
-* `[ ]` widget config
+* `[x]` visualization ID
+* `[x]` title
+* `[x]` x
+* `[x]` y
+* `[x]` width
+* `[x]` height
+* `[x]` widget config
 
 ---
 
 ## M13.3 Dashboard Layout Library
 
-* `[ ]` evaluate suitable grid library
-* `[ ]` record ADR
-* `[ ]` integrate library
+* `[x]` evaluate suitable grid library
+* `[x]` record ADR
+* `[x]` integrate library
 
 ---
 
 ## M13.4 Dashboard Editor
 
-* `[ ]` empty state
-* `[ ]` add visualization
-* `[ ]` remove visualization
-* `[ ]` drag
-* `[ ]` resize
-* `[ ]` save layout
-* `[ ]` loading states
+* `[x]` empty state
+* `[x]` add visualization
+* `[x]` remove visualization
+* `[x]` drag
+* `[x]` resize
+* `[x]` save layout
+* `[x]` loading states
 
 ---
 
@@ -1649,10 +1649,10 @@ Support:
 
 Per-widget:
 
-* `[ ]` loading
-* `[ ]` success
-* `[ ]` empty
-* `[ ]` error
+* `[x]` loading
+* `[x]` success
+* `[x]` empty
+* `[x]` error
 
 One failed widget must not break unrelated widgets.
 
@@ -1677,11 +1677,11 @@ produces the same layout.
 
 If architecture remains simple:
 
-* `[ ]` support multiple dashboards per project
+* `[x]` support multiple dashboards per project
 
 Otherwise:
 
-* `[ ]` document as post-MVP limitation
+* Not applicable: multiple dashboards are implemented.
 
 At least one dashboard is mandatory.
 

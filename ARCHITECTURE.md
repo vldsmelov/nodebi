@@ -3426,3 +3426,15 @@ removing only an upstream node preserves an editable chart with an explicit inpu
 Dashboard saves use a separate optimistic revision and validate widget/visualization ownership.
 The frontend uses react-grid-layout 2.2.4 and isolates each widget request/error. Drag/resize
 changes are local until explicit save; a tab-local draft survives reload and failed requests.
+
+## Completed visualization adapters and startup recovery (ADR-057/058)
+
+The domain visualization catalog owns eight chart types, shared semantic configuration and
+validation. Backend results retain workflow revision; table-only offset/limit pagination is explicit.
+Other chart series remain complete under the 2000-point ceiling. Visualization index rows carry
+no independent configuration. Widgets may override presentation title/visibility without duplicating
+semantic fields. Each widget has an independent query/error boundary.
+
+Excel uses defusedxml for forbidden XML entities; initial and lazy worksheet parsing map failures
+to domain errors. Startup probes database availability before invoking Alembic, with bounded retries
+and connection timeout. Migration failures are not retried or hidden.

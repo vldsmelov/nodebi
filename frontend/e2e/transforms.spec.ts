@@ -112,7 +112,7 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     expect(restored.widgets).toEqual(layout.widgets);
     // A failed chart request must not hide the other widget.
     const barId = beforeKpi.nodes.find((node: { type: string }) => node.type === "bar_chart").id;
-    await page.route(`**/api/v1/visualizations/${barId}/result`, route => route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ detail: { code: "TEST_WIDGET_ERROR", message: "Widget test error" } }) }));
+    await page.route(`**/api/v1/visualizations/${barId}/result*`, route => route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ detail: { code: "TEST_WIDGET_ERROR", message: "Widget test error" } }) }));
     await page.reload();
     await expect(page.getByRole("alert").filter({ hasText: "Widget test error" })).toBeVisible();
     await expect(page.getByTestId("kpi-value")).toHaveText(total);

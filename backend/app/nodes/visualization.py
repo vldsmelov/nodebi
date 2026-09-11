@@ -1,7 +1,4 @@
-from typing import Literal
-
 import polars as pl
-from pydantic import BaseModel, Field
 
 from app.domain.datasets import Dataset, DatasetSchema, LogicalType
 from app.domain.errors import NodeExecutionError
@@ -13,19 +10,9 @@ from app.domain.nodes import (
     PortKind,
     SchemaInferenceMode,
 )
+from app.domain.visualizations import CHART_NAMES, CHART_TYPES, VisualizationConfig
 from app.domain.workflows import NodeInstance
 from app.nodes.common import UnaryExecutor, input_schema
-
-CHART_TYPES = ("bar_chart", "kpi")
-
-
-class VisualizationConfig(BaseModel):
-    title: str = Field(default="", max_length=200)
-    value_column_id: str = Field(min_length=1)
-    category_column_id: str | None = None
-    number_format: Literal["number", "currency", "percent"] = "number"
-    decimals: int = Field(default=2, ge=0, le=8)
-    currency: str = Field(default="USD", pattern="^[A-Z]{3}$")
 
 
 class VisualizationExecutor(UnaryExecutor):
@@ -34,32 +21,63 @@ class VisualizationExecutor(UnaryExecutor):
     ) -> DatasetSchema:
         schema = input_schema(input_schemas)
         config = VisualizationConfig.model_validate(node.config)
+        if node.type == "table":
+            ids = (
+                config.column_ids
+                if config.column_ids is not None
+                else [c.column_id for c in schema.columns]
+            )
+            if schema.columns and not ids:
+                raise ValueError("Select at least one table field.")
+            return DatasetSchema(tuple(schema.by_id(identity) for identity in ids))
+        if not config.value_column_id:
+            raise ValueError("Select a numeric value field.")
         value = schema.by_id(config.value_column_id)
         if value.logical_type not in {LogicalType.INTEGER, LogicalType.FLOAT, LogicalType.UNKNOWN}:
             raise ValueError("Select a numeric value field.")
-        if node.type == "bar_chart":
+        if node.type != "kpi":
             if not config.category_column_id:
                 raise ValueError("Select a category field.")
-            schema.by_id(config.category_column_id)
+            category = schema.by_id(config.category_column_id)
+            if node.type == "scatter_chart" and category.logical_type not in {
+                LogicalType.INTEGER,
+                LogicalType.FLOAT,
+                LogicalType.UNKNOWN,
+            }:
+                raise ValueError("Scatter X field must be numeric.")
         return schema
 
     def execute(
         self, node: NodeInstance, inputs: dict[str, Dataset], context: ExecutionContext
     ) -> Dataset:
         source = inputs["input"]
-        self.infer_schema(node, {"input": source.schema}, context)
+        schema = self.infer_schema(node, {"input": source.schema}, context)
+        if node.type == "table":
+            return Dataset(source.frame.select([c.engine_name for c in schema.columns]), schema)
         config = VisualizationConfig.model_validate(node.config)
+        assert config.value_column_id is not None
         value_name = source.schema.by_id(config.value_column_id).engine_name
         if (~source.frame[value_name].cast(pl.Float64).is_finite()).any():
             raise NodeExecutionError("Visualization values must be finite numbers or empty.")
+        if node.type == "scatter_chart":
+            assert config.category_column_id is not None
+            x_name = source.schema.by_id(config.category_column_id).engine_name
+            if (~source.frame[x_name].cast(pl.Float64).is_finite()).any():
+                raise NodeExecutionError("Scatter X values must be finite numbers or empty.")
         if node.type == "kpi" and source.row_count != 1:
             raise NodeExecutionError(
                 "KPI requires exactly one row. Add a Group By with no dimensions first."
             )
-        if node.type == "bar_chart" and source.row_count > 2000:
+        if node.type != "kpi" and source.row_count > 2000:
             raise NodeExecutionError(
                 "Chart exceeds 2000 points. Aggregate or explicitly filter the upstream data."
             )
+        if node.type in {"pie_chart", "donut_chart"} and source.row_count:
+            values = source.frame[value_name].cast(pl.Float64)
+            if (values < 0).any() or not (values.sum() or 0) > 0:
+                raise NodeExecutionError(
+                    "Pie and donut require non-negative values with a positive total."
+                )
         return source
 
 
@@ -69,7 +87,7 @@ def visualization_definitions() -> tuple[NodeDefinition, ...]:
             type=kind,
             version=1,
             category=NodeCategory.VISUALIZATION,
-            display_name="Bar Chart" if kind == "bar_chart" else "KPI",
+            display_name=CHART_NAMES[kind],
             description="Display prepared data. Configure aggregation upstream.",
             input_ports=(PortDefinition("input", "Dataset", PortKind.DATASET),),
             output_ports=(),

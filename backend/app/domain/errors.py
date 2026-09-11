@@ -19,6 +19,7 @@ class ApplicationError(Exception):
         *,
         node_id: str | None = None,
         execution_id: str | None = None,
+        issues: list[dict[str, str | None]] | None = None,
     ) -> None:
         super().__init__(message)
         self.code = code
@@ -26,3 +27,4 @@ class ApplicationError(Exception):
         self.status = status
         self.node_id = node_id
         self.execution_id = execution_id
+        self.issues = issues or []

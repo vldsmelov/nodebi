@@ -1,90 +1,63 @@
 # Node BI Development Status
 
-Last updated: 2026-09-10
-Overall status: **IN PROGRESS — MVP NOT COMPLETE**
+Last updated: 2026-09-11
+Overall: **IN PROGRESS — MVP NOT COMPLETE**
 
-## Current Milestone
+## Current milestone and task
 
-Astra architecture revision gate before M10 continuation.
+M12/M13 implementation is integrated. M14/M15 recovery and QA are active; M16 is not signed off.
+Latest completed feature: all required chart types and multiple-dashboard management with
+persisted widget titles, visibility and layout. Startup readiness fix passes actual restart acceptance.
 
-## Current Task
+## Implemented
 
-Early Bar Chart/KPI/dashboard slice verified. Next: M11 Join, Union, Pivot.
+M0–M9 foundation and Astra revision fixes; M10 Select, Rename, Filter, Sort, Limit, safe
+Calculated Column and Group By; M11 inner/left Join, Union and data-dependent Pivot.
+M12 Table, KPI, Bar, Line, Area, Pie, Donut, Scatter share workflow-owned semantic config.
+M13 dashboard CRUD, widget add/remove/drag/resize, revision checks and recoverable local drafts.
+No product data was reset. Basic stack remains unchanged.
 
-## Last Completed Task
+Revision fixes include foreign graph ID rejection, explicit Excel type conversion and unique
+headers, atomic expected revisions, serialized autosave, source access interfaces, bounded cache,
+retryable file cleanup, generated API types and structured errors.
 
-M10 Sort, Limit, safe arithmetic formulas, Calculated Column and Group By, including configuration UI and browser restoration. Revision fixes implemented:
-foreign graph ID rejection; Excel collision/mixed-type fixes; atomic workflow revisions;
-recoverable serialized autosave; source access abstraction; cache validation/memory limits;
-source/project artifact cleanup; generated OpenAPI types; editor configuration/card extraction.
+## Validation checkpoint
 
-## Test Status
+* Backend: 190 passed, two SQLite-only skips; their PostgreSQL variants pass. Ruff and strict mypy pass (57 application files).
+* Frontend: 17 tests, ESLint, TypeScript, generated API drift check and Docker production build pass.
+* Browser: six scenarios pass together with real backend/PostgreSQL restart. Two additional
+  slow-save/navigation scenarios pass separately (eight scenarios total).
+* Excel malicious/malformed XML rejection and oversized preview regressions pass.
+* 50000-row benchmark: upload/inspect 699 ms; cold source 2017 ms; warm source 10 ms;
+  Filter 17 ms; calculated/grouped output 17 ms; warm chart 18 ms. Exact total verified.
+  These are one local run, not a concurrency/load guarantee. Reproduce with
+  `backend/.venv/Scripts/python backend/scripts/benchmark_mvp.py` from repository root.
 
-* Backend: 155 passed, 2 SQLite-only skips (those cases pass in the PostgreSQL matrix).
-  Ruff and strict mypy pass (47 application source files).
-* Frontend: 14 tests, lint, typecheck and production build pass; OpenAPI drift check passes.
-* Playwright: 4 scenarios pass on Docker: two-tab conflict, failed-save recovery,
-  Excel preview/restoration and full M10 pipeline built through the editor.
-* Docker backend/frontend/PostgreSQL healthy; migrations applied without data reset.
-* npm audit last run: zero vulnerabilities. Backend dependency pinning remains a QA item.
-* Two upstream TestClient deprecation warnings remain.
-* Latest transaction snapshot fix passes the full local PostgreSQL test suite;
-  deployed backend image precedes that fix and should be rebuilt before next acceptance.
+## Findings and limitations
 
-## Known Defects and Review Items
+* Restart race fixed and verified; no known open P0/P1 in the completed chart/dashboard features.
+* XML entity protection was absent; defusedxml is pinned and enabled, with regression coverage.
+* P2: abrupt process failure before upload compensation is recorded can leave an orphan artifact;
+  operational reconciliation is still required for this narrow crash window.
+* Slow-response/navigation autosave browser cases pass; final QA matrix remains to be completed.
+* Cache memory accounting estimates dataframe bytes and excludes Python/engine overhead.
+* Float64 arithmetic precision and single-key Join are explicit ADR-055/056 limitations.
+* Two upstream TestClient deprecation warnings remain. No blocker currently.
 
-* Original A01–A03 defects have fixes and regression coverage on SQLite/PostgreSQL.
-* Autosave conflict/recovery browser verification passes; additional slow-response/navigation cases remain.
-* Source deletion versus concurrent new workflow references needs final recovery hardening.
-* Abrupt upload failure before compensation can be queued may require artifact reconciliation.
-* M10 remainder, visualizations, dashboards and complete restart acceptance are unfinished.
-* Original findings and ADR-001–ADR-049 dispositions are preserved in
-  docs/ASTRA_HANDOFF.md and docs/ARCHITECTURE_REVIEW.md.
+## Next work
 
-## Blockers
+1. Complete application-boundary/editor review and remaining QA checklist.
+2. Complete M14/M15 QA matrix, remaining application-boundary/editor review and documentation.
+3. Perform M16 clean-install/migration/release review; only then mark MVP complete.
 
-None currently. Docker Engine was started successfully; the previous outage is resolved.
-Use 127.0.0.1 rather than localhost for Python PostgreSQL connections in this environment.
+## Persistent resume context
 
-## Next Tasks
-
-1. M11 Join, Union and Pivot contracts, implementation, UI and regression tests.
-2. Finish remaining revision review items and backend dependency reproducibility.
-3. M11 and remaining M12/M13.
-4. M14–M16 recovery, QA and final release gates.
-
-## Resume Context
-
-Git baseline commit: accc239. Revision and M10 changes are recorded in the checkpoint commit following that baseline.
-Database backup: .backups/before-astra-migrations-20260910.sql (ignored by Git).
-No database/source storage reset has been performed.
-Migration 0002 separates workflow format version from edit revision; migration 0003 adds
-retryable file cleanup. Existing save clients must send expected_revision.
-Run npm run api:generate after API changes; npm run api:check detects drift.
-PostgreSQL test opt-in: NODEBI_TEST_POSTGRES_URL=postgresql+psycopg://nodebi:nodebi_dev@127.0.0.1:5432/nodebi?connect_timeout=5.
-Tests create/drop only their private generated schemas.
-
-## Active early-slice implementation
-
-ADR-043/044 accepted: chart semantics live only in workflow node config; Visualization is
-an automatically synchronized index. Dashboard uses react-grid-layout 2.2.4 and explicit
-revision-checked save with a tab-local recoverable draft. Migration 0004 adds dashboard revision.
-Bar/KPI executors, result service, dashboard APIs and UI are implemented and under test.
-Full regression: 159 backend tests pass across SQLite/PostgreSQL; 14 frontend tests and build pass.
-All 4 browser tests pass, including Bar/KPI, widget drag/resize/save, isolated widget error,
-and a real backend/PostgreSQL restart (NODEBI_E2E_RESTART=1). Latest finite-value guard
-is locally verified and will enter the next backend image.
-MVP is not complete: M11, other charts, full dashboard management and QA remain.
-Checkpoint before early slice: e2987fb. Early-slice work is not yet committed.
-
-## M11 work in progress
-
-Join (inner/left), Union and bounded Pivot are implemented with UI forms. Nine focused
-regressions pass; full runtime-aligned backend suite: 168 passed plus two SQLite skips.
-Value-dependent schema resolution executes the Pivot ancestor branch through the shared
-cache, then propagates actual fields downstream. ADR-056 records matching/null/lineage/cap semantics.
-Runtime versions now match local and Docker, with a cached dependency layer. Latest regression
-also fixes blank-header-row data loss (test_excel.py); empty sheets still remain empty.
-M11 browser acceptance passes: two-input Join/Union and Pivot fields consumed by Select Columns.
-Next: remaining chart types, dashboard management and final QA.
-Early slice is committed as 47076ba; M11 and dependency lock changes are not yet committed.
+Commits: `accc239` baseline; `e2987fb` revision/M10; `47076ba` early Bar/KPI/dashboard;
+`576d64a` M11 and runtime dependency pins. Current chart/QA work is uncommitted.
+Backup: `.backups/before-astra-migrations-20260910.sql` (ignored). No reset performed.
+Migrations 0002–0004 introduce workflow revision, file cleanup queue and dashboard revision.
+PostgreSQL tests create/drop their own generated schemas only. Use
+`NODEBI_TEST_POSTGRES_URL=postgresql+psycopg://nodebi:nodebi_dev@127.0.0.1:5432/nodebi?connect_timeout=5`.
+Python localhost/IPv6 connections hang in this environment; benchmark disables environment proxies.
+`NODEBI_E2E_RESTART=1 npm run test:e2e` runs actual restart acceptance from frontend.
+See docs/ASTRA_HANDOFF.md for Sol history and docs/ARCHITECTURE_REVIEW.md for ADR review.

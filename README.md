@@ -1471,3 +1471,17 @@ for Linux uvloop and Windows support packages. Development tool versions are con
 backend/constraints-dev.txt. Install with `pip install -r requirements-runtime.txt -c constraints-dev.txt -e ".[dev]"`.
 Update these files deliberately and rerun PostgreSQL and browser acceptance. Docker installs
 runtime dependencies in a separate cached layer before copying application code.
+
+## Chart and recovery checkpoint (2026-09-11)
+
+All required transforms and Table/KPI/Bar/Line/Area/Pie/Donut/Scatter are implemented.
+Chart semantics are edited in workflow nodes; dashboards hold references and presentation overrides.
+Use Group By upstream for totals; charts reject more than 2000 points rather than silently sampling.
+Tables page through backend results. Dashboard names, titles, title visibility and grid layout persist.
+
+Startup waits for database availability before migrations, including simultaneous stack restarts.
+Excel XML entity protection is installed through pinned defusedxml.
+Run the repeatable 50000-row smoke benchmark with
+`backend/.venv/Scripts/python backend/scripts/benchmark_mvp.py`.
+Do not run PostgreSQL tests while restart acceptance restarts the same database.
+Current release evidence and remaining gates: [QA report](docs/QA_REPORT.md), [status](STATUS.md).

@@ -172,6 +172,45 @@ def test_chart_kpi_dashboard_persistence_and_atomic_conflicts(
 
 
 @pytest.mark.parametrize(
+    "kind", ["table", "line_chart", "area_chart", "pie_chart", "donut_chart", "scatter_chart"]
+)
+def test_all_chart_types_use_node_config_and_table_pagination(
+    db_engine: Engine, tmp_path: Path, kind: str
+) -> None:
+    project_id = uuid.uuid4()
+    with Session(db_engine) as session:
+        session.add(Project(id=project_id, name="Charts"))
+        session.commit()
+    client = client_for(db_engine, tmp_path)
+    try:
+        graph = analytical_graph(client, project_id)
+        chart = next(n for n in graph["nodes"] if n["type"] == "bar_chart")
+        chart["type"] = kind
+        if kind == "scatter_chart":
+            chart["config"]["category_column_id"] = chart["config"]["value_column_id"]
+        if kind == "table":
+            chart["config"] = {"title": "Paged table"}
+        graph["expected_revision"] = graph["revision"]
+        saved = client.put(f"/api/v1/workflows/{graph['id']}", json=graph)
+        assert saved.status_code == 200, saved.text
+        result = client.get(f"/api/v1/visualizations/{chart['id']}/result?offset=1&limit=1")
+        assert result.status_code == 200, result.text
+        data = result.json()
+        assert data["type"] == kind
+        assert data["revision"] == saved.json()["revision"]
+        assert data["total_rows"] == 2
+        if kind == "table":
+            assert data["rows"] == [{"category": "B", "total": 10.0}]
+            assert data["offset"] == 1 and data["limit"] == 1
+        else:
+            # Pagination cannot truncate a chart's analytical series.
+            assert len(data["rows"]) == 2 and data["offset"] == 0
+        assert not data["truncated"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize(
     ("kind", "rows", "message"), [("kpi", 2, "exactly one row"), ("bar_chart", 2001, "2000 points")]
 )
 def test_visualizations_reject_ambiguous_totals_and_silent_truncation(
@@ -187,6 +226,25 @@ def test_visualizations_reject_ambiguous_totals_and_silent_truncation(
         {"value_column_id": "value", "category_column_id": "value"},
     )
     with pytest.raises(NodeExecutionError, match=message):
+        VisualizationExecutor().execute(
+            node, {"input": data}, ExecutionContext(uuid.uuid4(), uuid.uuid4(), uuid.uuid4())
+        )
+
+
+@pytest.mark.parametrize("invalid", [float("inf"), float("nan")])
+def test_scatter_rejects_nonfinite_x(invalid: float) -> None:
+    schema = DatasetSchema(
+        tuple(ColumnSchema(name, name, name, LogicalType.FLOAT, False) for name in ("x", "y"))
+    )
+    data = Dataset(pl.DataFrame({"x": [invalid], "y": [1.0]}), schema)
+    node = NodeInstance(
+        uuid.uuid4(),
+        "scatter_chart",
+        1,
+        Position(0, 0),
+        {"value_column_id": "y", "category_column_id": "x"},
+    )
+    with pytest.raises(NodeExecutionError, match="Scatter X values"):
         VisualizationExecutor().execute(
             node, {"input": data}, ExecutionContext(uuid.uuid4(), uuid.uuid4(), uuid.uuid4())
         )

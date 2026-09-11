@@ -1922,3 +1922,33 @@ executor/cache, then propagates its actual schema to downstream controls. Static
 continue to infer without execution. No preview sample is used to infer Pivot columns.
 Alternatives: inferring Pivot from a sample loses fields; unconstrained many-to-many joins can
 exhaust memory; silently casting numeric keys risks false matches above float precision limits.
+
+# ADR-057 - Complete visualization and dashboard contracts
+
+Date: 2026-09-11. Status: ACCEPTED.
+Context: all mandatory charts must share execution, persistence and error semantics.
+Decision: the domain catalog includes Table, KPI, Bar, Line, Area, Pie, Donut and Scatter.
+Workflow node config remains the sole semantic owner. Tables request bounded backend pages;
+charts receive complete prepared series up to 2000 points, otherwise an explicit error.
+No browser aggregation or silent sampling is permitted. Scatter requires numeric axes;
+Pie/Donut require non-negative values with a positive total. Nonfinite numeric axes fail clearly.
+Date axes, number formatting, legend and labels are presentation settings.
+Dashboard CRUD supports multiple dashboards. Widgets store optional title override and
+title visibility alongside visualization references and grid coordinates, never copied semantics.
+Alternative: a second chart editor on dashboards would create conflicting configuration copies.
+Consequences: aggregation belongs upstream; widget errors remain isolated; table paging does not
+change aggregate totals. Optional multiple series is deferred within the documented optional scope.
+
+# ADR-058 - Safe Excel XML parsing and restart readiness
+
+Date: 2026-09-11. Status: ACCEPTED.
+Context: QA found defusedxml absent and reproduced backend startup failure during simultaneous
+backend/PostgreSQL restart because Compose restart does not wait for dependency health.
+Decision: pin defusedxml 0.7.1; translate invalid/forbidden XML errors from both initial and lazy
+worksheet parsing. Apply the 1024-column limit to previews as well as materialization.
+Before migrations, probe database availability for up to 60 seconds, with five-second connection
+timeouts. Retry only availability probes; migration failures remain fatal and visible.
+Alternatives: merely ordering the acceptance test hides the restart race; retrying migrations
+indiscriminately can conceal real migration defects. Consequence: recovery is automatic when the
+database becomes available within the startup budget; persistent outages still fail explicitly.
+The parser protection follows the [openpyxl security guidance](https://openpyxl.readthedocs.io/en/stable/).

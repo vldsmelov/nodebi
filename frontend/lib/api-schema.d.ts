@@ -689,7 +689,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "bar_chart" | "kpi";
+            type: "bar_chart" | "kpi" | "table" | "line_chart" | "area_chart" | "pie_chart" | "donut_chart" | "scatter_chart";
         };
         /** VisualizationResult */
         VisualizationResult: {
@@ -704,11 +704,11 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "bar_chart" | "kpi";
+            type: "bar_chart" | "kpi" | "table" | "line_chart" | "area_chart" | "pie_chart" | "donut_chart" | "scatter_chart";
             /** Title */
             title: string;
             /** Value Field */
-            value_field: string;
+            value_field: string | null;
             /** Category Field */
             category_field: string | null;
             /**
@@ -720,12 +720,32 @@ export interface components {
             decimals: number;
             /** Currency */
             currency: string;
+            /** Show Legend */
+            show_legend: boolean;
+            /** Show Labels */
+            show_labels: boolean;
+            /** Total Rows */
+            total_rows: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /** Truncated */
+            truncated: boolean;
             /** Columns */
             columns: components["schemas"]["ResolvedColumnRead"][];
             /** Rows */
             rows: {
                 [key: string]: unknown;
             }[];
+        };
+        /** WidgetConfig */
+        WidgetConfig: {
+            /**
+             * Show Title
+             * @default true
+             */
+            show_title: boolean;
         };
         /** WidgetPayload */
         WidgetPayload: {
@@ -739,6 +759,9 @@ export interface components {
              * Format: uuid
              */
             visualization_id: string;
+            /** Title */
+            title?: string | null;
+            config?: components["schemas"]["WidgetConfig"];
             /** X */
             x: number;
             /** Y */
@@ -1471,7 +1494,10 @@ export interface operations {
     };
     visualization_result_api_v1_visualizations__visualization_id__result_get: {
         parameters: {
-            query?: never;
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
             header?: never;
             path: {
                 visualization_id: string;

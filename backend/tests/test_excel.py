@@ -1,12 +1,13 @@
 from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 from openpyxl import Workbook
 
 from app.domain.workbooks import LogicalType, WorksheetLoadOptions
-from app.infrastructure.excel import OpenPyxlWorkbookReader
+from app.infrastructure.excel import ExcelWorkbookError, OpenPyxlWorkbookReader
 from app.infrastructure.storage import LocalStorageProvider
 
 
@@ -123,3 +124,39 @@ def test_sheet_loads_as_source_independent_dataset(tmp_path: Path) -> None:
     assert dataset.schema.by_id("col_2").nullable
     assert dataset.schema.by_display_name("amount")[1].engine_name == "amount__2"
     assert dataset.metadata["sheet_name"] == "Sales"
+
+
+@pytest.mark.parametrize("part", ["xl/workbook.xml", "xl/worksheets/sheet1.xml"])
+@pytest.mark.parametrize("unsafe", [True, False])
+def test_rejects_unsafe_and_malformed_xml(tmp_path: Path, part: str, unsafe: bool) -> None:
+    modified = BytesIO()
+    with ZipFile(workbook_bytes()) as original, ZipFile(modified, "w") as archive:
+        for member in original.infolist():
+            data = original.read(member.filename)
+            if member.filename == part:
+                data = (
+                    b'<!DOCTYPE workbook [<!ENTITY example "harmless">]>' + data
+                    if unsafe
+                    else b"<broken>"
+                )
+            archive.writestr(member, data)
+    modified.seek(0)
+    storage = LocalStorageProvider(tmp_path)
+    key = storage.save(modified, suffix=".xlsx")
+    reader = OpenPyxlWorkbookReader(storage)
+    with pytest.raises(ExcelWorkbookError):
+        reader.load_sheet(key, "Sales")
+    with pytest.raises(ExcelWorkbookError):
+        reader.preview_sheet(key, "Sales", WorksheetLoadOptions())
+
+
+def test_preview_rejects_excessive_columns(tmp_path: Path) -> None:
+    workbook = Workbook()
+    workbook.active.append(["field"] * 1025)
+    stream = BytesIO()
+    workbook.save(stream)
+    stream.seek(0)
+    storage = LocalStorageProvider(tmp_path)
+    key = storage.save(stream, suffix=".xlsx")
+    with pytest.raises(ExcelWorkbookError, match="1024-column"):
+        OpenPyxlWorkbookReader(storage).preview_sheet(key, "Sheet", WorksheetLoadOptions())

@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.domain.visualizations import CHART_TYPES
 from app.models import Visualization, Workflow
-from app.nodes.visualization import CHART_TYPES
 from app.schemas.workflows import WorkflowSave
 
 

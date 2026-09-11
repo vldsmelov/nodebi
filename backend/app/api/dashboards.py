@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -43,8 +43,12 @@ def visualization_result(
     storage: Annotated[StorageProvider, Depends(get_storage_provider)],
     settings: Annotated[Settings, Depends(get_settings)],
     cache: Annotated[InMemoryExecutionCache, Depends(get_execution_cache)],
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 100,
 ) -> VisualizationResult:
-    return render_visualization(session, visualization_id, registry, storage, settings, cache)
+    return render_visualization(
+        session, visualization_id, registry, storage, settings, cache, offset, limit
+    )
 
 
 @router.get("/api/v1/projects/{project_id}/dashboards", response_model=DashboardList)

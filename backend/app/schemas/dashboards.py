@@ -3,6 +3,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.domain.visualizations import ChartType
 from app.schemas.workflows import ResolvedColumnRead, WorkflowCreate
 
 
@@ -11,7 +12,7 @@ class VisualizationRead(BaseModel):
     workflow_id: uuid.UUID
     node_id: uuid.UUID
     name: str
-    type: Literal["bar_chart", "kpi"]
+    type: ChartType
 
 
 class VisualizationList(BaseModel):
@@ -21,20 +22,32 @@ class VisualizationList(BaseModel):
 class VisualizationResult(BaseModel):
     visualization_id: uuid.UUID
     revision: int
-    type: Literal["bar_chart", "kpi"]
+    type: ChartType
     title: str
-    value_field: str
+    value_field: str | None
     category_field: str | None
     number_format: Literal["number", "currency", "percent"]
     decimals: int
     currency: str
+    show_legend: bool
+    show_labels: bool
+    total_rows: int
+    offset: int
+    limit: int
+    truncated: bool
     columns: list[ResolvedColumnRead]
     rows: list[dict[str, Any]]
+
+
+class WidgetConfig(BaseModel):
+    show_title: bool = True
 
 
 class WidgetPayload(BaseModel):
     id: uuid.UUID
     visualization_id: uuid.UUID
+    title: str | None = Field(default=None, max_length=200)
+    config: WidgetConfig = Field(default_factory=WidgetConfig)
     x: int = Field(ge=0, le=11, strict=True)
     y: int = Field(ge=0, le=10000, strict=True)
     width: int = Field(ge=2, le=12, strict=True)

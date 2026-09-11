@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Backend for the Node BI MVP"
 requires-python = ">=3.12"
 dependencies = [
+  "defusedxml>=0.7.1,<1",
   "alembic>=1.16,<2",
   "fastapi>=0.116,<1",
   "openpyxl>=3.1,<4",

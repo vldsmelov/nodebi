@@ -9,4 +9,5 @@ export const listDashboards = async (project: string) => (await apiRequest<compo
 export const listVisualizations = async (project: string) => (await apiRequest<components["schemas"]["VisualizationList"]>(`/api/v1/projects/${project}/visualizations`)).items;
 export const createDashboard = (project: string, name: string) => apiRequest<Dashboard>(`/api/v1/projects/${project}/dashboards`, { method: "POST", body: JSON.stringify({ name }) });
 export const saveDashboard = (dashboard: Dashboard) => apiRequest<Dashboard>(`/api/v1/dashboards/${dashboard.id}`, { method: "PUT", body: JSON.stringify({ name: dashboard.name, expected_revision: dashboard.revision, widgets: dashboard.widgets }) });
-export const getVisualizationResult = (identity: string) => apiRequest<VisualizationResult>(`/api/v1/visualizations/${identity}/result`);
+export const getVisualizationResult = (identity: string, offset = 0) => apiRequest<VisualizationResult>(`/api/v1/visualizations/${identity}/result?offset=${offset}&limit=100`);
+export const deleteDashboard = (identity: string) => apiRequest<void>(`/api/v1/dashboards/${identity}`, { method: "DELETE" });
