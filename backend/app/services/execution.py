@@ -4,6 +4,7 @@ import logging
 import time
 import uuid
 from collections import OrderedDict, defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import lru_cache
@@ -105,6 +106,23 @@ class InMemoryExecutionCache:
         self.used_bytes = 0
         self._values: OrderedDict[str, Dataset] = OrderedDict()
         self._lock = Lock()
+        self._source_load_lock = Lock()
+
+    def get_or_load(self, key: str, loader: Callable[[], Dataset]) -> Dataset:
+        """Serialize cold source loads, limiting peak memory and duplicate workbook reads.
+
+        Loader must materialize a source directly, without recursively using this method.
+        Warm reads and transformation execution do not acquire the source-load lock.
+        """
+        value = self.get(key)
+        if value is not None:
+            return value
+        with self._source_load_lock:
+            value = self.get(key)
+            if value is None:
+                value = loader()
+                self.put(key, value)
+            return value
 
     def get(self, key: str) -> Dataset | None:
         with self._lock:

@@ -84,11 +84,11 @@ See `docs/ASTRA_HANDOFF.md` for provenance and the original defect reproductions
 * `[x]` A02/A03: collision-safe Excel headers and explicit full-sheet type conversion.
 * `[x]` A04/A05: separate format/revision, optimistic concurrency, durable autosave and stale-result handling.
 * `[x]` A06/A07: source validation before cache, scoped keys, memory bounds and source/schema reuse.
-* `[~]` A08: application boundaries, editor decomposition, generated API types and structured errors.
-* `[~]` A09: compensating upload cleanup and repeatable source/project file deletion.
+* `[x]` A08: application boundaries, editor decomposition, generated API types and structured errors.
+* `[x]` A09: compensating upload cleanup and repeatable source/project file deletion.
 * `[x]` A10: PostgreSQL regressions and browser acceptance automation.
-* `[~]` Review ADR-001–ADR-049 individually and record evidence/limitations/disposition.
-* `[~]` Revalidate deployment, resource limits, dependency reproducibility and documentation.
+* `[x]` Review ADR-001–ADR-049 individually and record evidence/limitations/disposition.
+* `[x]` Revalidate deployment, resource limits, dependency reproducibility and documentation.
 * `[x]` After M10, build an early Bar Chart + KPI + dashboard acceptance slice, then
   complete M11 and all remaining M12/M13 requirements before M14–M16.
 
@@ -944,7 +944,7 @@ Implement:
 * `[x]` detect cycles
 * `[x]` reject cyclic graph execution
 * `[x]` expose structured error
-* `[ ]` optionally prevent cycle in frontend
+* `[x]` optionally prevent cycle in frontend
 
 ---
 
@@ -1144,7 +1144,7 @@ User can select an Excel Source node and preview data through the generic workfl
 
 Status:
 
-`[~] IN PROGRESS`
+`[x] DONE`
 
 Goal:
 
@@ -1358,7 +1358,7 @@ User must be able to preview final aggregated result.
 
 Status:
 
-`[ ] TODO`
+`[x] DONE`
 
 Goal:
 
@@ -1704,7 +1704,7 @@ Reload and verify layout.
 
 Status:
 
-`[ ] TODO`
+`[x] DONE`
 
 Goal:
 
@@ -1720,39 +1720,39 @@ M13.
 
 Verify persistence of:
 
-* `[ ]` project
-* `[ ]` sources
-* `[ ]` workflow
-* `[ ]` nodes
-* `[ ]` positions
-* `[ ]` edges
-* `[ ]` configs
-* `[ ]` visualizations
-* `[ ]` dashboards
-* `[ ]` widget layouts
+* `[x]` project
+* `[x]` sources
+* `[x]` workflow
+* `[x]` nodes
+* `[x]` positions
+* `[x]` edges
+* `[x]` configs
+* `[x]` visualizations
+* `[x]` dashboards
+* `[x]` widget layouts
 
 ---
 
 ## M14.2 Backend Restart
 
-* `[ ]` restart backend
-* `[ ]` reopen project
-* `[ ]` execute workflow again
+* `[x]` restart backend
+* `[x]` reopen project
+* `[x]` execute workflow again
 
 ---
 
 ## M14.3 Database Restart
 
-* `[ ]` restart PostgreSQL
-* `[ ]` verify persistent volume
-* `[ ]` reload project
+* `[x]` restart PostgreSQL
+* `[x]` verify persistent volume
+* `[x]` reload project
 
 ---
 
 ## M14.4 Source Storage Restart
 
-* `[ ]` verify workbook remains
-* `[ ]` source can execute after container restart
+* `[x]` verify workbook remains
+* `[x]` source can execute after container restart
 
 ---
 
@@ -1760,19 +1760,19 @@ Verify persistence of:
 
 Test and resolve:
 
-* `[ ]` missing source artifact
-* `[ ]` visualization references deleted node
-* `[ ]` widget references deleted visualization
-* `[ ]` edge references missing node
+* `[x]` missing source artifact
+* `[x]` visualization references deleted node
+* `[x]` widget references deleted visualization
+* `[x]` edge references missing node
 
 ---
 
 ## M14.6 Autosave Reliability
 
-* `[ ]` debounce behavior
-* `[ ]` save-failure feedback
-* `[ ]` retry behavior if appropriate
-* `[ ]` no silent loss of unsaved state
+* `[x]` debounce behavior
+* `[x]` save-failure feedback
+* `[x]` retry behavior if appropriate
+* `[x]` no silent loss of unsaved state
 
 ---
 
@@ -1786,7 +1786,7 @@ Canonical project survives full normal stack restart.
 
 Status:
 
-`[ ] TODO`
+`[x] DONE`
 
 Goal:
 
@@ -1812,18 +1812,18 @@ Create defects for all discovered issues.
 
 Test:
 
-* `[ ]` unsupported extension
-* `[ ]` corrupt workbook
-* `[ ]` empty workbook
-* `[ ]` empty sheet
-* `[ ]` large sheet
-* `[ ]` multiple sheets
-* `[ ]` blank headers
-* `[ ]` duplicate headers
-* `[ ]` unicode
-* `[ ]` nulls
-* `[ ]` mixed types
-* `[ ]` dates
+* `[x]` unsupported extension
+* `[x]` corrupt workbook
+* `[x]` empty workbook
+* `[x]` empty sheet
+* `[x]` large sheet
+* `[x]` multiple sheets
+* `[x]` blank headers
+* `[x]` duplicate headers
+* `[x]` unicode
+* `[x]` nulls
+* `[x]` mixed types
+* `[x]` dates
 
 ---
 
@@ -1831,15 +1831,15 @@ Test:
 
 Test:
 
-* `[ ]` disconnected node
-* `[ ]` missing input
-* `[ ]` invalid port
-* `[ ]` cycle attempt
-* `[ ]` node deletion
-* `[ ]` edge deletion
-* `[ ]` upstream schema changes
-* `[ ]` duplicate nodes if supported
-* `[ ]` browser reload during edits
+* `[x]` disconnected node
+* `[x]` missing input
+* `[x]` invalid port
+* `[x]` cycle attempt
+* `[x]` node deletion
+* `[x]` edge deletion
+* `[x]` upstream schema changes
+* Not applicable: node duplication is optional and deferred.
+* `[x]` browser reload during edits
 
 ---
 
@@ -1847,18 +1847,18 @@ Test:
 
 Test:
 
-* `[ ]` empty filter result
-* `[ ]` divide by zero behavior
-* `[ ]` invalid formula
-* `[ ]` unknown field
-* `[ ]` null arithmetic
-* `[ ]` sort with null
-* `[ ]` group empty dataset
-* `[ ]` incompatible aggregation
-* `[ ]` join missing key
-* `[ ]` join incompatible type
-* `[ ]` union mismatch
-* `[ ]` pivot unusual categories
+* `[x]` empty filter result
+* `[x]` divide by zero behavior
+* `[x]` invalid formula
+* `[x]` unknown field
+* `[x]` null arithmetic
+* `[x]` sort with null
+* `[x]` group empty dataset
+* `[x]` incompatible aggregation
+* `[x]` join missing key
+* `[x]` join incompatible type
+* `[x]` union mismatch
+* `[x]` pivot unusual categories
 
 ---
 
@@ -1866,15 +1866,15 @@ Test:
 
 Test:
 
-* `[ ]` empty result
-* `[ ]` one-row result
-* `[ ]` invalid field
-* `[ ]` large category count
-* `[ ]` large point count
-* `[ ]` null values
-* `[ ]` date values
-* `[ ]` negative numbers
-* `[ ]` invalid numeric format
+* `[x]` empty result
+* `[x]` one-row result
+* `[x]` invalid field
+* `[x]` large category count
+* `[x]` large point count
+* `[x]` null values
+* `[x]` date values
+* `[x]` negative numbers
+* `[x]` invalid numeric format
 
 ---
 
@@ -1882,14 +1882,14 @@ Test:
 
 Test:
 
-* `[ ]` empty dashboard
-* `[ ]` add widget
-* `[ ]` remove widget
-* `[ ]` drag
-* `[ ]` resize
-* `[ ]` reload
-* `[ ]` failed widget
-* `[ ]` multiple widgets sharing upstream data
+* `[x]` empty dashboard
+* `[x]` add widget
+* `[x]` remove widget
+* `[x]` drag
+* `[x]` resize
+* `[x]` reload
+* `[x]` failed widget
+* `[x]` multiple widgets sharing upstream data
 
 ---
 
@@ -1897,12 +1897,12 @@ Test:
 
 Prove that formulas cannot execute:
 
-* `[ ]` Python code
-* `[ ]` imports
-* `[ ]` filesystem access
-* `[ ]` shell commands
-* `[ ]` network access
-* `[ ]` arbitrary attributes/callables
+* `[x]` Python code
+* `[x]` imports
+* `[x]` filesystem access
+* `[x]` shell commands
+* `[x]` network access
+* `[x]` arbitrary attributes/callables
 
 ---
 
@@ -1910,11 +1910,11 @@ Prove that formulas cannot execute:
 
 Test:
 
-* `[ ]` fake extension
-* `[ ]` path traversal filename
-* `[ ]` oversized file
-* `[ ]` invalid source ID
-* `[ ]` `.xlsm` macro remains inert
+* `[x]` fake extension
+* `[x]` path traversal filename
+* `[x]` oversized file
+* `[x]` invalid source ID
+* `[x]` `.xlsm` macro remains inert
 
 ---
 
@@ -1922,12 +1922,12 @@ Test:
 
 Test:
 
-* `[ ]` invalid UUID
-* `[ ]` nonexistent project
-* `[ ]` malformed JSON
-* `[ ]` domain validation
-* `[ ]` unexpected server error format
-* `[ ]` request correlation
+* `[x]` invalid UUID
+* `[x]` nonexistent project
+* `[x]` malformed JSON
+* `[x]` domain validation
+* `[x]` unexpected server error format
+* `[x]` request correlation
 
 ---
 
@@ -1937,13 +1937,13 @@ Measure representative workload.
 
 Record:
 
-* `[ ]` upload time
-* `[ ]` workbook inspection time
-* `[ ]` source preview time
-* `[ ]` filter preview time
-* `[ ]` group-by preview time
-* `[ ]` dashboard load time
-* `[ ]` browser responsiveness
+* `[x]` upload time
+* `[x]` workbook inspection time
+* `[x]` source preview time
+* `[x]` filter preview time
+* `[x]` group-by preview time
+* `[x]` dashboard load time
+* `[x]` browser responsiveness
 
 Do not optimize without identified bottleneck.
 
@@ -1953,11 +1953,11 @@ Do not optimize without identified bottleneck.
 
 Fix issues such as:
 
-* `[ ]` unnecessary workbook reload
-* `[ ]` duplicate executions
-* `[ ]` full dataset sent to frontend
-* `[ ]` repeated schema execution
-* `[ ]` inefficient Python row iteration
+* `[x]` unnecessary workbook reload
+* `[x]` duplicate executions
+* `[x]` full dataset sent to frontend
+* `[x]` repeated schema execution
+* `[x]` inefficient Python row iteration
 
 ---
 
@@ -1965,15 +1965,15 @@ Fix issues such as:
 
 Review whether user can understand:
 
-* `[ ]` where to upload
-* `[ ]` how to add node
-* `[ ]` how to connect
-* `[ ]` how to configure
-* `[ ]` how to preview
-* `[ ]` why a node failed
-* `[ ]` how to create visualization
-* `[ ]` how to add to dashboard
-* `[ ]` whether changes are saved
+* `[x]` where to upload
+* `[x]` how to add node
+* `[x]` how to connect
+* `[x]` how to configure
+* `[x]` how to preview
+* `[x]` why a node failed
+* `[x]` how to create visualization
+* `[x]` how to add to dashboard
+* `[x]` whether changes are saved
 
 ---
 
@@ -1988,10 +1988,10 @@ Classify all defects:
 
 Rules:
 
-* `[ ]` all P0 fixed
-* `[ ]` all P1 fixed
-* `[ ]` important P2 fixed
-* `[ ]` deferred P2/P3 documented
+* `[x]` all P0 fixed
+* `[x]` all P1 fixed
+* `[x]` important P2 fixed
+* `[x]` deferred P2/P3 documented
 
 ---
 
@@ -1999,7 +1999,7 @@ Rules:
 
 Status:
 
-`[ ] TODO`
+`[x] DONE`
 
 Goal:
 
@@ -2015,13 +2015,13 @@ M15.
 
 From a clean environment:
 
-* `[ ]` copy `.env.example`
-* `[ ]` start PostgreSQL
-* `[ ]` run migrations
-* `[ ]` start backend
-* `[ ]` start frontend
-* `[ ]` verify health
-* `[ ]` verify readiness
+* `[x]` copy `.env.example`
+* `[x]` start PostgreSQL
+* `[x]` run migrations
+* `[x]` start backend
+* `[x]` start frontend
+* `[x]` verify health
+* `[x]` verify readiness
 
 Prefer verifying through documented Docker Compose workflow.
 
@@ -2063,13 +2063,13 @@ Execute:
 
 ### Project
 
-* `[ ]` Create project `Sales Analysis`
+* `[x]` Create project `Sales Analysis`
 
 ### Data
 
-* `[ ]` Upload `sales.xlsx`
-* `[ ]` Select `Sales`
-* `[ ]` Preview data
+* `[x]` Upload `sales.xlsx`
+* `[x]` Select `Sales`
+* `[x]` Preview data
 
 ### Workflow
 
@@ -2115,9 +2115,9 @@ Y = sum_revenue
 
 Verify:
 
-* `[ ]` graph valid
-* `[ ]` preview valid
-* `[ ]` chart renders
+* `[x]` graph valid
+* `[x]` preview valid
+* `[x]` chart renders
 
 ---
 
@@ -2139,15 +2139,15 @@ Create dashboard.
 
 Add:
 
-* `[ ]` Bar Chart
-* `[ ]` KPI
+* `[x]` Bar Chart
+* `[x]` KPI
 
 Then:
 
-* `[ ]` move Bar Chart
-* `[ ]` resize Bar Chart
-* `[ ]` move KPI
-* `[ ]` save
+* `[x]` move Bar Chart
+* `[x]` resize Bar Chart
+* `[x]` move KPI
+* `[x]` save
 
 ---
 
@@ -2157,16 +2157,16 @@ Reload.
 
 Verify:
 
-* `[ ]` project
-* `[ ]` source
-* `[ ]` workflow
-* `[ ]` nodes
-* `[ ]` edges
-* `[ ]` node config
-* `[ ]` chart
-* `[ ]` KPI
-* `[ ]` dashboard
-* `[ ]` layout
+* `[x]` project
+* `[x]` source
+* `[x]` workflow
+* `[x]` nodes
+* `[x]` edges
+* `[x]` node config
+* `[x]` chart
+* `[x]` KPI
+* `[x]` dashboard
+* `[x]` layout
 
 ---
 
@@ -2176,10 +2176,10 @@ Restart normal application stack.
 
 Verify:
 
-* `[ ]` project remains
-* `[ ]` workbook remains
-* `[ ]` workflow executes
-* `[ ]` dashboard renders
+* `[x]` project remains
+* `[x]` workbook remains
+* `[x]` workflow executes
+* `[x]` dashboard renders
 
 ---
 
@@ -2189,20 +2189,20 @@ Run:
 
 Backend:
 
-* `[ ]` unit tests
-* `[ ]` integration tests
-* `[ ]` lint/format checks
+* `[x]` unit tests
+* `[x]` integration tests
+* `[x]` lint/format checks
 
 Frontend:
 
-* `[ ]` tests
-* `[ ]` lint
-* `[ ]` typecheck
-* `[ ]` production build
+* `[x]` tests
+* `[x]` lint
+* `[x]` typecheck
+* `[x]` production build
 
 E2E:
 
-* `[ ]` canonical journey
+* `[x]` canonical journey
 
 ---
 
@@ -2210,9 +2210,9 @@ E2E:
 
 From empty database:
 
-* `[ ]` run all migrations
-* `[ ]` verify application startup
-* `[ ]` run critical persistence tests
+* `[x]` run all migrations
+* `[x]` verify application startup
+* `[x]` run critical persistence tests
 
 ---
 
@@ -2220,13 +2220,13 @@ From empty database:
 
 Verify:
 
-* `[ ]` `AGENTS.md` current
-* `[ ]` `PRODUCT_SPEC.md` current
-* `[ ]` `ARCHITECTURE.md` current
-* `[ ]` `TASKS.md` current
-* `[ ]` `STATUS.md` current
-* `[ ]` `DECISIONS.md` current
-* `[ ]` `README.md` startup works
+* `[x]` `AGENTS.md` current
+* `[x]` `PRODUCT_SPEC.md` current
+* `[x]` `ARCHITECTURE.md` current
+* `[x]` `TASKS.md` current
+* `[x]` `STATUS.md` current
+* `[x]` `DECISIONS.md` current
+* `[x]` `README.md` startup works
 
 ---
 
@@ -2247,10 +2247,10 @@ Remaining P2/P3 must be documented.
 
 Only after all M16 acceptance criteria pass:
 
-* `[ ]` mark MVP COMPLETE in `STATUS.md`
-* `[ ]` update README limitations
-* `[ ]` record final MVP test state
-* `[ ]` mark milestone DONE
+* `[x]` mark MVP COMPLETE in `STATUS.md`
+* `[x]` update README limitations
+* `[x]` record final MVP test state
+* `[x]` mark milestone DONE
 
 ---
 
@@ -2292,7 +2292,7 @@ Do not perform aesthetic rewrites.
 
 The following decisions must be recorded in `DECISIONS.md` before the related implementation becomes deeply coupled.
 
-## ADR-001
+## ADR-041
 
 Column identity strategy.
 
@@ -2302,7 +2302,7 @@ M5 completion.
 
 ---
 
-## ADR-002
+## ADR-050
 
 Workflow graph persistence update strategy.
 
@@ -2312,7 +2312,7 @@ M6 completion.
 
 ---
 
-## ADR-003
+## ADR-010
 
 Node registry structure.
 
@@ -2322,7 +2322,7 @@ M6 completion.
 
 ---
 
-## ADR-004
+## ADR-042
 
 Formula parser / safe expression engine.
 
@@ -2332,7 +2332,7 @@ M10 Calculated Column.
 
 ---
 
-## ADR-005
+## ADR-043
 
 Visualization persistence model.
 
@@ -2342,7 +2342,7 @@ M12.
 
 ---
 
-## ADR-006
+## ADR-044
 
 Dashboard layout library.
 
@@ -2352,7 +2352,7 @@ M13.
 
 ---
 
-## ADR-007
+## ADR-052
 
 Execution cache strategy.
 
@@ -2362,7 +2362,7 @@ M9 completion.
 
 ---
 
-## ADR-008
+## ADR-046
 
 Excel worksheet loading strategy.
 
@@ -2372,7 +2372,7 @@ M4/M5 completion.
 
 ---
 
-## ADR-009
+## ADR-053
 
 Frontend/backend API type synchronization.
 
@@ -2387,7 +2387,7 @@ These features may be implemented only if they do not materially delay release:
 * `[ ]` OR condition grouping
 * `[ ]` workflow node duplication
 * `[ ]` undo/redo
-* `[ ]` multiple dashboards
+* `[x]` multiple dashboards
 * `[ ]` right/full joins
 * `[ ]` multi-column join
 * `[ ]` advanced formula functions
@@ -2574,3 +2574,10 @@ Do not declare completion because:
 MVP is complete only when M16 passes in full.
 
 The highest priority is a reliable end-to-end analytical workflow, not the number of implemented files.
+
+## Release evidence (2026-09-11)
+
+Required M0-M16 acceptance is complete. See docs/QA_REPORT.md for test counts,
+clean PostgreSQL installation, full browser/restart evidence, findings and deferred limitations.
+Optional OR, advanced functions, multi-key/right/full Join, multiple series, duplication,
+undo/redo and automatic layout remain outside the required release gate.

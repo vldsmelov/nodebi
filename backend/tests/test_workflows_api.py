@@ -12,7 +12,7 @@ from app.config import Settings, get_settings
 from app.infrastructure.database import get_session
 from app.infrastructure.storage import LocalStorageProvider, get_storage_provider
 from app.main import app
-from app.models import Project
+from app.models import DataSource, Project
 
 
 @pytest.mark.parametrize("foreign_kind", ["node", "edge"])
@@ -125,6 +125,22 @@ def test_workflow_persist_reload_catalog_and_delete(db_engine: Engine) -> None:
     node_id = uuid.uuid4()
     with Session(db_engine) as session:
         session.add(Project(id=project_id, name="Sales Analysis"))
+        session.commit()
+        # Referential integrity now requires an existing source ID, but an unavailable
+        # artifact still permits draft persistence and produces a schema issue.
+        session.add(
+            DataSource(
+                id=source_id,
+                project_id=project_id,
+                type="excel",
+                name="Missing artifact",
+                original_filename="sales.xlsx",
+                storage_key=f"{source_id}.xlsx",
+                file_size=0,
+                status="ready",
+                source_metadata={},
+            )
+        )
         session.commit()
     client = client_for(db_engine)
     created = client.post(f"/api/v1/projects/{project_id}/workflows", json={"name": "Main"})

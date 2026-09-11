@@ -1,6 +1,6 @@
 # Sol → Astra implementation handoff
 
-Updated: 2026-09-09. Status: revision in progress; MVP is not complete.
+Updated: 2026-09-11. Current status: MVP 0.1.0 complete. The baseline and intermediate checkpoints below are historical; see STATUS.md for release state.
 
 ## Provenance and baseline
 
@@ -74,3 +74,14 @@ backend/PostgreSQL restart plus two slow-save/navigation browser scenarios separ
 QA fixed a reproduced database-startup race and enabled Excel XML entity protection.
 The 50000-row smoke benchmark and remaining release work are in docs/QA_REPORT.md.
 MVP is not yet declared complete; continue from STATUS.md through M14-M16.
+
+## Final release checkpoint, 2026-09-11
+
+The approved revision and required M0-M16 roadmap are complete. Final checks: 208 backend tests
+(SQLite/PostgreSQL), 20 frontend tests, eight browser scenarios, production build, lint/type checks
+and OpenAPI drift check. Fresh-stack migrations and full frontend/backend/PostgreSQL restart pass.
+Sales Analysis is built through the UI with country=Korea and verified total revenue 500.
+Source references now serialize with deletion, cold workbook loads are shared, and delayed preview
+results/errors cannot appear as current. Unexpected server errors preserve browser CORS access and
+show a diagnostic ID. Review dispositions: docs/ARCHITECTURE_REVIEW.md; evidence/limits: docs/QA_REPORT.md.
+Existing project/source data was never reset. Optional and post-MVP tasks remain deferred.

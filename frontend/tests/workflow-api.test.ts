@@ -65,4 +65,18 @@ describe("workflow API", () => {
     expect(fetchMock.mock.calls[0][0]).toContain("/workflows/workflow-1/nodes/node-1/preview");
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: "POST", body: "{\"limit\":25}" });
   });
+
+  it("includes the diagnostic identifier in the message shown by the interface", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: {
+      code: "INTERNAL_ERROR", message: "Try again.", correlation_id: "diagnostic-123",
+    } }), { status: 500 })));
+    await expect(listWorkflows("project-1")).rejects.toMatchObject({
+      code: "INTERNAL_ERROR", status: 500, correlationId: "diagnostic-123",
+      message: "Try again. (Diagnostic ID: diagnostic-123)",
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: {
+      code: "INTERNAL_EXECUTION_ERROR", message: "Execution failed.", execution_id: "execution-123",
+    } }), { status: 500 })));
+    await expect(previewWorkflowNode("workflow-1", "node-1")).rejects.toThrow("Diagnostic ID: execution-123");
+  });
 });

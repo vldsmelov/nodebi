@@ -16,7 +16,7 @@ from app.domain.workflows import (
     WorkflowEdge as DomainWorkflowEdge,
 )
 from app.infrastructure.storage import StorageProvider
-from app.models import Workflow, WorkflowEdge, WorkflowNode
+from app.models import DataSource, Workflow, WorkflowEdge, WorkflowNode
 from app.repositories.sqlalchemy import SqlAlchemyWorkflowRepository
 from app.schemas.workflows import (
     EdgePayload,
@@ -26,8 +26,35 @@ from app.schemas.workflows import (
     WorkflowSave,
 )
 from app.services.execution import InMemoryExecutionCache, default_execution_logger
+from app.services.projects import ProjectService
 from app.services.source_access import ProjectSourceAccess
 from app.services.visualization_index import synchronize_visualizations
+
+
+def get_workflow(session: Session, workflow_id: uuid.UUID) -> Workflow:
+    workflow = session.get(Workflow, workflow_id)
+    if workflow is None:
+        raise ApplicationError("WORKFLOW_NOT_FOUND", "Workflow does not exist.", 404)
+    return workflow
+
+
+def list_workflows(session: Session, project_id: uuid.UUID) -> list[Workflow]:
+    ProjectService(session).get(project_id)
+    return list(SqlAlchemyWorkflowRepository(session).list_for_project(project_id))
+
+
+def create_workflow(session: Session, project_id: uuid.UUID, name: str) -> WorkflowRead:
+    ProjectService(session).get(project_id)
+    workflow = SqlAlchemyWorkflowRepository(session).add(Workflow(project_id=project_id, name=name))
+    session.flush()
+    result = read_workflow(session, workflow)
+    session.commit()
+    return result
+
+
+def delete_workflow(session: Session, workflow_id: uuid.UUID) -> None:
+    SqlAlchemyWorkflowRepository(session).delete(get_workflow(session, workflow_id))
+    session.commit()
 
 
 def validate_draft(payload: WorkflowSave, registry: NodeRegistry) -> None:
@@ -50,6 +77,29 @@ def save_graph(
     session: Session, workflow: Workflow, payload: WorkflowSave, registry: NodeRegistry
 ) -> WorkflowRead:
     validate_draft(payload, registry)
+    # Serialize reference changes with source/project deletion. JSON configuration
+    # cannot express this cross-table relationship as a database foreign key.
+    ProjectService(session).lock(workflow.project_id)
+    for node in payload.nodes:
+        if node.type != "excel_source" or not node.config.get("source_id"):
+            continue
+        try:
+            source_id = uuid.UUID(str(node.config["source_id"]))
+        except ValueError as exc:
+            raise ApplicationError(
+                "INVALID_SOURCE", "Select an available Excel source.", node_id=str(node.id)
+            ) from exc
+        source = session.scalar(
+            select(DataSource).where(
+                DataSource.id == source_id, DataSource.project_id == workflow.project_id
+            )
+        )
+        if source is None:
+            raise ApplicationError(
+                "INVALID_SOURCE",
+                "The selected source is unavailable in this project. Select another source.",
+                node_id=str(node.id),
+            )
     workflow.name = payload.name.strip()
     nodes = [
         WorkflowNode(

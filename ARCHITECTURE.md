@@ -2173,19 +2173,8 @@ Single-user MVP does not require sophisticated collaborative conflict resolution
 
 However, updates should avoid obvious accidental overwrite.
 
-Possible mechanism:
-
-```text
-workflow updated_at
-```
-
-or:
-
-```text
-revision number
-```
-
-A revision field is recommended for future optimistic concurrency.
+Workflow saves require expected_revision and atomically increment revision (ADR-050).
+Stale writes return 409 and retain the browser draft. Dashboard saves use an independent revision.
 
 ---
 
@@ -3438,3 +3427,15 @@ semantic fields. Each widget has an independent query/error boundary.
 Excel uses defusedxml for forbidden XML entities; initial and lazy worksheet parsing map failures
 to domain errors. Startup probes database availability before invoking Alembic, with bounded retries
 and connection timeout. Migration failures are not retried or hidden.
+
+## Source references and final application boundaries (ADR-059/060)
+
+Project/workflow CRUD orchestration and Excel preview live in application services. HTTP handlers
+retain transport adaptation. The editor delegates autosave, node configuration and output preview
+to separate modules. Output data and errors are tied to the acknowledged graph revision.
+Graph saves and source/project deletion lock the project row before changing references.
+A supplied source ID must exist in that project; an unconfigured node remains a saveable draft.
+
+One cold source materialization runs at a time in each execution cache; warm reads and transforms
+remain independent. This avoids simultaneous duplicate workbook parsing and limits peak memory.
+The default Compose stack publishes only loopback ports, matching the single-user release boundary.

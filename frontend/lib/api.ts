@@ -9,7 +9,7 @@ export class ApiError extends Error {
     readonly field?: string,
     readonly issues: ApiIssue[] = [],
     readonly correlationId?: string,
-  ) { super(message); }
+  ) { super(correlationId ? `${message} (Diagnostic ID: ${correlationId})` : message); }
 }
 
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -24,7 +24,7 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
     throw new ApiError(
       detail?.message ?? "The request could not be completed.", result.status,
       detail?.code ?? "REQUEST_FAILED", detail?.node_id, detail?.field,
-      detail?.issues ?? [], detail?.correlation_id,
+      detail?.issues ?? [], detail?.correlation_id ?? detail?.execution_id,
     );
   }
   return result.status === 204 ? (undefined as T) : result.json();

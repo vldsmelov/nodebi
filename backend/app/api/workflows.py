@@ -12,9 +12,7 @@ from app.domain.nodes import (
 )
 from app.infrastructure.database import get_session
 from app.infrastructure.storage import StorageProvider, get_storage_provider
-from app.models import Project, Workflow
 from app.nodes import get_node_registry
-from app.repositories.sqlalchemy import SqlAlchemyWorkflowRepository
 from app.schemas.workflows import (
     GraphIssueRead,
     NodeCatalogRead,
@@ -31,6 +29,7 @@ from app.schemas.workflows import (
     WorkflowSchemaRead,
     WorkflowSummary,
 )
+from app.services import workflows as workflow_service
 from app.services.execution import (
     ExecutionFailure,
     InMemoryExecutionCache,
@@ -44,6 +43,7 @@ from app.services.workflows import (
 from app.services.workflows import (
     execution_context as _execution_context,
 )
+from app.services.workflows import get_workflow as _workflow
 from app.services.workflows import (
     read_workflow,
     save_graph,
@@ -57,28 +57,9 @@ AppSettings = Annotated[Settings, Depends(get_settings)]
 ExecutionCache = Annotated[InMemoryExecutionCache, Depends(get_execution_cache)]
 
 
-def _not_found() -> HTTPException:
-    return HTTPException(
-        status_code=404,
-        detail={"code": "WORKFLOW_NOT_FOUND", "message": "Workflow does not exist."},
-    )
-
-
-def _workflow(session: Session, workflow_id: uuid.UUID) -> Workflow:
-    workflow = session.get(Workflow, workflow_id)
-    if workflow is None:
-        raise _not_found()
-    return workflow
-
-
 @router.get("/api/v1/projects/{project_id}/workflows", response_model=WorkflowList)
 def list_workflows(project_id: uuid.UUID, session: DatabaseSession) -> WorkflowList:
-    if session.get(Project, project_id) is None:
-        raise HTTPException(
-            status_code=404,
-            detail={"code": "PROJECT_NOT_FOUND", "message": "Project does not exist."},
-        )
-    items = SqlAlchemyWorkflowRepository(session).list_for_project(project_id)
+    items = workflow_service.list_workflows(session, project_id)
     return WorkflowList(
         items=[
             WorkflowSummary(
@@ -99,17 +80,7 @@ def list_workflows(project_id: uuid.UUID, session: DatabaseSession) -> WorkflowL
 def create_workflow(
     project_id: uuid.UUID, payload: WorkflowCreate, session: DatabaseSession
 ) -> WorkflowRead:
-    if session.get(Project, project_id) is None:
-        raise HTTPException(
-            status_code=404,
-            detail={"code": "PROJECT_NOT_FOUND", "message": "Project does not exist."},
-        )
-    workflow = SqlAlchemyWorkflowRepository(session).add(
-        Workflow(project_id=project_id, name=payload.name.strip())
-    )
-    session.commit()
-    session.refresh(workflow)
-    return read_workflow(session, workflow)
+    return workflow_service.create_workflow(session, project_id, payload.name.strip())
 
 
 @router.get("/api/v1/workflows/{workflow_id}", response_model=WorkflowRead)
@@ -195,7 +166,8 @@ def preview_workflow_node(
     except Exception as exc:
         if context.logger:
             context.logger.exception(
-                "Unexpected workflow execution failure",
+                "Unexpected workflow execution failure [%s]",
+                str(context.execution_id),
                 extra={"workflow_id": str(workflow.id), "node_id": str(node_id)},
             )
         raise HTTPException(
@@ -236,9 +208,7 @@ def save_workflow(
 
 @router.delete("/api/v1/workflows/{workflow_id}", status_code=204)
 def delete_workflow(workflow_id: uuid.UUID, session: DatabaseSession) -> Response:
-    repository = SqlAlchemyWorkflowRepository(session)
-    repository.delete(_workflow(session, workflow_id))
-    session.commit()
+    workflow_service.delete_workflow(session, workflow_id)
     return Response(status_code=204)
 
 

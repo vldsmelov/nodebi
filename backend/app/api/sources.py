@@ -6,13 +6,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, Up
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.domain.workbooks import WorksheetLoadOptions
 from app.infrastructure.database import get_session
-from app.infrastructure.excel import (
-    ExcelWorkbookError,
-    OpenPyxlWorkbookReader,
-    WorksheetNotFoundError,
-)
 from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.models import DataSource, Project
 from app.repositories.sqlalchemy import SqlAlchemySourceRepository
@@ -23,7 +17,6 @@ router = APIRouter(tags=["data sources"])
 DatabaseSession = Annotated[Session, Depends(get_session)]
 Storage = Annotated[StorageProvider, Depends(get_storage_provider)]
 AppSettings = Annotated[Settings, Depends(get_settings)]
-SUPPORTED_EXTENSIONS = {".xlsx", ".xlsm"}
 
 
 def _source_read(source: DataSource) -> DataSourceRead:
@@ -93,18 +86,7 @@ def preview_sheet(
 ) -> WorksheetPreviewRead:
     source = _source_or_404(session, source_id)
     bounded_limit = min(limit, settings.max_preview_rows)
-    try:
-        preview = OpenPyxlWorkbookReader(storage).preview_sheet(
-            source.storage_key, sheet_name, WorksheetLoadOptions(limit=bounded_limit)
-        )
-    except WorksheetNotFoundError as exc:
-        raise HTTPException(
-            status_code=404, detail={"code": "WORKSHEET_NOT_FOUND", "message": str(exc)}
-        ) from exc
-    except ExcelWorkbookError as exc:
-        raise HTTPException(
-            status_code=422, detail={"code": "INVALID_WORKBOOK", "message": str(exc)}
-        ) from exc
+    preview = SourceService(session, storage).preview(source, sheet_name, bounded_limit)
     return WorksheetPreviewRead.model_validate(asdict(preview))
 
 

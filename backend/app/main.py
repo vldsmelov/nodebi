@@ -20,7 +20,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    register_error_handlers(application)
+    register_error_handlers(application, settings.cors_origins)
     application.include_router(health_router)
     application.include_router(projects_router)
     application.include_router(sources_router)

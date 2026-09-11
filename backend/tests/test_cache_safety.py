@@ -1,6 +1,8 @@
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from pathlib import Path
+from threading import Barrier
 from unittest.mock import patch
 
 import polars as pl
@@ -21,6 +23,33 @@ from app.services.execution import (
     WorkflowExecutionService,
 )
 from app.services.source_access import ProjectSourceAccess
+
+
+def test_parallel_source_requests_share_one_cold_load_and_retry_failures() -> None:
+    data = Dataset(pl.DataFrame(), DatasetSchema(()))
+    cache = InMemoryExecutionCache()
+    barrier = Barrier(4)
+    calls = 0
+
+    def load() -> Dataset:
+        nonlocal calls
+        calls += 1
+        return data
+
+    def request(_: int) -> Dataset:
+        barrier.wait(timeout=5)
+        return cache.get_or_load("source", load)
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        assert all(result is data for result in pool.map(request, range(4)))
+    assert calls == 1
+
+    def fail() -> Dataset:
+        raise ValueError("temporary source error")
+
+    with pytest.raises(ValueError, match="temporary"):
+        cache.get_or_load("retry", fail)
+    assert cache.get_or_load("retry", load) is data
 
 
 def test_cache_evicts_by_bytes_and_does_not_retain_oversized_frames() -> None:

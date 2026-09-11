@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-nodebi}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nodebi_dev}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,7 +26,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     command: ["sh", "-c", "python -m app.infrastructure.wait_database && alembic upgrade head && python -m app.services.file_cleanup && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - source_files:/data/sources
     depends_on:
@@ -46,7 +46,7 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       backend:
         condition: service_healthy

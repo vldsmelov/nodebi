@@ -407,13 +407,8 @@ Architectural boundaries defined in `ARCHITECTURE.md` must remain intact.
 
 # 7. Development Status
 
-Current phase:
-
-```text
-M10 — Core Transformation Nodes
-```
-
-Milestones M0 through M9 are complete. The React Flow editor, graph autosave, structural validation, schema propagation, target-branch execution, bounded caching, generic node preview, and schema-aware Select Columns, Rename Columns, and type-aware Filter transformations are implemented. M10 is in progress.
+Current phase: **MVP complete (0.1.0), 2026-09-11**. Required M0-M16 behavior passes
+the automated acceptance gates. See docs/QA_REPORT.md for evidence and supported limits.
 
 Always inspect:
 
@@ -455,7 +450,7 @@ $env:NODEBI_TEST_POSTGRES_URL = 'postgresql+psycopg://nodebi:nodebi_dev@127.0.0.
 ```
 
 Tests migrate private UUID schemas and remove only those schemas. They cover
-concurrent writers, graph ownership, migration roundtrips and ORM drift. The two
+concurrent writers, graph ownership, migration roundtrips and ORM drift. The three
 PostgreSQL-only cases skip on the SQLite half of the matrix.
 
 Workflow saves now require `expected_revision`. HTTP 409 preserves the local draft;
@@ -510,7 +505,7 @@ py -3.13 -m venv .venv
 .\.venv\Scripts\mypy app
 
 cd ..\frontend
-npm install
+npm ci
 npm run test
 npm run lint
 npm run typecheck
@@ -1399,13 +1394,8 @@ Conversation history must not be required to continue development.
 
 # 38. Current Status
 
-The current active milestone is:
-
-```text
-M4 — Excel Data Sources
-```
-
-M0 through M3 are complete. See the status snapshot for the next actionable task and verified checks.
+Required MVP implementation and release validation are complete.
+The maintained release snapshot is in STATUS.md and docs/QA_REPORT.md.
 
 Always verify the current state in:
 
@@ -1458,11 +1448,11 @@ $env:NODEBI_E2E_RESTART='1'
 npm run test:e2e
 ```
 
-This opt-in restarts the development backend and PostgreSQL containers, preserving volumes.
+This opt-in restarts the development frontend, backend and PostgreSQL containers, preserving volumes.
 Bar charts reject more than 2000 points rather than silently truncating analytical data.
 KPI requires exactly one upstream row; missing values display as No value.
-Migration 0004 adds dashboard revisions. The early slice is not the full MVP: M11,
-remaining visualization types, dashboard management and QA are still tracked in TASKS.md.
+Migration 0004 adds dashboard revisions. M11, all required chart types, dashboard management
+and release QA are complete. The optional backlog remains in TASKS.md.
 
 ### Reproducible backend dependencies
 
@@ -1484,4 +1474,23 @@ Excel XML entity protection is installed through pinned defusedxml.
 Run the repeatable 50000-row smoke benchmark with
 `backend/.venv/Scripts/python backend/scripts/benchmark_mvp.py`.
 Do not run PostgreSQL tests while restart acceptance restarts the same database.
-Current release evidence and remaining gates: [QA report](docs/QA_REPORT.md), [status](STATUS.md).
+Current release evidence and limitations: [QA report](docs/QA_REPORT.md), [status](STATUS.md).
+
+## MVP 0.1.0 operational limits
+
+Compose binds all published ports to 127.0.0.1. This release is a local single-user application.
+Configured Excel source IDs must belong to the workflow project; missing source IDs are rejected
+on save, while unconfigured nodes remain valid drafts. Project/source deletion and graph saves
+serialize reference changes. Cold workbook loads are shared between concurrent widget requests.
+
+Known non-blocking limits: Float64 arithmetic loses integer precision above 2^53; Join supports
+one key pair and inner/left only; Pivot is limited to 128 categories. Optional OR, multi-series
+charts, advanced formulas and undo/redo are deferred. Cache bytes exclude Python/engine overhead.
+An abrupt process/database failure before upload compensation is journaled can leave an orphaned
+file; inspect storage against source metadata before manual cleanup. No automatic orphan purge runs.
+The tab-scoped draft survives navigation/reload, but closing the browser tab ends that storage.
+
+Release checks: 208 backend tests, 20 frontend tests and 8 browser scenarios; three PostgreSQL-only
+cases skip on SQLite and pass on PostgreSQL. Production Docker builds and OpenAPI drift checks pass.
+The release was also installed into a separate stack with fresh database/storage volumes; no existing
+project data was reset. See docs/QA_REPORT.md for reproducing the acceptance run.

@@ -14,11 +14,11 @@ import {
 import "@xyflow/react/dist/style.css";
 import { Plus, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 
 import type { DataSource } from "@/features/data-sources/api";
 import { VisualizationView } from "@/features/dashboard/VisualizationView";
-import { previewWorkflowNode, saveWorkflow } from "./api";
+import { saveWorkflow } from "./api";
+import { NodeOutputPanel } from "./NodeOutputPanel";
 import { WorkflowAutosave, type SaveState } from "./autosave";
 import { NodeConfiguration } from "./NodeConfiguration";
 import { WorkflowNodeCard, type EditorNode } from "./WorkflowNodeCard";
@@ -74,7 +74,6 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   const selectedNodeId = useWorkflowUi((state) => state.selectedNodeId);
   const selectNode = useWorkflowUi((state) => state.selectNode);
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
-  const preview = useMutation({ mutationFn: (nodeId: string) => previewWorkflowNode(workflow.id, nodeId) });
   const visibleDefinitions = catalog.filter((definition) => `${definition.display_name} ${definition.description}`.toLowerCase().includes(search.toLowerCase()));
   const saveStatus = saveState.status;
   const saveError = saveState.error;
@@ -201,11 +200,8 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
         }))} onChange={updateSelectedConfig} /> : null}
         {selectedNode && dirty && selectedInputColumns ? <p className="mt-2 text-xs text-amber-200">Field choices are from the last saved graph. Updating after save…</p> : null}
         {selectedNode?.data.definition.category === "visualization" && !dirty ? <div className="mt-4 h-72"><VisualizationView id={selectedNode.id} revision={saveState.revision} /></div> : null}
-        {selectedNode ? <button onClick={() => preview.mutate(selectedNode.id)} disabled={preview.isPending || dirty} className="mt-5 w-full rounded-xl bg-[#b7ff5a] px-4 py-2.5 text-sm font-semibold text-[#11170d] disabled:opacity-40">{preview.isPending ? "Running preview…" : "Preview output"}</button> : null}
-        {selectedIssues.map((issue) => <p key={`${issue.code}:${issue.field}`} className={`mt-4 rounded-xl p-3 text-xs ${issue.severity === "error" ? "bg-red-400/10 text-red-200" : "bg-amber-400/10 text-amber-200"}`}>{issue.message}</p>)}
-        {selectedSchema?.columns ? <section className="mt-6"><h3 className="text-xs uppercase tracking-[0.18em] text-white/35">Output fields</h3><div className="mt-3 space-y-2">{selectedSchema.columns.map((column) => <div key={column.column_id} className="flex items-center justify-between rounded-lg border border-white/8 px-3 py-2 text-xs"><span className="truncate">{column.display_name}</span><span className="ml-2 text-white/35">{column.logical_type}{column.nullable ? "?" : ""}</span></div>)}</div></section> : null}
-        {preview.error && preview.variables === selectedNodeId && !dirty ? <p className="mt-4 rounded-xl bg-red-400/10 p-3 text-xs text-red-200">{preview.error.message}</p> : null}
-        {preview.data && !dirty && preview.data.revision === saveState.revision && preview.variables === selectedNodeId ? <section className="mt-6"><div className="flex items-center justify-between"><h3 className="text-xs uppercase tracking-[0.18em] text-white/35">Preview</h3><span className="text-[11px] text-white/30">{preview.data.total_rows} rows · {preview.data.duration_ms} ms</span></div>{preview.data.rows.length === 0 ? <p className="mt-3 text-xs text-white/35">The result is empty.</p> : <div className="mt-3 overflow-auto rounded-xl border border-white/10"><table className="min-w-full text-[11px]"><thead><tr>{preview.data.columns.map((column) => <th key={column.column_id} className="border-b border-white/10 px-2 py-2 text-left text-white/40">{column.display_name}</th>)}</tr></thead><tbody>{preview.data.rows.map((row, index) => <tr key={index}>{preview.data.columns.map((column) => <td key={column.column_id} className="border-b border-white/5 px-2 py-2 whitespace-nowrap">{String(row[column.engine_name] ?? "—")}</td>)}</tr>)}</tbody></table></div>}</section> : null}
+        {selectedNode && <NodeOutputPanel key={selectedNode.id} workflowId={workflow.id} nodeId={selectedNode.id}
+          revision={saveState.revision} dirty={dirty} schema={selectedSchema} issues={selectedIssues} />}
         {saveError ? <p className="mt-5 rounded-xl bg-red-400/10 p-3 text-xs text-red-200">{saveError}</p> : null}
       </aside>
     </div>

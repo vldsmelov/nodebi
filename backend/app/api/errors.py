@@ -10,7 +10,7 @@ from app.domain.errors import ApplicationError
 logger = logging.getLogger("nodebi.api")
 
 
-def register_error_handlers(app: FastAPI) -> None:
+def register_error_handlers(app: FastAPI, cors_origins: list[str]) -> None:
     @app.exception_handler(ApplicationError)
     async def application_error(request: Request, exc: ApplicationError) -> JSONResponse:
         return JSONResponse(
@@ -50,10 +50,21 @@ def register_error_handlers(app: FastAPI) -> None:
     async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
         correlation_id = str(uuid.uuid4())
         logger.exception(
-            "Unexpected API failure", exc_info=exc, extra={"correlation_id": correlation_id}
+            "Unexpected API failure [%s]",
+            correlation_id,
+            exc_info=exc,
+            extra={"correlation_id": correlation_id},
         )
+        # ServerErrorMiddleware handles unexpected exceptions outside CORSMiddleware.
+        # Preserve the same explicit origin allowlist for this final error response.
+        origin = request.headers.get("origin")
+        headers = {"Vary": "Origin"}
+        if origin in cors_origins:
+            headers["Access-Control-Allow-Origin"] = origin
+            headers["Access-Control-Allow-Credentials"] = "true"
         return JSONResponse(
             status_code=500,
+            headers=headers,
             content={
                 "detail": {
                     "code": "INTERNAL_ERROR",

@@ -1,55 +1,121 @@
-# QA checkpoint — 2026-09-11
+# MVP 0.1.0 release QA — 2026-09-11
 
-This is an ongoing QA report, not an MVP release declaration.
+Required local single-user MVP acceptance passed. Known open P0/P1: zero.
+This validates the documented bounded workload and product scope, not public multi-user deployment.
 
-## Verified behavior
+## Automated gates
 
-Six Playwright scenarios pass against production Docker images, including:
-two-tab revision conflicts; failed autosave recovery; source preview/reload;
-Join/Union/Pivot configuration and propagated fields; all chart renderers and dashboard
-CRUD/widget title persistence; Sales Analysis with Filter/Calculated Column/Group By,
-Bar/KPI, widget drag/resize and real backend/PostgreSQL restart. Widget request failure
-is isolated from the other widget. `NODEBI_E2E_RESTART=1 npm run test:e2e` reproduces the run.
+| Gate | Result |
+| --- | --- |
+| Backend SQLite + PostgreSQL | 208 passed; three PostgreSQL-only scenarios skip on SQLite and pass on PostgreSQL |
+| Ruff lint / format | Pass, 85 checked Python files |
+| mypy strict | Pass, 58 application files |
+| Frontend Vitest | 20 passed |
+| ESLint / TypeScript / OpenAPI drift | Pass |
+| Docker production build | Backend and frontend pass |
+| Runtime dependency consistency | pip check passes; XML protection enabled |
+| npm production dependency audit | Zero reported vulnerabilities |
+| Playwright on isolated clean stack | Eight scenarios passed together in 50.2 s, including full restart |
+| Playwright on normal stack after diagnostic/CORS fix | Eight scenarios passed together in 50.7 s; restored dashboard 1368 ms |
 
-Frontend: 17 tests, lint, TypeScript and generated API check pass; Docker production build passes.
-Backend full PostgreSQL/SQLite matrix: 190 passed, two SQLite-only skips whose PostgreSQL variants pass. Do not run it
-concurrently with restart acceptance against the same PostgreSQL instance: one exploratory run
-was interrupted by the deliberate restart (AdminShutdown), an orchestration error, not a test waiver.
+## Coverage and evidence
 
-## Findings fixed during this pass
+| Area | Evidence |
+| --- | --- |
+| Graph ownership, atomic revision, concurrent writes, migration upgrade/downgrade/model drift | test_workflows_api.py, test_repositories.py, test_migrations.py on PostgreSQL |
+| Source delete versus new graph reference | test_source_concurrency.py; one operation succeeds and the other reports a controlled conflict |
+| Excel duplicates/blank headers, late mixed values, Unicode values, dates/nulls, multiple/empty sheets, no worksheets | test_excel.py, test_sources_api.py |
+| Upload extension/size/path handling, malformed/forbidden XML, inert macro payload | test_sources_api.py, test_excel.py; defusedxml enabled in deployed image |
+| Port/cycle/missing input, disconnected branches, deletion and upstream invalidation | test_workflow_validation.py, test_execution.py, test_workflows_api.py, browser editor tests |
+| Formula safety, null/empty/zero division, sorting/aggregation, Join/Union/Pivot schemas | test_arithmetic_nodes.py, test_combine_nodes.py, test_filter.py; combine.spec.ts |
+| Chart limits, empty/null/negative values, numeric axes, invalid field/format, table pagination | test_dashboards.py, visualizations.test.tsx, charts.spec.ts |
+| API malformed JSON/UUID/nonexistent entities, sanitized unexpected failure and diagnostic correlation | test_qa_errors.py |
+| Cache ownership/artifact checks, byte budget, cold-load sharing, failure retry | test_cache_safety.py, test_execution.py |
+| Draft conflicts/recovery, slow acknowledgements, navigation before debounce, stale preview/errors | editor.spec.ts, autosave.test.ts, node-output.test.tsx |
+| Dashboard CRUD, title/visibility, add/remove, drag/resize/reload and isolated widget errors | test_dashboards.py, charts.spec.ts, transforms.spec.ts |
 
-| Severity | Reproduction | Fix / evidence |
+The canonical browser journey creates **Sales Analysis** and uploads sales.xlsx through the UI,
+selects Sales, previews it, filters country = Korea, computes quantity * price, aggregates revenue
+by category and creates Bar/KPI. The KPI is explicitly checked as **500**. Both widgets are moved,
+the Bar widget is resized, then saved. Frontend, backend and PostgreSQL restart together. The full
+workflow payload and widget layout match their saved versions; the chart and KPI render again.
+
+## Clean installation rehearsal
+
+An isolated Compose project `nodebi-release-20260911` was built from the documented configuration.
+A copy of .env.example was used, with isolated loopback ports 13000/18000/15432 and matching
+frontend API/CORS URLs. Docker created fresh PostgreSQL/source volumes, applied all migrations,
+and reported backend/database health. The normal stack and its existing volumes were preserved.
+Generated rehearsal config: `.backups/release-smoke-20260911/compose.yml` (local, ignored).
+The rehearsal containers were stopped/removed after verification; their volumes were preserved.
+Restart that test stack from the repository root with:
+
+```powershell
+docker compose -p nodebi-release-20260911 -f .backups/release-smoke-20260911/compose.yml up -d --build --wait
+```
+
+Browser invocation from frontend:
+
+```powershell
+$env:NODEBI_E2E_API='http://127.0.0.1:18000'
+$env:NODEBI_E2E_URL='http://localhost:13000'
+$env:NODEBI_E2E_RESTART='1'
+$env:NODEBI_E2E_COMPOSE_FILE='D:\projects\nodeBI\.backups\release-smoke-20260911\compose.yml'
+$env:NODEBI_E2E_COMPOSE_PROJECT='nodebi-release-20260911'
+npm run test:e2e
+```
+
+For the ordinary stack, omit the endpoint/Compose overrides and keep NODEBI_E2E_RESTART=1.
+Backend checks use NODEBI_TEST_POSTGRES_URL with 127.0.0.1:5432 and connect_timeout=5.
+Do not run restart acceptance and PostgreSQL tests on the same database simultaneously.
+
+## Findings resolved
+
+| Severity | Finding | Resolution |
 | --- | --- | --- |
-| P1 | Simultaneous backend/PostgreSQL restart could run Alembic before DB readiness, leaving backend exited | Bounded availability probe before migrations; startup unit tests and actual restart acceptance pass |
-| P1 | XML entity protection absent from openpyxl runtime | Pinned defusedxml; forbidden entities and malformed workbook/worksheet XML regressions |
-| P2 | Source preview omitted the materialization column cap | 1025-column preview is rejected clearly |
-| P2 | ECharts replaced chart accessible name with autogenerated text | Explicit aria description; component assertion and browser chart lookup pass |
-| P2 | Scatter X could accept nonfinite values | Both numeric axes validated; infinity/NaN regressions |
+| P1 | Backend could exit during simultaneous DB restart | Bounded readiness probe before migrations; actual restart acceptance |
+| P1 | Excel XML entity protection absent | Pinned defusedxml and initial/lazy XML regressions |
+| P1 | Source deletion could race with a newly saved JSON reference | Project row lock and same-project reference validation, PostgreSQL concurrency regression |
+| P2 | Preview lacked the column resource cap | 1025-column preview rejected |
+| P2 | Old preview error could reappear after graph revision changed | Revision-aware NodeOutputPanel with delayed-result/error regressions |
+| P2 | Parallel widget requests could duplicate a cold workbook load | Shared source-load operation; concurrent cache test |
+| P2 | Chart accessible name replaced by generated ECharts text | Explicit aria description and browser assertion |
+| P2 | Scatter X could contain nonfinite values | Both axes checked; infinity/NaN regression |
+| P2 | Diagnostic ID absent from plain error log text and unreadable by the cross-origin browser on HTTP 500 | UUID appears in logs and UI; the 500 handler preserves the configured origin allowlist, with regression coverage |
 
-## Performance smoke measurement
+Test issues were corrected rather than waived: a PostgreSQL suite was once interrupted by a
+deliberate concurrent restart, and pointer resize initially targeted a moving animation. The final
+tests use separate stacks, stable semantic widget selection and verify actual resize before saving.
 
-Run `backend/.venv/Scripts/python backend/scripts/benchmark_mvp.py` with Docker running.
-The script generates 50000 rows/3 columns (580373-byte Excel), creates its own temporary
-project and removes only that project. It checks row counts and the exact 2500000 revenue total.
+## Performance and UX smoke checks
+
+`backend/.venv/Scripts/python backend/scripts/benchmark_mvp.py` generates 50000 rows/3 columns
+(580373-byte Excel), creates its own temporary project, verifies counts and the exact 2500000
+aggregate, then removes only that project.
 
 | Operation | Local elapsed ms |
 | --- | ---: |
-| Upload and workbook inspection | 699.1 |
+| Upload and inspection together | 699.1 |
 | First source preview/materialization | 2016.5 |
 | Repeated source preview | 10.2 |
 | Filter using loaded source | 16.9 |
 | Calculated Column and Group By | 16.8 |
 | Chart using cached aggregate | 18.4 |
+| Separate Windows reader inspection of the same generated shape | 801.2 |
+| Full dashboard reload after stack restart | 1402 |
 
-One Windows/Docker Desktop run; no concurrency guarantee or maximum-size load claim.
-The cold/warm comparison confirms source reuse. Browser screenshots were visually inspected:
-all chart types and paged table render within widget bounds.
+These are separate local runs, not additive timings or a concurrency guarantee. Screenshots of all
+chart types were visually inspected; widget content stays within bounds. The full browser journey
+exercises upload, connection/configuration, previews, feedback and responsive drag/resize interaction.
 
-## Remaining release work
+## Deferred non-blocking limitations
 
-Two additional browser scenarios verify slow save acknowledgements and navigation before debounce.
-Complete the M14/M15 checklist, especially final API/resource
-abuse review, application boundary inventory, clean installation rehearsal and document reconciliation.
-Known P2 limitations: abrupt upload crash before compensation journaling can leave an orphan;
-cache accounting excludes Python object overhead. See ADR-054/055/056 for recovery and numeric limits.
-M16 remains open until its full checklist is explicitly reviewed.
+* P2: abrupt failure before upload compensation is journaled may leave an orphan. Compare metadata
+  and storage before manual reconciliation; no automatic orphan purge runs (ADR-054).
+* P2: cache byte estimates exclude Python/engine overhead. No multi-user load guarantee.
+* P3: upstream TestClient/Vite deprecation notices and extended accessibility/keyboard polish.
+* Defined scope: Float64 precision, one-key inner/left Join, 128 Pivot categories, 2000 chart points;
+  optional OR, advanced formulas, multiple series, duplication and undo/redo remain deferred.
+* Tab-local drafts end when the tab closes; beforeunload warns about pending changes.
+
+No existing project data was reset. Backup and historical evidence remain in the handoff/status files.

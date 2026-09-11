@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 
@@ -7,13 +6,19 @@ const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
 
 test("build and restore filtered revenue aggregation entirely in the editor", async ({ page, request }) => {
   test.setTimeout(120000);
-  const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Sales Analysis M10" } })).json();
+  await page.goto("/projects");
+  await page.getByLabel("Project name", { exact: true }).fill("Sales Analysis");
+  const created = page.waitForResponse(response => response.url().endsWith("/api/v1/projects") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Create project", exact: true }).click();
+  const project = await (await created).json();
   try {
-    const upload = await request.post(`${api}/api/v1/projects/${project.id}/sources/excel`, {
-      multipart: { file: { name: "sales.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: readFileSync(resolve("../fixtures/excel/sales.xlsx")) } },
-    });
-    expect(upload.ok()).toBeTruthy();
-    await page.goto(`/projects/${project.id}/workflow`);
+    await page.locator(`a[href="/projects/${project.id}"]`).click();
+    await page.getByRole("link", { name: "Data", exact: false }).click();
+    await page.locator('input[type="file"]').setInputFiles(resolve("../fixtures/excel/sales.xlsx"));
+    await page.getByLabel("Worksheet").selectOption("Sales");
+    await expect(page.getByRole("columnheader", { name: "quantity", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Project", exact: false }).click();
+    await page.getByRole("link", { name: "Workflow", exact: false }).click();
     await page.getByRole("button", { name: "Create workflow", exact: true }).click();
     await page.getByTitle("Add Excel Source").click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
@@ -21,9 +26,9 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     await page.getByLabel("Input input").selectOption({ index: 1 });
     await expect(page.getByRole("button", { name: "Add condition" })).toBeVisible();
     await page.getByRole("button", { name: "Add condition" }).click();
-    await page.getByLabel("Filter column 1").selectOption({ label: "quantity · integer" });
-    await page.getByLabel("Filter operator 1").selectOption("greater_than");
-    await page.getByLabel("Filter value 1").fill("0");
+    await page.getByLabel("Filter column 1").selectOption({ label: "country · string" });
+    await page.getByLabel("Filter operator 1").selectOption("equals");
+    await page.getByLabel("Filter value 1").fill("Korea");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.getByTitle("Add Calculated Column").click();
     const filterOption = page.getByLabel("Input input").locator("option").filter({ hasText: "Filter (" });
@@ -76,6 +81,8 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     await page.getByLabel("Chart value").selectOption({ label: "grand_total" });
     await expect(page.getByTestId("kpi-value")).toBeVisible();
     const total = await page.getByTestId("kpi-value").innerText();
+    expect(Number(total.replaceAll(",", ""))).toBe(500);
+    const expectedWorkflow = await (await request.get(`${api}/api/v1/workflows/${saved.id}`)).json();
     await page.goto(`/projects/${project.id}/dashboard`);
     await page.getByRole("button", { name: "Create dashboard" }).click();
     await page.getByLabel("Add visualization").selectOption({ label: "Revenue by category" });
@@ -85,17 +92,33 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     await expect(page.getByTestId("kpi-value")).toHaveText(total);
     const widgets = page.locator("[data-widget-id]");
     await expect(widgets).toHaveCount(2);
-    const handle = await widgets.first().locator(".widget-handle").boundingBox();
+    const barWidget = widgets.filter({ has: page.getByRole("img", { name: "Revenue by category", exact: true }) });
+    const kpiWidget = widgets.filter({ has: page.getByTestId("kpi-value") });
+    await barWidget.locator(".widget-handle").hover();
+    const handle = await barWidget.locator(".widget-handle").boundingBox();
     if (!handle) throw new Error("Missing widget drag handle");
     await page.mouse.move(handle.x + 30, handle.y + 10);
     await page.mouse.down();
     await page.mouse.move(handle.x + 180, handle.y + 90, { steps: 12 });
     await page.mouse.up();
-    const resize = await widgets.first().locator(".react-resizable-handle").boundingBox();
+    await barWidget.locator(".react-resizable-handle").hover();
+    const beforeResize = await barWidget.boundingBox();
+    const resize = await barWidget.locator(".react-resizable-handle").boundingBox();
     if (!resize) throw new Error("Missing widget resize handle");
     await page.mouse.move(resize.x + 5, resize.y + 5);
     await page.mouse.down();
     await page.mouse.move(resize.x + 130, resize.y + 65, { steps: 12 });
+    await page.mouse.up();
+    await expect.poll(async () => {
+      const bounds = await barWidget.boundingBox();
+      return !!bounds && !!beforeResize && (bounds.width > beforeResize.width + 40 || bounds.height > beforeResize.height + 20);
+    }).toBeTruthy();
+    await kpiWidget.locator(".widget-handle").hover();
+    const kpiHandle = await kpiWidget.locator(".widget-handle").boundingBox();
+    if (!kpiHandle) throw new Error("Missing KPI drag handle");
+    await page.mouse.move(kpiHandle.x + 30, kpiHandle.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(kpiHandle.x - 130, kpiHandle.y + 95, { steps: 12 });
     await page.mouse.up();
     await page.getByRole("button", { name: "Save dashboard" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
@@ -103,11 +126,18 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     const layout = dashboards.items[0];
     expect(layout.widgets.some((widget: { x: number; width: number; height: number }) => widget.x > 0 && (widget.width !== 6 || widget.height !== 8))).toBeTruthy();
     if (process.env.NODEBI_E2E_RESTART === "1") {
-      execFileSync("docker", ["compose", "restart", "backend", "postgres"], { cwd: resolve(".."), timeout: 45000, windowsHide: true });
+      const compose = process.env.NODEBI_E2E_COMPOSE_FILE ? ["-f", process.env.NODEBI_E2E_COMPOSE_FILE] : [];
+      const projectArgs = process.env.NODEBI_E2E_COMPOSE_PROJECT ? ["-p", process.env.NODEBI_E2E_COMPOSE_PROJECT] : [];
+      execFileSync("docker", ["compose", ...compose, ...projectArgs, "restart", "backend", "postgres", "frontend"], { cwd: resolve(".."), timeout: 45000, windowsHide: true });
       await expect.poll(async () => { try { return (await request.get(`${api}/ready`)).ok(); } catch { return false; } }, { timeout: 30000 }).toBeTruthy();
     }
+    const dashboardStarted = Date.now();
     await page.reload();
     await expect(page.getByTestId("kpi-value")).toHaveText(total);
+    await expect(page.getByRole("img", { name: "Revenue by category", exact: true }).locator("canvas")).toBeVisible();
+    console.log(`Restored dashboard render: ${Date.now() - dashboardStarted} ms`);
+    expect(await (await request.get(`${api}/api/v1/workflows/${saved.id}`)).json()).toEqual(expectedWorkflow);
+    expect((await (await request.get(`${api}/api/v1/projects/${project.id}`)).json()).name).toBe("Sales Analysis");
     const restored = await (await request.get(`${api}/api/v1/dashboards/${layout.id}`)).json();
     expect(restored.widgets).toEqual(layout.widgets);
     // A failed chart request must not hide the other widget.

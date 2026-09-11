@@ -54,13 +54,15 @@ class ProjectSourceAccess:
         self.validate(source_id, sheet_name)
         key = self.identity(source_id, sheet_name)
         loaded = self._loaded.get(key)
-        if loaded is None and self.cache:
-            loaded = self.cache.get(key)
         if loaded is None:
             source = self._source(source_id)
-            loaded = self.reader.load_sheet(source.storage_key, sheet_name)
-            if self.cache:
-                self.cache.put(key, loaded)
+
+            def materialize() -> Dataset:
+                # Recheck availability after waiting for another cold load.
+                self.validate(source_id, sheet_name)
+                return self.reader.load_sheet(source.storage_key, sheet_name)
+
+            loaded = self.cache.get_or_load(key, materialize) if self.cache else materialize()
         self._loaded[key] = loaded
         return loaded
 

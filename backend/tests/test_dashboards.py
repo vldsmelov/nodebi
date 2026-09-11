@@ -248,3 +248,71 @@ def test_scatter_rejects_nonfinite_x(invalid: float) -> None:
         VisualizationExecutor().execute(
             node, {"input": data}, ExecutionContext(uuid.uuid4(), uuid.uuid4(), uuid.uuid4())
         )
+
+
+@pytest.mark.parametrize(
+    "kind",
+    ["bar_chart", "line_chart", "area_chart", "scatter_chart", "pie_chart", "donut_chart", "table"],
+)
+def test_charts_preserve_empty_and_nullable_inputs(kind: str) -> None:
+    schema = DatasetSchema((ColumnSchema("value", "value", "Value", LogicalType.FLOAT, True),))
+    node = NodeInstance(
+        uuid.uuid4(),
+        kind,
+        1,
+        Position(0, 0),
+        {"value_column_id": "value", "category_column_id": "value"},
+    )
+    context = ExecutionContext(uuid.uuid4(), uuid.uuid4(), uuid.uuid4())
+    for values in ([], [1.0, None]):
+        data = Dataset(pl.DataFrame({"value": pl.Series(values, dtype=pl.Float64)}), schema)
+        result = VisualizationExecutor().execute(node, {"input": data}, context)
+        assert result.frame.to_dicts() == data.frame.to_dicts()
+
+
+@pytest.mark.parametrize("kind", ["bar_chart", "pie_chart", "donut_chart"])
+def test_negative_values_are_explicitly_supported_or_rejected(kind: str) -> None:
+    schema = DatasetSchema((ColumnSchema("value", "value", "Value", LogicalType.FLOAT, False),))
+    data = Dataset(pl.DataFrame({"value": [-1.0]}), schema)
+    node = NodeInstance(
+        uuid.uuid4(),
+        kind,
+        1,
+        Position(0, 0),
+        {"value_column_id": "value", "category_column_id": "value"},
+    )
+    context = ExecutionContext(uuid.uuid4(), uuid.uuid4(), uuid.uuid4())
+    if kind == "bar_chart":
+        assert (
+            VisualizationExecutor().execute(node, {"input": data}, context).frame["value"][0] == -1
+        )
+    else:
+        with pytest.raises(NodeExecutionError, match="non-negative"):
+            VisualizationExecutor().execute(node, {"input": data}, context)
+
+
+def test_invalid_chart_field_remains_editable_and_reports_node(
+    db_engine: Engine, tmp_path: Path
+) -> None:
+    project_id = uuid.uuid4()
+    with Session(db_engine) as session:
+        session.add(Project(id=project_id, name="Chart validation"))
+        session.commit()
+    client = client_for(db_engine, tmp_path)
+    try:
+        graph = analytical_graph(client, project_id)
+        chart = next(n for n in graph["nodes"] if n["type"] == "bar_chart")
+        chart["config"]["value_column_id"] = "removed_field"
+        graph["expected_revision"] = graph["revision"]
+        assert client.put(f"/api/v1/workflows/{graph['id']}", json=graph).status_code == 200
+        result = client.get(f"/api/v1/visualizations/{chart['id']}/result")
+        assert result.status_code == 422
+        assert any(issue["node_id"] == chart["id"] for issue in result.json()["detail"]["issues"])
+        chart["config"]["number_format"] = "arbitrary_formatter"
+        graph["expected_revision"] += 1
+        assert client.put(f"/api/v1/workflows/{graph['id']}", json=graph).status_code == 200
+        result = client.get(f"/api/v1/visualizations/{chart['id']}/result")
+        assert result.status_code == 422
+        assert "number_format" in result.text
+    finally:
+        app.dependency_overrides.clear()

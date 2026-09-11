@@ -9,16 +9,32 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.domain.errors import ApplicationError
-from app.infrastructure.excel import ExcelWorkbookError, OpenPyxlWorkbookReader
+from app.domain.workbooks import WorksheetLoadOptions, WorksheetPreview
+from app.infrastructure.excel import (
+    ExcelWorkbookError,
+    OpenPyxlWorkbookReader,
+    WorksheetNotFoundError,
+)
 from app.infrastructure.storage import StorageProvider
 from app.models import DataSource, Project, Workflow, WorkflowNode
 from app.services.file_cleanup import drain_deletions, enqueue_deletion
+from app.services.projects import ProjectService
 
 
 class SourceService:
     def __init__(self, session: Session, storage: StorageProvider) -> None:
         self.session = session
         self.storage = storage
+
+    def preview(self, source: DataSource, sheet_name: str, limit: int) -> WorksheetPreview:
+        try:
+            return OpenPyxlWorkbookReader(self.storage).preview_sheet(
+                source.storage_key, sheet_name, WorksheetLoadOptions(limit=limit)
+            )
+        except WorksheetNotFoundError as exc:
+            raise ApplicationError("WORKSHEET_NOT_FOUND", str(exc), 404) from exc
+        except ExcelWorkbookError as exc:
+            raise ApplicationError("INVALID_WORKBOOK", str(exc)) from exc
 
     def upload(
         self, project_id: uuid.UUID, filename: str, content: BinaryIO, settings: Settings
@@ -71,6 +87,9 @@ class SourceService:
         return source
 
     def delete(self, source: DataSource) -> None:
+        ProjectService(self.session).lock(source.project_id)
+        if self.session.scalar(select(DataSource.id).where(DataSource.id == source.id)) is None:
+            raise ApplicationError("SOURCE_NOT_FOUND", "Data source does not exist.", 404)
         nodes = self.session.scalars(
             select(WorkflowNode).join(Workflow).where(Workflow.project_id == source.project_id)
         )
@@ -84,6 +103,7 @@ class SourceService:
         drain_deletions(self.session, self.storage)
 
     def delete_project(self, project: Project) -> None:
+        project = ProjectService(self.session).lock(project.id)
         for key in self.session.scalars(
             select(DataSource.storage_key).where(DataSource.project_id == project.id)
         ):

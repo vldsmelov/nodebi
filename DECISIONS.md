@@ -1648,7 +1648,7 @@ Inspection remains bounded in memory where openpyxl supports streaming. Downstre
 
 Status:
 
-`ACCEPTED ? implementation specified by ADR-053`
+`ACCEPTED; implementation specified by ADR-053`
 
 Required before:
 
@@ -1678,7 +1678,7 @@ Choose exact tooling based on frontend build setup.
 
 Status:
 
-`ACCEPTED ? implementation specified by ADR-050`
+`ACCEPTED; implementation specified by ADR-050`
 
 Required before:
 
@@ -1793,8 +1793,8 @@ Accepted architectural foundations:
 
 Major pending decisions:
 
-No architectural decisions remain pending for the early visualization/dashboard slice.
-M11 data-dependent schema details will be recorded before implementation.
+No architectural decisions remain pending for the required MVP. M11 is specified in ADR-056;
+complete visualization/recovery/reference contracts are in ADR-057 through ADR-060.
 
 Review disposition and remaining limitations for ADR-001 through ADR-049 are recorded in
 `docs/ARCHITECTURE_REVIEW.md`.
@@ -1952,3 +1952,42 @@ Alternatives: merely ordering the acceptance test hides the restart race; retryi
 indiscriminately can conceal real migration defects. Consequence: recovery is automatic when the
 database becomes available within the startup budget; persistent outages still fail explicitly.
 The parser protection follows the [openpyxl security guidance](https://openpyxl.readthedocs.io/en/stable/).
+
+# ADR-059 - Source reference integrity and completion of application boundaries
+
+Date: 2026-09-11. Status: ACCEPTED; refines ADR-031/049 and completes ADR-053 boundaries.
+Context: source references live in node JSON and cannot be protected by ordinary foreign keys.
+Saving a new reference concurrently with source deletion must have one consistent outcome.
+Decision: graph saves, source deletion and project deletion acquire the project row lock first.
+A configured source ID must exist in the same project; empty/unconfigured source nodes and
+other incomplete configs remain saveable drafts. Existing sources with missing files may still
+be saved, but schema/preview report the unavailable artifact. Invalid source IDs return 422 with
+node attribution; no graph changes commit. Source deletion after a successful reference save
+returns SOURCE_IN_USE. PostgreSQL competing-operation regression verifies both valid outcomes.
+Alternatives: accepting deleted IDs creates dangling new references; generic JSON foreign-key
+infrastructure adds disproportionate complexity. Consequence: writes within a project serialize;
+the prior draft test now uses an existing source with an unavailable artifact instead of a fake ID.
+
+Project/workflow create/read/update/delete orchestration and Excel preview belong to services.
+HTTP handlers adapt typed input/output. NodeOutputPanel owns revision-aware preview rendering;
+late results and errors from earlier revisions are hidden and covered by component tests.
+
+# ADR-060 - Bounded cold source loading and local deployment defaults
+
+Date: 2026-09-11. Status: ACCEPTED.
+Context: multiple dashboard widgets can request the same uncached workbook simultaneously.
+Decision: cache source materialization uses double-checked locking. One cold source load runs
+at a time, while warm cache reads and Polars transformations remain independent. Failures release
+the lock and can be retried. This avoids duplicate workbook parsing and reduces peak memory;
+threaded regression verifies one load for concurrent requests. Existing cache byte/entry budgets
+still apply. Alternative: per-key future infrastructure is unnecessary for the synchronous MVP.
+
+Compose publishes ports only on 127.0.0.1, consistent with the unauthenticated single-user MVP.
+Remote production hosting requires a separate deployment design; it is outside this release.
+Unexpected API errors include the diagnostic UUID in both the response and plain log message.
+
+Final error-path validation: unexpected errors are handled outside the normal CORS middleware.
+The 500 response therefore explicitly preserves the same configured origin allowlist, allowing
+the browser to read the sanitized diagnostic response. ApiError includes the diagnostic UUID
+in its user-visible message. API regression verifies CORS and log correlation; frontend regression
+verifies the displayed identifier.

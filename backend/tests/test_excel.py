@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
@@ -160,3 +161,38 @@ def test_preview_rejects_excessive_columns(tmp_path: Path) -> None:
     key = storage.save(stream, suffix=".xlsx")
     with pytest.raises(ExcelWorkbookError, match="1024-column"):
         OpenPyxlWorkbookReader(storage).preview_sheet(key, "Sheet", WorksheetLoadOptions())
+
+
+def test_macro_payload_is_not_loaded_or_executed(tmp_path: Path) -> None:
+    # Inert synthetic VBA member: the reader must neither preserve nor interpret it.
+    stream = BytesIO()
+    with ZipFile(workbook_bytes()) as original, ZipFile(stream, "w") as archive:
+        for member in original.infolist():
+            archive.writestr(member, original.read(member.filename))
+        archive.writestr("xl/vbaProject.bin", b"inert VBA sentinel")
+    stream.seek(0)
+    storage = LocalStorageProvider(tmp_path)
+    key = storage.save(stream, suffix=".xlsm")
+    reader = OpenPyxlWorkbookReader(storage)
+    opened, workbook = reader._open_workbook(key)
+    try:
+        assert workbook.vba_archive is None
+    finally:
+        workbook.close()
+        opened.close()
+    assert reader.load_sheet(key, "Sales").row_count == 2
+
+
+def test_workbook_without_worksheets_is_rejected(tmp_path: Path) -> None:
+    stream = BytesIO()
+    with ZipFile(workbook_bytes()) as original, ZipFile(stream, "w") as archive:
+        for member in original.infolist():
+            data = original.read(member.filename)
+            if member.filename == "xl/workbook.xml":
+                data = re.sub(b"<sheets>.*?</sheets>", b"<sheets/>", data)
+            archive.writestr(member, data)
+    stream.seek(0)
+    storage = LocalStorageProvider(tmp_path)
+    key = storage.save(stream, suffix=".xlsx")
+    with pytest.raises(ExcelWorkbookError, match="does not contain any worksheets"):
+        OpenPyxlWorkbookReader(storage).inspect(key)
