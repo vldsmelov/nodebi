@@ -1,5 +1,20 @@
 # DECISIONS.md
 
+## ADR-061 — Russian, English and Tatar presentation layer
+
+Date: 2026-09-11. Status: Accepted. Supersedes PRODUCT_SPEC section 78's English-only recommendation.
+Context: the product owner explicitly requested Russian as the primary language plus English and Tatar.
+Decision: use a shared source-key catalog, a React locale provider and a server-read preference cookie.
+Translate navigation, controls, node metadata and error presentation; preserve all user content and
+machine identifiers. Use Intl formatting for numeric/date presentation, with UTC for dates.
+Reasoning: changing locale must preserve active editors, unsaved drafts and the meaning of saved data.
+Alternatives: URL-prefixed routing adds navigation/remount risk with no requirement for translated
+URLs; a full i18n framework adds a dependency unnecessary for this catalog; DOM text replacement
+cannot safely distinguish user data, translated labels and accessible controls.
+Consequences: dictionaries require complete Russian/Tatar entries and placeholder parity checks.
+API errors remain stable transport contracts and are localized at the UI boundary. Unknown codes
+receive a translated fallback with diagnostics; new domain messages should extend the catalog.
+
 ## 1. Purpose
 
 This file records significant architectural and product decisions for Node BI.

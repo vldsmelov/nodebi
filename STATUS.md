@@ -1,9 +1,19 @@
 # Node BI Development Status
 
-Last updated: 2026-09-11
+Last updated: 2026-09-14
 Release: **MVP COMPLETE — 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
+
+Last completed task: Russian (default), English and Tatar interface localization.
+The selector persists the language, including server rendering; switching preserves active editors,
+pending saves, dashboard drafts and user content. Catalog, errors, controls and numeric/date
+presentation are localized. The local frontend has been rebuilt and deployed.
+Checks on 2026-09-14: **26 frontend tests**, ESLint, TypeScript, OpenAPI drift and Docker production
+build pass; **11 browser scenarios pass together in 53.7 s**, including full application/database
+restart. Tatar workflow/dashboard screenshots reviewed. No new P0/P1 defect remains.
+Details: docs/LOCALIZATION.md and ADR-061. Backend code/schema/dependencies were unchanged;
+the 208-test backend release evidence below remains the prior verified baseline.
 
 M16 release gate passed. Astra architecture revision and all mandatory M0–M16 milestones
 are complete. Last work: application-service boundaries, revision-aware preview isolation,
@@ -49,7 +59,7 @@ No known open P0/P1 in the required MVP.
 
 ## Next task and blockers
 
-No required MVP task or blocker remains. Further product work should be selected from the
+No required MVP/localization task or blocker remains. Further product work should be selected from the
 documented optional/post-MVP backlog without automatically expanding scope.
 
 ## Resume and operating context

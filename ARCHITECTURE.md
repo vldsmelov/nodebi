@@ -3439,3 +3439,17 @@ A supplied source ID must exist in that project; an unconfigured node remains a 
 One cold source materialization runs at a time in each execution cache; warm reads and transforms
 remain independent. This avoids simultaneous duplicate workbook parsing and limits peak memory.
 The default Compose stack publishes only loopback ports, matching the single-user release boundary.
+
+## Interface localization (ADR-061)
+
+The root server layout reads the allowlisted `nodebi-language` cookie (ru/en/tt; ru default)
+and initializes a React locale provider. Language changes update presentation in place and persist
+a one-year, path-wide SameSite=Lax cookie. No graph or dashboard is remounted or rewritten.
+`frontend/lib/translations.ts` holds English source keys with Russian and Tatar translations;
+`locale.ts` owns interpolation, node labels and Intl presentation formatting. No i18n dependency
+is required for three unprefixed interface languages. The browser URL and API contracts are unchanged.
+Errors are translated at rendering time: application codes provide stable fallbacks, known domain
+messages preserve specific guidance, and field/node/diagnostic identifiers remain intact. Raw
+unknown server prose is replaced with a localized message; diagnostics remain in backend logs.
+User content and semantic configuration never pass through the message translator. Locale is not
+part of execution/cache identity. Numeric dates are formatted in UTC to avoid calendar-day drift.

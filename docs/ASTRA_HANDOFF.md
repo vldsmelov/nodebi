@@ -85,3 +85,11 @@ Source references now serialize with deletion, cold workbook loads are shared, a
 results/errors cannot appear as current. Unexpected server errors preserve browser CORS access and
 show a diagnostic ID. Review dispositions: docs/ARCHITECTURE_REVIEW.md; evidence/limits: docs/QA_REPORT.md.
 Existing project/source data was never reset. Optional and post-MVP tasks remain deferred.
+
+## User-requested localization checkpoint, 2026-09-14
+
+Russian is now the default interface language, with English and Tatar selectable on every page.
+The shared catalog/provider and preference cookie preserve unsaved editors and user content;
+API identifiers and persistence are unchanged. ADR-061 and docs/LOCALIZATION.md describe the boundary.
+Verified: 26 frontend tests, 11 browser scenarios including full restart, lint/type/OpenAPI checks
+and production Docker build. The updated frontend is running at http://localhost:3000.

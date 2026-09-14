@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
+import { render } from "./render";
 import { useState } from "react";
 import { expect, it } from "vitest";
 import { NodeConfiguration } from "@/features/workflow/NodeConfiguration";

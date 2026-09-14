@@ -1,5 +1,18 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Localization follow-up — 2026-09-14
+
+Russian default, English and Tatar localization passes 26 frontend tests, ESLint, TypeScript,
+OpenAPI drift and frontend Docker production build. Eleven Playwright scenarios pass together
+in 53.7 s, including frontend/backend/PostgreSQL restart and the full Sales Analysis journey.
+Restored dashboard rendering: 1347 ms in that run. Tatar editor/dashboard screenshots were
+visually reviewed: labels fit the desktop layout and Cyrillic/Tatar characters render correctly.
+The preference survives navigation, reload and a new browser context; user strings and active
+workflow/dashboard drafts remain intact. A discovered locale-switch/debounce cancellation
+was fixed by separating writer lifetime from localized navigation listeners, with a browser regression.
+Backend code, migrations and dependencies were not changed or revalidated as a new backend release.
+No data reset and no new open P0/P1. The original release evidence follows unchanged.
+
 Required local single-user MVP acceptance passed. Known open P0/P1: zero.
 This validates the documented bounded workload and product scope, not public multi-user deployment.
 

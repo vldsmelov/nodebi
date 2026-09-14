@@ -1,5 +1,16 @@
 # Node BI
 
+## Языки интерфейса / Interface languages
+
+Русский используется по умолчанию. Переключатель в верхней части каждой страницы позволяет
+выбрать **Русский**, **English** или **Татарча**. Выбор сохраняется в браузере на год и применяется
+при следующем открытии. Смена языка сохраняет текущие правки схемы и дашборда.
+Названия проектов, листов, столбцов, диаграмм и строковые данные не переводятся.
+
+The interface supports Russian (default), English and Tatar (Cyrillic). Use the language selector
+at the top of any page; a browser cookie restores the choice on later visits. User data and
+formula/API identifiers are unchanged. See [localization notes](docs/LOCALIZATION.md).
+
 Node BI is a web-based Business Intelligence platform for building analytical workflows and dashboards from Excel data using a visual node-based interface.
 
 The MVP allows a user to:

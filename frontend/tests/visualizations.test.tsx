@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
+import { render } from "./render";
 import { afterEach, expect, it, vi } from "vitest";
 import type { VisualizationResult } from "@/features/dashboard/api";
 import { chartOptions, VisualizationView } from "@/features/dashboard/VisualizationView";
@@ -20,7 +21,7 @@ it("uses a temporal axis for dates and preserves prepared values", () => {
   const options = chartOptions(result);
   expect(options.aria).toMatchObject({ label: { description: "Revenue" } });
   expect(options.xAxis).toMatchObject({ type: "time" });
-  expect(options.series).toMatchObject([{ type: "line", data: [["2026-01-01", 10], ["2026-01-02", 20]] }]);
+  expect(options.series).toMatchObject([{ type: "line", data: [[Date.parse("2026-01-01T00:00:00Z"), 10], [Date.parse("2026-01-02T00:00:00Z"), 20]] }]);
   expect(chartOptions({ ...result, type: "area_chart" }).series).toMatchObject([{ areaStyle: { opacity: 0.3 } }]);
 });
 
@@ -35,7 +36,7 @@ it("loads table pages from the backend while retaining the full row count", asyn
     .mockResolvedValueOnce(new Response(JSON.stringify({ ...result, type: "table", rows: [{ day: "last", total: 999 }], total_rows: 101, offset: 100, limit: 100, truncated: false })));
   vi.stubGlobal("fetch", fetcher);
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><VisualizationView id="table" /></QueryClientProvider>);
-  expect(await screen.findByText(/101 total rows/)).toBeVisible();
+  expect(await screen.findByText(/Total rows: 101/)).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Next page" }));
   expect(await screen.findByText("last")).toBeVisible();
   expect(fetcher.mock.calls[1][0]).toContain("offset=100&limit=100");

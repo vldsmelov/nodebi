@@ -1,5 +1,15 @@
 # TASKS.md
 
+## User-requested localization — 2026-09-11
+
+* [x] Russian default, English and Tatar interface, persisted language selector and SSR locale.
+* [x] Localized forms, node catalog, errors, dashboards, accessibility, numeric/date presentation.
+* [x] Catalog completeness, language-switch/draft preservation and browser acceptance tests.
+* [x] Update product/architecture documentation and deploy the checked local frontend.
+
+Verified 2026-09-14: 26 frontend tests, 11 browser scenarios including full restart,
+ESLint/TypeScript/OpenAPI check and Docker production build. See docs/LOCALIZATION.md.
+
 ## 1. Purpose
 
 This file is the implementation roadmap for the Node BI MVP.

@@ -1278,11 +1278,13 @@ Full formal accessibility certification is outside initial MVP scope.
 
 # 78. Localization
 
-The MVP may use one interface language.
-
-English is the recommended implementation language for the first version.
-
-Localization infrastructure is not required for MVP.
+The interface supports Russian (default), English and Tatar (Cyrillic), as requested on 2026-09-11.
+An always-available language selector persists the choice across navigation and browser visits.
+The initial server-rendered language and document language must agree with that choice.
+Navigation, node controls, validation feedback, dashboards and accessibility labels are localized.
+Numbers and dates use the selected locale for presentation; dates are displayed in UTC.
+Project names, workbook/sheet/column names, chart titles and string data are user content and
+must not be translated or rewritten. Formula syntax and API identifiers remain language-neutral.
 
 ---
 

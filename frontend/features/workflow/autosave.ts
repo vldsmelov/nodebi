@@ -1,7 +1,7 @@
 import type { Workflow, WorkflowSave } from "./types";
 
 export type GraphDraft = Omit<WorkflowSave, "expected_revision">;
-export type SaveState = { status: "saved" | "saving" | "error"; revision: number; error: string | null };
+export type SaveState = { status: "saved" | "saving" | "error"; revision: number; error: string | Error | null };
 
 /** One serialized writer per mounted workflow; drafts survive navigation/reload. */
 export class WorkflowAutosave {
@@ -91,7 +91,7 @@ export class WorkflowAutosave {
         this.remember();
         this.notify({ status: this.pending ? "saving" : "saved", revision: this.revision, error: this.storageError });
       } catch (error) {
-        this.notify({ status: "error", revision: this.revision, error: error instanceof Error ? error.message : "Save failed." });
+        this.notify({ status: "error", revision: this.revision, error: error instanceof Error ? error : "Save failed." });
         return;
       }
     }

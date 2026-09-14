@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n";
+
 import { useMutation } from "@tanstack/react-query";
 import { previewWorkflowNode } from "./api";
 import type { GraphIssue, NodeSchemaResult } from "./types";
@@ -15,38 +17,39 @@ type Props = {
 
 /** Schema and preview are visible only for the currently acknowledged graph revision. */
 export function NodeOutputPanel({ workflowId, nodeId, revision, dirty, schema, issues }: Props) {
+  const { t, errorText, cell } = useI18n();
   const preview = useMutation({ mutationFn: (request: { nodeId: string; revision: number }) => previewWorkflowNode(workflowId, request.nodeId) });
   const result = !dirty && preview.data?.revision === revision ? preview.data : undefined;
   return <>
     <button onClick={() => preview.mutate({ nodeId, revision })} disabled={preview.isPending || dirty}
       className="mt-5 w-full rounded-xl bg-[#b7ff5a] px-4 py-2.5 text-sm font-semibold text-[#11170d] disabled:opacity-40">
-      {preview.isPending ? "Running preview…" : "Preview output"}
+      {preview.isPending ? t("Running preview…") : t("Preview output")}
     </button>
     {!dirty && issues.map(issue => <p key={`${issue.code}:${issue.field}`}
       className={`mt-4 rounded-xl p-3 text-xs ${issue.severity === "error" ? "bg-red-400/10 text-red-200" : "bg-amber-400/10 text-amber-200"}`}>
-      {issue.message}
+      {errorText(issue)}
     </p>)}
     {!dirty && schema?.columns && <section className="mt-6">
-      <h3 className="text-xs uppercase tracking-[0.18em] text-white/35">Output fields</h3>
+      <h3 className="text-xs uppercase tracking-[0.18em] text-white/35">{t("Output fields")}</h3>
       <div className="mt-3 space-y-2">{schema.columns.map(column => <div key={column.column_id}
         className="flex items-center justify-between rounded-lg border border-white/8 px-3 py-2 text-xs">
         <span className="truncate">{column.display_name}</span>
-        <span className="ml-2 text-white/35">{column.logical_type}{column.nullable ? "?" : ""}</span>
+        <span className="ml-2 text-white/35">{t(column.logical_type)}{column.nullable ? "?" : ""}</span>
       </div>)}</div>
     </section>}
-    {preview.error && !dirty && preview.variables?.revision === revision && <p role="alert" className="mt-4 rounded-xl bg-red-400/10 p-3 text-xs text-red-200">{preview.error.message}</p>}
+    {preview.error && !dirty && preview.variables?.revision === revision && <p role="alert" className="mt-4 rounded-xl bg-red-400/10 p-3 text-xs text-red-200">{errorText(preview.error)}</p>}
     {result && <section className="mt-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs uppercase tracking-[0.18em] text-white/35">Preview</h3>
-        <span className="text-[11px] text-white/30">{result.total_rows} rows · {result.duration_ms} ms</span>
+        <h3 className="text-xs uppercase tracking-[0.18em] text-white/35">{t("Preview")}</h3>
+        <span className="text-[11px] text-white/30">{t("Rows: {0} · {1} ms", { 0: cell(result.total_rows), 1: cell(result.duration_ms) })}</span>
       </div>
-      {result.rows.length === 0 ? <p className="mt-3 text-xs text-white/35">The result is empty.</p> :
+      {result.rows.length === 0 ? <p className="mt-3 text-xs text-white/35">{t("The result is empty.")}</p> :
         <div className="mt-3 overflow-auto rounded-xl border border-white/10"><table className="min-w-full text-[11px]">
           <thead><tr>{result.columns.map(column => <th key={column.column_id}
             className="border-b border-white/10 px-2 py-2 text-left text-white/40">{column.display_name}</th>)}</tr></thead>
           <tbody>{result.rows.map((row, index) => <tr key={index}>{result.columns.map(column =>
             <td key={column.column_id} className="border-b border-white/5 px-2 py-2 whitespace-nowrap">
-              {String(row[column.engine_name] ?? "—")}
+              {cell(row[column.engine_name], column.logical_type)}
             </td>)}</tr>)}</tbody>
         </table></div>}
     </section>}
