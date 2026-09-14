@@ -20,6 +20,7 @@ class CompiledFormula:
     expression: pl.Expr
     referenced_columns: tuple[str, ...]
     nullable: bool
+    logical_type: LogicalType = LogicalType.FLOAT
 
 
 def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
@@ -30,6 +31,8 @@ def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
     aliases: dict[str, ColumnSchema] = {}
 
     def bind(match: re.Match[str]) -> str:
+        if not match.group(0).startswith("["):
+            return match.group(0)
         reference = match.group(1)
         try:
             column = schema.by_id(reference)
@@ -39,7 +42,7 @@ def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
         aliases[alias] = column
         return alias
 
-    normalized = re.sub(r"\[([^\[\]]+)\]", bind, expression)
+    normalized = re.sub(r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\[([^\[\]]+)\]""", bind, expression)
     try:
         tree = ast.parse(normalized.strip(), mode="eval")
     except (SyntaxError, RecursionError) as exc:
@@ -48,17 +51,67 @@ def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
         raise FormulaValidationError("Expression is too complex (maximum 256 syntax nodes).")
     referenced: dict[str, ColumnSchema] = {}
 
+    types: dict[int, LogicalType] = {}
+
     def visit(node: ast.AST, depth: int = 0) -> pl.Expr:
+        result = visit_inner(node, depth)
+        types.setdefault(id(node), LogicalType.FLOAT)
+        return result
+
+    def numeric(node: ast.AST, depth: int) -> pl.Expr:
+        result = visit(node, depth)
+        if types[id(node)] not in {LogicalType.INTEGER, LogicalType.FLOAT, LogicalType.UNKNOWN}:
+            raise FormulaValidationError("Arithmetic requires numeric fields.")
+        return result.cast(pl.Float64)
+
+    def visit_inner(node: ast.AST, depth: int = 0) -> pl.Expr:
         if depth > 64:
             raise FormulaValidationError("Expression nesting is too deep.")
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            types[id(node)] = LogicalType.STRING
+            return pl.lit(node.value)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and not node.keywords:
+            name = node.func.id
+            if name in {"trim", "lower"} and len(node.args) == 1:
+                value = visit(node.args[0], depth + 1)
+                if types[id(node.args[0])] not in {LogicalType.STRING, LogicalType.UNKNOWN}:
+                    raise FormulaValidationError("String functions require a string field.")
+                types[id(node)] = LogicalType.STRING
+                return (
+                    value.cast(pl.String).str.strip_chars()
+                    if name == "trim"
+                    else value.cast(pl.String).str.to_lowercase()
+                )
+            if name == "coalesce" and 2 <= len(node.args) <= 32:
+                values = [visit(arg, depth + 1) for arg in node.args]
+                logical_types = {types[id(arg)] for arg in node.args} - {LogicalType.UNKNOWN}
+                if logical_types <= {LogicalType.INTEGER, LogicalType.FLOAT}:
+                    types[id(node)] = LogicalType.FLOAT
+                    return pl.coalesce([value.cast(pl.Float64) for value in values])
+                if len(logical_types) > 1:
+                    raise FormulaValidationError("Coalesce arguments require compatible types.")
+                types[id(node)] = next(iter(logical_types), LogicalType.UNKNOWN)
+                return pl.coalesce(values)
+            if name == "nullif" and len(node.args) == 2:
+                left, right = [visit(arg, depth + 1) for arg in node.args]
+                if types[id(node.args[0])] != types[id(node.args[1])]:
+                    raise FormulaValidationError("Nullif arguments require matching types.")
+                types[id(node)] = types[id(node.args[0])]
+                return pl.when(left == right).then(None).otherwise(left)
+            if name == "safe_divide" and len(node.args) == 3:
+                left, right, fallback = [numeric(arg, depth + 1) for arg in node.args]
+                return (
+                    pl.when(right.is_null() | (right == 0)).then(fallback).otherwise(left / right)
+                )
+            raise FormulaValidationError("Unknown function or invalid argument count.")
         if isinstance(node, ast.Constant) and type(node.value) in (int, float):
             try:
-                value = float(cast(int | float, node.value))
+                numeric_value = float(cast(int | float, node.value))
             except OverflowError as exc:
                 raise FormulaValidationError("Numeric constant is too large.") from exc
-            if not math.isfinite(value):
+            if not math.isfinite(numeric_value):
                 raise FormulaValidationError("Numeric constants must be finite.")
-            return pl.lit(value, dtype=pl.Float64)
+            return pl.lit(numeric_value, dtype=pl.Float64)
         if isinstance(node, ast.Name):
             column = aliases.get(node.id)
             if column is None:
@@ -68,21 +121,16 @@ def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
                         f"Unknown field: {node.id}. Use [column_id] for unusual names."
                     )
                 column = candidates[0]
-            if column.logical_type not in {
-                LogicalType.INTEGER,
-                LogicalType.FLOAT,
-                LogicalType.UNKNOWN,
-            }:
-                raise FormulaValidationError(f"Field {column.display_name} must be numeric.")
             referenced[column.column_id] = column
-            return pl.col(column.engine_name).cast(pl.Float64)
+            types[id(node)] = column.logical_type
+            return pl.col(column.engine_name)
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
-            operand = visit(node.operand, depth + 1)
+            operand = numeric(node.operand, depth + 1)
             return operand if isinstance(node.op, ast.UAdd) else -operand
         if isinstance(node, ast.BinOp) and isinstance(
             node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)
         ):
-            left, right = visit(node.left, depth + 1), visit(node.right, depth + 1)
+            left, right = numeric(node.left, depth + 1), numeric(node.right, depth + 1)
             if isinstance(node.op, ast.Add):
                 return left + right
             if isinstance(node.op, ast.Sub):
@@ -95,4 +143,7 @@ def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
         )
 
     result = visit(tree.body)
-    return CompiledFormula(result, tuple(referenced), any(c.nullable for c in referenced.values()))
+    dtype = types[id(tree.body)]
+    if dtype in {LogicalType.INTEGER, LogicalType.FLOAT}:
+        result, dtype = result.cast(pl.Float64), LogicalType.FLOAT
+    return CompiledFormula(result, tuple(referenced), True, dtype)

@@ -46,7 +46,6 @@ def run(kind: str, config: dict[str, object], source: Dataset = DATA) -> Dataset
         "[x for x in quantity]",
         "lambda: 1",
         "True",
-        "'text'",
         "2 ** 999",
         "quantity // 2",
         "quantity % 2",

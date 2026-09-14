@@ -1,5 +1,17 @@
 # TASKS.md
 
+## Approved constructor/dashboard parity extension (2026-09-14)
+
+* [x] Excel layout, real content bounds, merged headers, row identity and formula diagnostics.
+* [x] Convert Types and typed string/null/safe division formulas.
+* [x] Unpivot and Window with configuration forms and UI acceptance.
+* [ ] Build and verify the editable overview graph on the supplied workbook.
+* [ ] Typed parameters, graph filters, dashboard navigation and cache isolation.
+* [ ] Presentation extensions and all six saved dashboards.
+* [ ] Reference parity, UI construction/editing, restart and full quality checks.
+
+Specification and screen matrix: docs/OPOP_CONSTRUCTOR_PLAN.md.
+
 ## User-requested light theme — 2026-09-14
 
 * [x] Semantic light/dark palette, persistent selector and matching initial server rendering.

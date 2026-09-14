@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, Up
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
+from app.domain.workbooks import WorksheetLayout
 from app.infrastructure.database import get_session
 from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.models import DataSource, Project
@@ -83,10 +84,18 @@ def preview_sheet(
     storage: Storage,
     settings: AppSettings,
     limit: Annotated[int, Query(ge=1)] = 50,
+    header_row: Annotated[int, Query(ge=1, le=250000)] = 1,
+    header_rows: Annotated[int, Query(ge=1, le=10)] = 1,
+    include_row_number: bool = False,
 ) -> WorksheetPreviewRead:
     source = _source_or_404(session, source_id)
     bounded_limit = min(limit, settings.max_preview_rows)
-    preview = SourceService(session, storage).preview(source, sheet_name, bounded_limit)
+    preview = SourceService(session, storage).preview(
+        source,
+        sheet_name,
+        bounded_limit,
+        WorksheetLayout(header_row, header_rows, include_row_number),
+    )
     return WorksheetPreviewRead.model_validate(asdict(preview))
 
 

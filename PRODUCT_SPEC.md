@@ -1,5 +1,15 @@
 # PRODUCT_SPEC.md
 
+## Approved extension: constructor dashboard parity (2026-09-14)
+
+Reproduce the six analytical screens in opop_bi v1.2 using ordinary editable Node BI
+graphs and dashboards. Financial mappings and formulas belong only to project
+configuration, never special application endpoints or executors. Extend general
+Excel layouts, preparation nodes, parameters, navigation and visualization controls
+as specified in docs/OPOP_CONSTRUCTOR_PLAN.md. Three interface languages and both
+themes remain supported. Spreadsheet editing and reference deployment/authentication
+are outside this extension. This work is additional to the completed original MVP.
+
 ## 1. Document Purpose
 
 This document defines the product requirements for the MVP of the node-based Business Intelligence platform.

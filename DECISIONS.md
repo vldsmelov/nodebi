@@ -1,5 +1,29 @@
 # DECISIONS.md
 
+# ADR-063 - Dashboard parity through general constructor capabilities
+
+Date: 2026-09-14. Status: ACCEPTED; implementation in progress.
+Context: the user requires replacement of six opop_bi analytical screens as proof
+of the constructor, explicitly rejecting a dedicated financial backend.
+Decision: all financial expressions, column mappings, totals and drill paths live
+in editable project configuration. Extend common import, node and presentation
+contracts; retain existing persistence, execution and visualization boundaries.
+Alternative rejected: custom calculation service/template screen bypassing the graph.
+Consequences: complete parity depends on parameters/navigation as well as preparation;
+the original MVP remains released but the new scope is not complete yet.
+
+Preparation decisions: explicit header start/count with actual merged ranges; preserve
+column identity and expose an optional source-row column. Ignore formatting-only tails,
+reject real oversized content and missing saved formula results rather than lose data.
+Source cache v3 includes layout; validate ownership/artifact availability before cache hits.
+Strict Convert Types is default; loss-to-null is an explicit author choice. String
+dates accept ISO YYYY-MM-DD and datetimes YYYY-MM-DDTHH:MM:SS. Fractional floats do not
+silently truncate to integers. Generic nullif is added alongside the planned functions
+because blank-but-non-null class labels require an explicit empty-string policy.
+Unpivot keeps field IDs separate from names. Window row numbering follows explicit
+sort keys, stable input order for ties; reference graphs must include source-row tie keys.
+No runtime dependency or database migration is required for these preparation changes.
+
 ## ADR-062 — Persistent light/dark presentation themes
 
 Date: 2026-09-14. Status: Accepted.

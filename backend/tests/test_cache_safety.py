@@ -128,6 +128,16 @@ def test_source_schema_reuses_materialization_but_hits_still_validate_ownership_
         assert service.execute(graph, node.id, access).output.row_count == 1
         assert service.execute(graph, node.id, context(project.id)).metadata["cache_hits"] == 1
         assert load.call_count == 1
+    from app.domain.workbooks import WorksheetLayout
+
+    access = ProjectSourceAccess(project.id, session, storage, cache)
+    numbered = access.load(source.id, "Sheet", WorksheetLayout(include_row_number=True))
+    assert numbered.frame.columns == ["value", "__source_row__"]
+    assert numbered.frame.row(0) == (42, 2)
+    assert access.load(source.id, "Sheet").frame.columns == ["value"]
+    assert access.identity(source.id, "Sheet") != access.identity(
+        source.id, "Sheet", WorksheetLayout(include_row_number=True)
+    )
     with pytest.raises(ExecutionFailure):
         service.execute(graph, node.id, context(uuid.uuid4()))
     storage.delete(key)

@@ -27,8 +27,23 @@ class WorkbookInfo:
 
 
 @dataclass(frozen=True)
+class WorksheetLayout:
+    header_row: int = 1
+    header_rows: int = 1
+    include_row_number: bool = False
+
+    def __post_init__(self) -> None:
+        if not 1 <= self.header_row <= 250_000 or not 1 <= self.header_rows <= 10:
+            raise ValueError("Header row must be 1–250000; header count must be 1–10.")
+
+
+DEFAULT_WORKSHEET_LAYOUT = WorksheetLayout()
+
+
+@dataclass(frozen=True)
 class WorksheetLoadOptions:
     limit: int = 200
+    layout: WorksheetLayout = DEFAULT_WORKSHEET_LAYOUT
 
 
 @dataclass(frozen=True)
@@ -47,7 +62,9 @@ class WorkbookReader(Protocol):
         self, storage_key: str, sheet_name: str, options: WorksheetLoadOptions
     ) -> WorksheetPreview: ...
 
-    def load_sheet(self, storage_key: str, sheet_name: str) -> Dataset: ...
+    def load_sheet(
+        self, storage_key: str, sheet_name: str, layout: WorksheetLayout = DEFAULT_WORKSHEET_LAYOUT
+    ) -> Dataset: ...
 
 
 CellValue = str | int | float | bool | date | datetime | None

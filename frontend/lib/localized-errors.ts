@@ -18,6 +18,8 @@ export function localizeError(locale: Locale, error: unknown): string {
 }
 
 const messagePatterns: readonly [RegExp, string][] = [
+  [/^Cannot convert field (.+) at row (.+) to (.+)\.$/, "Cannot convert field {0} at row {1} to {2}."],
+  [/^Formula has no saved result at (.+)\. Recalculate and save the workbook in Excel before uploading\.$/, "Formula has no saved result at {0}. Recalculate and save the workbook in Excel before uploading."],
   [/^Unknown column ID: ([\s\S]+)\.$/, "Unknown column ID: {0}."],
   [/^Unknown field: ([\s\S]+)\. Use \[column_id\] for unusual names\.$/, "Unknown field: {0}. Use [column_id] for unusual names."],
   [/^Field ([\s\S]+) must be numeric\.$/, "Field {0} must be numeric."],

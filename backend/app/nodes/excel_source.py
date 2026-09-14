@@ -14,13 +14,20 @@ from app.domain.nodes import (
     ValidationResult,
 )
 from app.domain.sources import SourceAccess
+from app.domain.workbooks import WorksheetLayout
 from app.domain.workflows import NodeInstance
 from app.infrastructure.excel import ExcelWorkbookError
 
 
 class ExcelSourceConfig(BaseModel):
+    header_row: int = Field(default=1, ge=1, le=250000)
+    header_rows: int = Field(default=1, ge=1, le=10)
+    include_row_number: bool = False
     source_id: uuid.UUID
     sheet_name: str = Field(min_length=1, max_length=255)
+
+    def layout(self) -> WorksheetLayout:
+        return WorksheetLayout(self.header_row, self.header_rows, self.include_row_number)
 
 
 class ExcelSourceExecutor:
@@ -54,7 +61,7 @@ class ExcelSourceExecutor:
     ) -> DatasetSchema:
         del input_schemas
         config = self._config(node)
-        return self._access(context).schema(config.source_id, config.sheet_name)
+        return self._access(context).schema(config.source_id, config.sheet_name, config.layout())
 
     def execute(
         self,
@@ -64,11 +71,11 @@ class ExcelSourceExecutor:
     ) -> Dataset:
         del inputs
         config = self._config(node)
-        return self._access(context).load(config.source_id, config.sheet_name)
+        return self._access(context).load(config.source_id, config.sheet_name, config.layout())
 
     def identity(self, node: NodeInstance, context: ExecutionContext) -> str:
         config = self._config(node)
-        return self._access(context).identity(config.source_id, config.sheet_name)
+        return self._access(context).identity(config.source_id, config.sheet_name, config.layout())
 
 
 def excel_source_definition() -> NodeDefinition:

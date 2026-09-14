@@ -5,6 +5,27 @@ Release: **MVP COMPLETE — 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Current task (2026-09-14): approved constructor extensions and six-screen opop_bi
+dashboard parity; IN PROGRESS. See docs/OPOP_CONSTRUCTOR_PLAN.md and ADR-063.
+Completed preparation slice: Excel header start/count, merged headers, real content
+bounds, optional source-row identity, missing-formula diagnostics, layout-aware cache;
+Convert Types, Unpivot, Window and typed safe string/null/division expressions.
+All are ordinary node configurations with editor forms and RU/EN/TT messages.
+Provided workbook reads 45 raw rows and 38 source columns plus row identity using
+headers 3?4; service-row filtering is intentionally a future editable graph step.
+
+Checks: 222 backend tests pass with PostgreSQL matrix (3 SQLite-only skips);
+29 frontend tests, Ruff, mypy, ESLint, TypeScript, OpenAPI generation/check and
+production build pass. All 14 browser scenarios pass in 55.6 s, including a new
+UI-only preparation graph and reload. Main stack rebuilt/deployed for this slice.
+No data reset; user workbook excluded from Git. No new P0/P1 found in this slice.
+
+Next: build and numerically verify the editable overview graph, then typed
+workflow/dashboard parameters, navigation and the remaining five dashboards.
+No reference dashboard has been delivered yet; full six-screen parity is NOT
+complete. Missing parameters/navigation/presentation remain required work, not
+an environmental blocker. Previous release evidence below is retained as history.
+
 Last completed task (2026-09-14): persistent light/dark theme selector. Semantic colors cover
 forms, feedback, React Flow canvas and ECharts. Dark remains the default; the cookie restores
 the selected theme in initial server rendering. Language and draft state are independent.
@@ -67,8 +88,8 @@ No known open P0/P1 in the required MVP.
 
 ## Next task and blockers
 
-No required MVP/localization/theme task or blocker remains. Further product work should be selected from the
-documented optional/post-MVP backlog without automatically expanding scope.
+The approved constructor/dashboard parity extension is active. Follow the next tasks above;
+no environment blocker is known. The original MVP/localization/theme work remains complete.
 
 ## Resume and operating context
 

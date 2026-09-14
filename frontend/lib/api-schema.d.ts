@@ -1154,6 +1154,9 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                header_row?: number;
+                header_rows?: number;
+                include_row_number?: boolean;
             };
             header?: never;
             path: {

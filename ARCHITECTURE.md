@@ -1,5 +1,22 @@
 # ARCHITECTURE.md
 
+## Constructor preparation extensions (ADR-063)
+
+WorksheetLayout is a frozen value passed from Excel Source through SourceAccess to
+the workbook reader. Header start/count and row-number selection participate in
+immutable source cache identity. A defused OOXML scan determines actual content bounds,
+merged ranges and missing formula caches before bounded openpyxl materialization.
+The worksheet part-path access is isolated in the reader (pinned openpyxl).
+Excel preview and execution share layout preparation. Logical column IDs remain
+positional; original header levels and source row identity are explicit metadata.
+
+Convert Types, Unpivot and Window implement the ordinary NodeExecutor contract.
+They have no storage/session dependencies. Convert Types preserves column identity;
+Unpivot emits stable field IDs separately from display labels; Window keeps input
+fields and adds a partition sum or an ordered row number. Each is configured through
+the editor registry. Formulas compile an allowlisted typed AST into Polars; strings,
+trim/lower, coalesce/nullif and safe_divide share inference and execution logic.
+
 ## 1. Purpose
 
 This document defines the technical architecture of the Node BI MVP.

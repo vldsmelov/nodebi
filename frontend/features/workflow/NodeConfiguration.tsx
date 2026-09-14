@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 
 import { Trash2 } from "lucide-react";
 import { VisualizationConfiguration } from "./VisualizationConfiguration";
+import { ConvertTypesConfiguration, UnpivotConfiguration, WindowConfiguration } from "./PreparationConfiguration";
 import { CombineConfiguration } from "./CombineConfiguration";
 import { CalculatedColumnConfiguration, GroupByConfiguration, LimitConfiguration, SortConfiguration } from "./ArithmeticConfiguration";
 type FilterCondition = { column_id: string; operator: string; value?: unknown };
@@ -25,6 +26,9 @@ type Props = {
   onChange: (config: Record<string, unknown>) => void;
 };
 const configurations: Record<string, ComponentType<Props>> = {
+  convert_types: ConvertTypesConfiguration,
+  unpivot: UnpivotConfiguration,
+  window: WindowConfiguration,
   excel_source: ExcelSourceConfiguration,
   select_columns: SelectColumnsConfiguration,
   rename_columns: RenameColumnsConfiguration,
@@ -111,6 +115,8 @@ function ExcelSourceConfiguration({ config, sources, onChange }: { config: Recor
       <div><h2 className="text-lg font-medium">{t("Excel Source")}</h2><p className="mt-1 text-xs leading-5 text-muted">{t("Choose the persisted workbook and worksheet read by this node.")}</p></div>
       <label className="block text-xs text-muted">{t("Workbook")}<select aria-label={t("Workbook")} value={sourceId} onChange={(event) => { const source = sources.find((item) => item.id === event.target.value); onChange({ source_id: event.target.value, sheet_name: source?.workbook.sheets[0]?.name ?? "" }); }} className="mt-2 w-full rounded-xl border border-outline bg-control px-3 py-2.5 text-sm text-foreground"><option value="">{t("Select workbook")}</option>{sources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select></label>
       <label className="block text-xs text-muted">{t("Worksheet")}<select aria-label={t("Worksheet")} value={sheetName} disabled={!selectedSource} onChange={(event) => onChange({ ...config, sheet_name: event.target.value })} className="mt-2 w-full rounded-xl border border-outline bg-control px-3 py-2.5 text-sm text-foreground disabled:opacity-40"><option value="">{t("Select worksheet")}</option>{selectedSource?.workbook.sheets.map((sheet) => <option key={sheet.name} value={sheet.name}>{sheet.name}</option>)}</select></label>
+      {([['header_row', 'First header row', 250000], ['header_rows', 'Header row count', 10]] as const).map(([key, label, max]) => <label key={key} className="block text-xs text-muted">{t(label)}<input aria-label={t(label)} type="number" min={1} max={max} value={Number(config[key] ?? 1)} onChange={event => onChange({ ...config, [key]: Number(event.target.value) })} className="mt-2 w-full rounded-xl border border-outline bg-control px-3 py-2 text-foreground" /></label>)}
+      <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" checked={config.include_row_number === true} onChange={event => onChange({ ...config, include_row_number: event.target.checked })} />{t("Include source row number")}</label>
     </div>
   );
 }

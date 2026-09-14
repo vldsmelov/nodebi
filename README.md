@@ -1,5 +1,22 @@
 # Node BI
 
+## Constructor extensions for dashboard parity
+
+The approved six-screen migration is tracked in `docs/OPOP_CONSTRUCTOR_PLAN.md`;
+it is not complete yet. General preparation controls are available in the workflow
+editor: Excel Source header row/count and source row number, Convert Types,
+Unpivot and Window. For the supplied reference workbook select header row **3**,
+header count **2**, and enable source row number. Formatting-only tails are ignored.
+
+Convert Types defaults to strict errors. Choose loss-to-null explicitly when desired;
+use `coalesce([field_id], 0)` to replace missing numbers. String ISO date conversion
+accepts `YYYY-MM-DD`, datetime accepts `YYYY-MM-DDTHH:MM:SS`.
+Safe expressions include `trim`, `lower`, `coalesce`, `nullif` and
+`safe_divide(numerator, denominator, fallback)`; for example
+`coalesce(nullif(trim([class_id]), ""), "Unclassified")`.
+Unpivot produces field ID, field name and value columns. Window supports partition
+sums and ordered row numbers; supply an extra stable sort key to resolve ties.
+
 Светлая и тёмная темы переключаются вверху страницы: **Тема → Светлая / Тёмная**.
 Выбор сохраняется в браузере; по умолчанию используется тёмная тема. Смена темы применяется
 к формам, схеме обработки и диаграммам и сохраняет текущие правки.

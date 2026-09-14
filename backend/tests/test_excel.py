@@ -7,9 +7,62 @@ from zipfile import ZipFile
 import pytest
 from openpyxl import Workbook
 
-from app.domain.workbooks import LogicalType, WorksheetLoadOptions
+from app.domain.workbooks import LogicalType, WorksheetLayout, WorksheetLoadOptions
 from app.infrastructure.excel import ExcelWorkbookError, OpenPyxlWorkbookReader
 from app.infrastructure.storage import LocalStorageProvider
+
+
+def test_layout_merged_headers_and_formatting_tail(tmp_path: Path) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet["A3"] = "Identity"
+    sheet["B3"] = "Amounts"
+    sheet.merge_cells("B3:C3")
+    sheet.append([])
+    sheet["A4"] = "Name"
+    sheet["B4"] = "Value"
+    sheet["C4"] = "Value"
+    sheet.append(["one", 10, 20])
+    sheet.cell(97, 16375).number_format = "0.00"
+    stream = BytesIO()
+    workbook.save(stream)
+    stream.seek(0)
+    storage = LocalStorageProvider(tmp_path)
+    key = storage.save(stream, suffix=".xlsx")
+    reader = OpenPyxlWorkbookReader(storage)
+    layout = WorksheetLayout(3, 2, True)
+    dataset = reader.load_sheet(key, sheet.title, layout)
+    preview = reader.preview_sheet(key, sheet.title, WorksheetLoadOptions(layout=layout))
+    assert dataset.frame.row(0) == ("one", 10, 20, 5)
+    assert dataset.row_count == 1
+    assert dataset.frame.columns == [c.engine_name for c in preview.columns]
+    assert dataset.schema.columns[1].metadata["header_levels"] == ["Amounts", "Value"]
+    assert len(set(dataset.frame.columns)) == 4
+
+
+def test_real_far_column_is_not_silently_dropped(tmp_path: Path) -> None:
+    workbook = Workbook()
+    workbook.active.cell(2, 1025, "real value")
+    stream = BytesIO()
+    workbook.save(stream)
+    stream.seek(0)
+    storage = LocalStorageProvider(tmp_path)
+    key = storage.save(stream, suffix=".xlsx")
+    with pytest.raises(ExcelWorkbookError, match="1024-column"):
+        OpenPyxlWorkbookReader(storage).load_sheet(key, workbook.active.title)
+
+
+def test_missing_formula_cache_is_not_null(tmp_path: Path) -> None:
+    workbook = Workbook()
+    workbook.active.append(["amount"])
+    workbook.active.append(["=1+2"])
+    stream = BytesIO()
+    workbook.save(stream)
+    stream.seek(0)
+    storage = LocalStorageProvider(tmp_path)
+    key = storage.save(stream, suffix=".xlsx")
+    with pytest.raises(ExcelWorkbookError, match="A2.*Recalculate"):
+        OpenPyxlWorkbookReader(storage).load_sheet(key, workbook.active.title)
 
 
 @pytest.mark.parametrize(

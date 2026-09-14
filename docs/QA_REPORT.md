@@ -144,3 +144,18 @@ exercises upload, connection/configuration, previews, feedback and responsive dr
 * Tab-local drafts end when the tab closes; beforeunload warns about pending changes.
 
 No existing project data was reset. Backup and historical evidence remain in the handoff/status files.
+# Constructor preparation checkpoint — 2026-09-14
+
+The six-screen opop_bi parity extension is still in progress. This checkpoint verifies
+only general import/preparation capabilities; it is not evidence of dashboard parity.
+
+- PostgreSQL + SQLite matrix: 222 passed, 3 SQLite-only skips (26.02 s).
+- Targeted final import/preparation/cache checks: 34 passed.
+- Frontend: 29 tests, ESLint, TypeScript, OpenAPI drift check and production builds pass.
+- Browser regression: 14 passed in 55.6 s. New preparation scenario imports a synthetic
+  workbook with multirow merged headers and a formatting-only tail, configures Convert
+  Types, Window and Unpivot in the UI, checks results and reloads the saved graph.
+- The supplied private workbook loads 45 raw rows and 38 original columns with layout
+  header_row=3, header_rows=2; optional row identity adds a 39th column. No financial
+  totals or reference parity are claimed. User data stays outside Git.
+- Main backend/frontend images rebuilt; persistent volumes were not reset.

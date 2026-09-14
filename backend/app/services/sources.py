@@ -9,7 +9,12 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.domain.errors import ApplicationError
-from app.domain.workbooks import WorksheetLoadOptions, WorksheetPreview
+from app.domain.workbooks import (
+    DEFAULT_WORKSHEET_LAYOUT,
+    WorksheetLayout,
+    WorksheetLoadOptions,
+    WorksheetPreview,
+)
 from app.infrastructure.excel import (
     ExcelWorkbookError,
     OpenPyxlWorkbookReader,
@@ -26,10 +31,16 @@ class SourceService:
         self.session = session
         self.storage = storage
 
-    def preview(self, source: DataSource, sheet_name: str, limit: int) -> WorksheetPreview:
+    def preview(
+        self,
+        source: DataSource,
+        sheet_name: str,
+        limit: int,
+        layout: WorksheetLayout = DEFAULT_WORKSHEET_LAYOUT,
+    ) -> WorksheetPreview:
         try:
             return OpenPyxlWorkbookReader(self.storage).preview_sheet(
-                source.storage_key, sheet_name, WorksheetLoadOptions(limit=limit)
+                source.storage_key, sheet_name, WorksheetLoadOptions(limit=limit, layout=layout)
             )
         except WorksheetNotFoundError as exc:
             raise ApplicationError("WORKSHEET_NOT_FOUND", str(exc), 404) from exc

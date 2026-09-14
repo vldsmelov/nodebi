@@ -35,7 +35,7 @@ class CalculatedColumnExecutor(UnaryExecutor):
             f"calc_{node.id.hex}",
             config.name,
             config.name,
-            LogicalType.FLOAT,
+            compiled.logical_type,
             compiled.nullable,
             {"source_columns": list(compiled.referenced_columns)},
         )
@@ -49,7 +49,10 @@ class CalculatedColumnExecutor(UnaryExecutor):
         config = CalculatedColumnConfig.model_validate(node.config)
         compiled = compile_formula(config.expression, source.schema)
         frame = source.frame.with_columns(compiled.expression.alias(config.name))
-        if frame.select((~pl.col(config.name).is_finite()).any()).item():
+        if (
+            compiled.logical_type == LogicalType.FLOAT
+            and frame.select((~pl.col(config.name).is_finite()).any()).item()
+        ):
             raise NodeExecutionError(
                 "Formula produced a non-finite number. Check division by zero or numeric overflow."
             )
@@ -60,7 +63,7 @@ def calculated_column_definition() -> NodeDefinition:
     return unary_definition(
         "calculated_column",
         "Calculated Column",
-        "Create a numeric field with safe arithmetic.",
+        "Create a field with safe typed expressions.",
         CalculatedColumnConfig,
         CalculatedColumnExecutor(),
     )

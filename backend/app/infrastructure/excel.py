@@ -16,14 +16,17 @@ from app.domain.datasets import (
     logical_to_polars,
 )
 from app.domain.workbooks import (
+    DEFAULT_WORKSHEET_LAYOUT,
     CellValue,
     ColumnInfo,
     WorkbookInfo,
     WorksheetInfo,
+    WorksheetLayout,
     WorksheetLoadOptions,
     WorksheetPreview,
 )
 from app.infrastructure.storage import StorageProvider
+from app.infrastructure.worksheet_layout import inspect_structure
 
 
 class ExcelWorkbookError(Exception):
@@ -135,6 +138,66 @@ class OpenPyxlWorkbookReader:
             workbook.close()
             stream.close()
 
+    def _sheet_rows(self, stream, sheet, layout: WorksheetLayout):  # type: ignore[no-untyped-def]
+        try:
+            # Isolated access to the OOXML part path of pinned openpyxl.
+            structure = inspect_structure(stream, sheet._worksheet_path)
+        except ValueError as exc:
+            raise ExcelWorkbookError(str(exc)) from exc
+        data_start = layout.header_row + layout.header_rows
+        missing = structure.missing_formula_results
+        if missing:
+            raise ExcelWorkbookError(
+                f"Formula has no saved result at {sheet.title}!{missing[0]}. "
+                "Recalculate and save the workbook in Excel before uploading."
+            )
+        width = structure.columns
+        if not width:
+            return (), iter(()), []
+        if width + layout.include_row_number > 1024:
+            raise ExcelWorkbookError("Worksheet exceeds the 1024-column limit.")
+        if (
+            max(0, structure.rows - data_start + 1) * (width + layout.include_row_number)
+            > 2_000_000
+        ):
+            raise ExcelWorkbookError("Worksheet exceeds the 250000-row or 2000000-cell limit.")
+        header_values = list(
+            sheet.iter_rows(
+                min_row=layout.header_row,
+                max_row=data_start - 1,
+                max_col=width,
+                values_only=True,
+            )
+        )
+        headers = [list(row) for row in header_values]
+        for left, top, right, bottom in structure.merges:
+            if layout.header_row <= top < data_start:
+                value = headers[top - layout.header_row][left - 1] if left <= width else None
+                for row in range(top, min(bottom + 1, data_start)):
+                    for column in range(left, min(right, width) + 1):
+                        headers[row - layout.header_row][column - 1] = value
+        levels = [[row[column] for row in headers] for column in range(width)]
+        labels = tuple(
+            " / ".join(dict.fromkeys(str(value).strip() for value in values if value is not None))
+            or None
+            for values in levels
+        )
+        iterator = (
+            sheet.iter_rows(
+                min_row=data_start,
+                max_row=structure.rows,
+                max_col=width,
+                values_only=True,
+            )
+            if structure.rows >= data_start
+            else iter(())
+        )
+        if layout.include_row_number:
+            labels = (*labels, "__source_row__")
+            levels.append(["__source_row__"])
+            iterator = ((*row, number) for number, row in enumerate(iterator, data_start))
+        return labels, iterator, levels
+
     def preview_sheet(
         self, storage_key: str, sheet_name: str, options: WorksheetLoadOptions
     ) -> WorksheetPreview:
@@ -142,11 +205,9 @@ class OpenPyxlWorkbookReader:
         try:
             if sheet_name not in workbook.sheetnames:
                 raise WorksheetNotFoundError(f'Worksheet "{sheet_name}" does not exist.')
-            sheet = workbook[sheet_name]
-            iterator = sheet.iter_rows(values_only=True)
-            headers = next(iterator, ())
-            if len(headers) > 1024:
-                raise ExcelWorkbookError("Worksheet exceeds the 1024-column limit.")
+            headers, iterator, levels = self._sheet_rows(
+                stream, workbook[sheet_name], options.layout
+            )
             sampled = []
             for _, row in zip(range(options.limit + 1), iterator, strict=False):
                 sampled.append(row)
@@ -169,15 +230,14 @@ class OpenPyxlWorkbookReader:
             workbook.close()
             stream.close()
 
-    def load_sheet(self, storage_key: str, sheet_name: str) -> Dataset:
+    def load_sheet(
+        self, storage_key: str, sheet_name: str, layout: WorksheetLayout = DEFAULT_WORKSHEET_LAYOUT
+    ) -> Dataset:
         stream, workbook = self._open_workbook(storage_key)
         try:
             if sheet_name not in workbook.sheetnames:
                 raise WorksheetNotFoundError(f'Worksheet "{sheet_name}" does not exist.')
-            iterator = workbook[sheet_name].iter_rows(values_only=True)
-            headers = next(iterator, ())
-            if len(headers) > 1024:
-                raise ExcelWorkbookError("Worksheet exceeds the 1024-column limit.")
+            headers, iterator, levels = self._sheet_rows(stream, workbook[sheet_name], layout)
             rows: list[tuple[Any, ...]] = []
             for row in iterator:
                 if len(rows) >= 250_000 or (len(rows) + 1) * len(headers) > 2_000_000:
@@ -208,7 +268,9 @@ class OpenPyxlWorkbookReader:
                     display_name=column.display_name,
                     logical_type=column.logical_type,
                     nullable=frame[column.engine_name].null_count() > 0,
-                    metadata={"source_position": index},
+                    metadata={"source_row_number": True}
+                    if layout.include_row_number and index == len(inferred) - 1
+                    else {"source_position": index, "header_levels": levels[index]},
                 )
                 for index, column in enumerate(inferred)
             )
