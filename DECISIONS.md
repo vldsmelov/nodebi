@@ -1,5 +1,18 @@
 # DECISIONS.md
 
+## ADR-062 — Persistent light/dark presentation themes
+
+Date: 2026-09-14. Status: Accepted.
+Context: the product owner requested a light theme in addition to the existing dark interface.
+Decision: shared CSS color tokens, an explicit theme selector and a server-read preference cookie.
+Dark remains the default. Native controls follow color-scheme; React Flow and ECharts receive
+the corresponding theme. Keep theme-independent graph/dashboard state and cache keys.
+Reasoning: light surfaces need readable foreground/action/error colors, including canvas renderers.
+Alternatives: CSS inversion distorts charts; separate page styles duplicate presentation logic;
+system-following mode was not requested. No new runtime dependency is needed.
+Consequences: new UI should use semantic palette tokens. The two themes require browser/visual
+checks, including switching with unsaved drafts. Cookies persist choice without data migrations.
+
 ## ADR-061 — Russian, English and Tatar presentation layer
 
 Date: 2026-09-11. Status: Accepted. Supersedes PRODUCT_SPEC section 78's English-only recommendation.

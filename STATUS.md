@@ -5,7 +5,15 @@ Release: **MVP COMPLETE — 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Last completed task: Russian (default), English and Tatar interface localization.
+Last completed task (2026-09-14): persistent light/dark theme selector. Semantic colors cover
+forms, feedback, React Flow canvas and ECharts. Dark remains the default; the cookie restores
+the selected theme in initial server rendering. Language and draft state are independent.
+Current checks: **26 frontend tests**, ESLint, TypeScript, OpenAPI drift and Docker production build
+pass. **13 browser scenarios pass in 52.3 s**, including theme persistence, graph autosave,
+dashboard draft preservation and chart rendering in both themes. Light home/editor/chart screenshots
+were visually reviewed. Updated frontend is deployed. No new P0/P1 defect or blocker remains.
+
+Previous completed task: Russian (default), English and Tatar interface localization.
 The selector persists the language, including server rendering; switching preserves active editors,
 pending saves, dashboard drafts and user content. Catalog, errors, controls and numeric/date
 presentation are localized. The local frontend has been rebuilt and deployed.
@@ -59,7 +67,7 @@ No known open P0/P1 in the required MVP.
 
 ## Next task and blockers
 
-No required MVP/localization task or blocker remains. Further product work should be selected from the
+No required MVP/localization/theme task or blocker remains. Further product work should be selected from the
 documented optional/post-MVP backlog without automatically expanding scope.
 
 ## Resume and operating context

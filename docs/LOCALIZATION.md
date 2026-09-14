@@ -5,6 +5,8 @@ Requested 2026-09-11; completed and deployed 2026-09-14.
 ## User behavior
 
 * Russian (`ru`) is the default, independent of browser language.
+* A separate light/dark theme selector sits next to the language control; its labels are translated
+  in all three languages. Changing either preference preserves the other.
 * English (`en`) and Tatar in Cyrillic (`tt`, «Татарча») are available on every page.
 * `nodebi-language` is a one-year, path-wide SameSite=Lax preference cookie. It contains only
   the locale identifier. Missing or unsupported values select Russian.

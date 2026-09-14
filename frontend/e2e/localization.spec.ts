@@ -27,7 +27,7 @@ test("dashboard language switches preserve unsaved names and saved state", async
 
 test("Russian default, Tatar and English persist across pages without translating user data", async ({ page, request, browser, baseURL }) => {
   const response = await request.get(baseURL!);
-  expect(await response.text()).toContain('<html lang="ru">');
+  expect(await response.text()).toContain('<html lang="ru"');
   await page.goto("/projects");
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
   await page.getByLabel("Название проекта", { exact: true }).fill("Title — Сатулар");
@@ -56,7 +56,7 @@ test("Russian default, Tatar and English persist across pages without translatin
     try {
       const fresh = await context.newPage();
       const reopened = await fresh.goto(`/projects/${project.id}`);
-      expect(await reopened!.text()).toContain('<html lang="en">');
+      expect(await reopened!.text()).toContain('<html lang="en"');
       await expect(fresh.getByRole("heading", { name: "Title — Сатулар" })).toBeVisible();
       await expect(fresh.getByLabel("Language", { exact: true })).toHaveValue("en");
     } finally { await context.close(); }

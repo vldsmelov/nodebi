@@ -1278,6 +1278,10 @@ Full formal accessibility certification is outside initial MVP scope.
 
 # 78. Localization
 
+The interface also supports light and dark themes (requested 2026-09-14). Dark remains the
+default. A persistent theme selector is available alongside the language selector. Theme changes
+must preserve drafts and saved data and apply consistently to forms, workflow canvas and charts.
+
 The interface supports Russian (default), English and Tatar (Cyrillic), as requested on 2026-09-11.
 An always-available language selector persists the choice across navigation and browser visits.
 The initial server-rendered language and document language must agree with that choice.

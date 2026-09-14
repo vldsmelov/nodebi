@@ -1,5 +1,17 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Light/dark theme follow-up — 2026-09-14
+
+The shared semantic palette and persistent selector pass 26 frontend tests, ESLint, TypeScript,
+OpenAPI drift and frontend Docker production build. Thirteen Playwright scenarios pass together
+in 52.3 s. Theme-specific checks cover initial server rendering after reload, coexistence with
+all three languages, unsaved project names, graph edits before debounce and unchanged persisted
+graphs after switching. Dashboard tests render all remaining chart types in light mode and switch
+back to dark with an unsaved widget title. Light landing/editor/dashboard screenshots were reviewed.
+The updated frontend is deployed. No new P0/P1; backend/schema/dependencies were unchanged.
+This follow-up reran browser reload acceptance; full-stack restart evidence remains in the
+localization/release runs below. Theme choice is a one-year cookie and does not change project data.
+
 ## Localization follow-up — 2026-09-14
 
 Russian default, English and Tatar localization passes 26 frontend tests, ESLint, TypeScript,

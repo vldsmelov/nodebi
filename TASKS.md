@@ -1,5 +1,13 @@
 # TASKS.md
 
+## User-requested light theme — 2026-09-14
+
+* [x] Semantic light/dark palette, persistent selector and matching initial server rendering.
+* [x] Theme-aware workflow canvas, diagrams, forms and dashboards; preserve unsaved state.
+* [x] Browser checks, visual review, documentation and local frontend deployment.
+
+Verified: 26 frontend tests, 13 browser scenarios, ESLint/TypeScript/OpenAPI drift and production build.
+
 ## User-requested localization — 2026-09-11
 
 * [x] Russian default, English and Tatar interface, persisted language selector and SSR locale.

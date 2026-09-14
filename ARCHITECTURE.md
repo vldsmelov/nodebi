@@ -3440,6 +3440,15 @@ One cold source materialization runs at a time in each execution cache; warm rea
 remain independent. This avoids simultaneous duplicate workbook parsing and limits peak memory.
 The default Compose stack publishes only loopback ports, matching the single-user release boundary.
 
+## Color themes (ADR-062)
+
+The server layout reads the allowlisted `nodebi-theme` cookie (light/dark; dark default) and renders
+`data-theme` before hydration. ThemeProvider changes only this attribute and presentation context;
+it never remounts the editor or writes semantic state. CSS semantic tokens in globals.css own
+surface, text, border, action and feedback colors. React Flow uses matching colorMode and concrete
+palette values for edges/handles/grid/minimap. ECharts recreates its disposable renderer with the
+selected library theme and series palette; data/configuration and query identity are unchanged.
+
 ## Interface localization (ADR-061)
 
 The root server layout reads the allowlisted `nodebi-language` cookie (ru/en/tt; ru default)

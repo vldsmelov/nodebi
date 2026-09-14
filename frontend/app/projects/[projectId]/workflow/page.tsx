@@ -40,21 +40,21 @@ export default function WorkflowPage() {
   const loading = workflows.isPending || catalog.isPending || sources.isPending || Boolean(effectiveWorkflowId && workflow.isPending);
 
   return (
-    <main className="min-h-[calc(100vh-2.75rem)] bg-[#0b0f0a] text-white">
+    <main className="min-h-[calc(100vh-2.75rem)] bg-page text-foreground">
       <header className="flex h-20 items-center justify-between gap-5 px-6">
         <div className="flex min-w-0 items-center gap-5">
-          <Link href={`/projects/${projectId}`} className="text-sm text-white/40 hover:text-white">{t("← Project")}</Link>
-          <div className="h-6 w-px bg-white/10" />
-          <div className="min-w-0"><p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#b7ff5a]">{t("Workflow")}</p><h1 className="truncate text-lg font-medium">{workflow.data?.name ?? t("Workflow editor")}</h1></div>
+          <Link href={`/projects/${projectId}`} className="text-sm text-muted hover:text-foreground">{t("← Project")}</Link>
+          <div className="h-6 w-px bg-raised" />
+          <div className="min-w-0"><p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">{t("Workflow")}</p><h1 className="truncate text-lg font-medium">{workflow.data?.name ?? t("Workflow editor")}</h1></div>
         </div>
         <div className="flex items-center gap-3">
-          {workflows.data && workflows.data.length > 1 ? <select aria-label={t("Workflow")} value={effectiveWorkflowId} onChange={(event) => setSelectedWorkflowId(event.target.value)} className="rounded-full border border-white/10 bg-[#11170f] px-4 py-2 text-sm">{workflows.data.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select> : null}
-          <button onClick={() => create.mutate()} disabled={create.isPending} className="rounded-full border border-white/15 px-4 py-2 text-sm hover:border-[#b7ff5a]/50 disabled:opacity-50">{create.isPending ? t("Creating…") : t("New workflow")}</button>
+          {workflows.data && workflows.data.length > 1 ? <select aria-label={t("Workflow")} value={effectiveWorkflowId} onChange={(event) => setSelectedWorkflowId(event.target.value)} className="rounded-full border border-outline bg-surface px-4 py-2 text-sm">{workflows.data.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select> : null}
+          <button onClick={() => create.mutate()} disabled={create.isPending} className="rounded-full border border-outline px-4 py-2 text-sm hover:border-accent/50 disabled:opacity-50">{create.isPending ? t("Creating…") : t("New workflow")}</button>
         </div>
       </header>
-      {error ? <div className="mx-6 rounded-xl bg-red-400/10 p-4 text-sm text-red-200">{errorText(error)}</div> : null}
-      {loading ? <div className="grid h-[calc(100vh-7.75rem)] place-items-center text-white/35">{t("Loading workflow…")}</div> : null}
-      {!loading && workflows.data?.length === 0 ? <div className="grid h-[calc(100vh-5rem)] place-items-center"><div className="text-center"><h2 className="text-2xl">{t("Start with an empty workflow")}</h2><p className="mt-2 text-sm text-white/35">{t("Create a canvas, then add an Excel source from the node library.")}</p><button onClick={() => create.mutate()} className="mt-6 rounded-full bg-[#b7ff5a] px-5 py-3 text-sm font-semibold text-[#11170d]">{t("Create workflow")}</button></div></div> : null}
+      {error ? <div className="mx-6 rounded-xl bg-danger-surface p-4 text-sm text-danger">{errorText(error)}</div> : null}
+      {loading ? <div className="grid h-[calc(100vh-7.75rem)] place-items-center text-muted">{t("Loading workflow…")}</div> : null}
+      {!loading && workflows.data?.length === 0 ? <div className="grid h-[calc(100vh-5rem)] place-items-center"><div className="text-center"><h2 className="text-2xl">{t("Start with an empty workflow")}</h2><p className="mt-2 text-sm text-muted">{t("Create a canvas, then add an Excel source from the node library.")}</p><button onClick={() => create.mutate()} className="mt-6 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-on-primary">{t("Create workflow")}</button></div></div> : null}
       {workflow.data && catalog.data && sources.data ? <WorkflowEditor key={workflow.data.id} workflow={workflow.data} catalog={catalog.data} sources={sources.data} resolvedSchema={resolvedSchema.data} onSaved={refreshSchema} /> : null}
     </main>
   );

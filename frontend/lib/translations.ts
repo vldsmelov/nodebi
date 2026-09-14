@@ -1,5 +1,9 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Theme": ["Тема", "Тема"],
+  "Dark": ["Тёмная", "Караңгы"],
+  "Light": ["Светлая", "Якты"],
+  "Theme preference could not be saved.": ["Не удалось сохранить выбранную тему.", "Сайланган теманы саклап булмады."],
   "Page not found": ["Страница не найдена", "Бит табылмады"],
   "Try again": ["Повторить попытку", "Кабатлап карау"],
   "Unknown column ID: {0}.": ["Неизвестный идентификатор столбца: {0}.", "Билгесез багана идентификаторы: {0}."],

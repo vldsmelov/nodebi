@@ -29,6 +29,8 @@ test("all remaining chart types render and dashboard management preserves widget
     } });
     expect(persisted.ok()).toBeTruthy();
     await page.goto(`/projects/${project.id}/dashboard`);
+    await page.getByLabel("Theme", { exact: true }).selectOption("light");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     for (const kind of kinds.filter(kind => kind !== "table")) {
       const chart = page.getByRole("img", { name: kind, exact: true });
       await chart.scrollIntoViewIfNeeded();
@@ -39,6 +41,9 @@ test("all remaining chart types render and dashboard management preserves widget
     await page.screenshot({ path: "test-results/all-chart-types.png", fullPage: true });
     await page.getByLabel("Dashboard name").fill("Renamed charts");
     await page.getByLabel("Widget title", { exact: true }).first().fill("Custom widget title");
+    await page.getByLabel("Theme", { exact: true }).selectOption("dark");
+    await expect(page.getByLabel("Widget title", { exact: true }).first()).toHaveValue("Custom widget title");
+    await expect(page.getByRole("img", { name: "line_chart", exact: true }).locator("canvas")).toBeVisible();
     await page.getByLabel("Show widget title", { exact: true }).first().uncheck();
     await page.getByRole("button", { name: "Save dashboard" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();

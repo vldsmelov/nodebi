@@ -2,6 +2,61 @@
 
 :root {
   color-scheme: dark;
+  --page: #0b0f0a;
+  --panel: #10150e;
+  --surface: #11170f;
+  --control: #151b12;
+  --raised: #151a13;
+  --foreground: #f6f8f3;
+  --muted: #a1aa9b;
+  --outline: #3c4537;
+  --accent: #b7ff5a;
+  --primary: #b7ff5a;
+  --primary-hover: #cbff89;
+  --on-primary: #11170d;
+  --danger: #ffb4b4;
+  --danger-surface: #421d23;
+  --warning: #f5d87b;
+  --shade: #000;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #f3f6ef;
+  --panel: #fff;
+  --surface: #fff;
+  --control: #fff;
+  --raised: #fff;
+  --foreground: #1f2b19;
+  --muted: #52624b;
+  --outline: #bbc7b2;
+  --accent: #35671c;
+  --primary: #35671c;
+  --primary-hover: #284f15;
+  --on-primary: #fff;
+  --danger: #a3192c;
+  --danger-surface: #ffe9ed;
+  --warning: #735400;
+  --shade: #829575;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-panel: var(--panel);
+  --color-surface: var(--surface);
+  --color-control: var(--control);
+  --color-raised: var(--raised);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-outline: var(--outline);
+  --color-accent: var(--accent);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-warning: var(--warning);
+  --color-shade: var(--shade);
 }
 
 * {
@@ -10,10 +65,13 @@
 
 body {
   margin: 0;
+  background: var(--page);
+  color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, sans-serif;
 }
 
 .glow {
+  pointer-events: none;
   position: fixed;
   width: 36rem;
   height: 36rem;
@@ -31,6 +89,9 @@ body {
   bottom: -0.85rem;
   width: 1px;
   height: 0.85rem;
-  background: rgba(183, 255, 90, 0.4);
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
+:root[data-theme="light"] .glow { opacity: 0.07; }
+
+.react-resizable-handle::after { border-color: var(--muted) !important; }

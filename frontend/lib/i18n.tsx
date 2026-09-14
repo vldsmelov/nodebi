@@ -31,16 +31,16 @@ export function I18nProvider({ children, initialLocale = "ru" }: { children: Rea
   const value = useMemo(() => ({ ...createMessages(locale), setLocale }), [locale, setLocale]);
   return <I18nContext.Provider value={value}>
     {children}
-    {storageError ? <p role="alert" className="bg-red-950 px-4 py-2 text-sm text-red-100">{value.t("Language preference could not be saved.")}</p> : null}
+    {storageError ? <p role="alert" className="bg-danger-surface px-4 py-2 text-sm text-danger">{value.t("Language preference could not be saved.")}</p> : null}
   </I18nContext.Provider>;
 }
 
 export function LanguageSwitcher() {
   const { locale, t, setLocale } = useI18n();
-  return <div className="flex h-11 items-center justify-end gap-3 border-b border-white/10 bg-[#10150e] px-6 text-sm text-white">
+  return <div className="flex items-center gap-2">
     <label htmlFor="interface-language">{t("Language")}</label>
     <select id="interface-language" value={locale} onChange={event => setLocale(parseLocale(event.target.value))}
-      className="rounded border border-white/20 bg-[#151b12] px-2 py-1">
+      className="rounded border border-outline bg-control px-2 py-1">
       {locales.map(value => <option key={value} value={value} lang={value}>{localeNames[value]}</option>)}
     </select>
   </div>;
