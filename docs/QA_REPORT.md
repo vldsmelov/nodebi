@@ -2,6 +2,21 @@
 
 ## Presentation and Class checkpoint - 2026-09-15
 
+Second U1 delivery adds bounded graph history and dependency layout. Backend regression now
+rejects removal of attached visualizations atomically, then permits removal after explicit widget
+detachment. PostgreSQL concurrency test observes pg_blocking_pids while an attachment holds
+its shared visualization lock, then verifies deletion sees the committed widget and rejects it.
+History tests cover field coalescing, bounded snapshots, redo branching and undo during an
+in-flight save with the next acknowledged revision. Layout tests cover shared ancestors,
+measured spacing, stable data/configuration and cycle/dangling-edge rejection.
+Final checks: 248 backend tests pass (4 SQLite-only skips), 44 frontend tests, Ruff lint/format,
+mypy, TypeScript, ESLint, OpenAPI drift and production builds pass. 21 browser scenarios pass
+in 2.2 min with 10 opt-in skips, including full six-screen restart/result comparison and recovery
+from a rejected chart-node deletion without losing its widget. Layout screenshot reviewed.
+The initial browser attempt started before container readiness and hit connection resets;
+the complete suite was repeated after readiness and passed. No tests were weakened for that.
+Observed non-blocking P2: an unconfigured Filter may show a raw validation string; queued in U2.
+
 Subsequent U1 authoring checkpoint: 40 frontend tests, TypeScript, ESLint, OpenAPI drift and
 production Docker build pass. 19 browser scenarios pass in 2.3 minutes, including the six-screen
 restart/result comparison, three languages and both themes (10 opt-in authoring skips).

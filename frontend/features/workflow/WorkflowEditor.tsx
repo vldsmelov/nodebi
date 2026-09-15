@@ -17,7 +17,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Plus, Search, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import type { DataSource } from "@/features/data-sources/api";
 import { VisualizationView } from "@/features/dashboard/VisualizationView";
@@ -31,6 +31,10 @@ import { NodeConfiguration } from "./NodeConfiguration";
 import { WorkflowNodeCard, type EditorNode } from "./WorkflowNodeCard";
 import { useWorkflowUi } from "./store";
 import type { NodeDefinition, Workflow, WorkflowEdge, WorkflowNode, WorkflowSchemaResult } from "./types";
+
+import { GraphHistory } from "./graph-history";
+import { layoutGraph } from "./graph-layout";
+import type { GraphDraft } from "./autosave";
 
 import { canConnect, dependencyIds, nodeLabel, type DependencyView } from "./graph-interaction";
 
@@ -118,6 +122,27 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   const saveStatus = saveState.status;
   const saveError = saveState.error;
   const graph = useMemo(() => ({ name: workflow.name, nodes: serializeNodes(nodes), edges: serializeEdges(edges), parameters }), [workflow.name, nodes, edges, parameters]);
+  const [history] = useState(() => new GraphHistory(graph));
+  useSyncExternalStore(history.subscribe, history.getVersion, history.getVersion);
+  const editGroup = useRef<string | null>(null);
+  const [layoutError, setLayoutError] = useState(false);
+  useEffect(() => { history.record(graph, editGroup.current); }, [graph, history]);
+  const restore = (draft: GraphDraft | null) => {
+    if (!draft) return;
+    setNodes(draft.nodes.map(node => toEditorNode(node, catalog)));
+    setEdges(draft.edges.map(toEditorEdge)); setParameters(draft.parameters ?? []);
+    if (!draft.nodes.some(node => node.id === selectedNodeId)) selectNode(null);
+    setLayoutError(false);
+  };
+  const travel = (direction: "undo" | "redo") => {
+    history.record(graph, editGroup.current); editGroup.current = null;
+    restore(direction === "undo" ? history.undo() : history.redo());
+  };
+  const arrange = () => {
+    const arranged = layoutGraph(nodes, edges);
+    setLayoutError(!arranged);
+    if (arranged) { editGroup.current = null; setNodes(arranged); requestAnimationFrame(() => focusNodes(arranged.map(node => node.id))); }
+  };
   const dirty = JSON.stringify(graph) !== writer.savedGraph || saveStatus !== "saved";
   const currentSchema = !dirty && resolvedSchema?.revision === saveState.revision ? resolvedSchema : undefined;
 
@@ -181,8 +206,19 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   const selectedInputColumns = resolvedSchema?.nodes.find((item) => item.node_id === selectedInputEdge?.source)?.columns ?? null;
 
   return (
-    <div className="grid h-[calc(100vh-7.75rem)] min-h-[38rem] grid-cols-[17rem_1fr_19rem] overflow-hidden border-t border-outline">
+    <div onFocusCapture={event => { editGroup.current = (event.target as HTMLElement).matches("input, textarea") ? crypto.randomUUID() : null; }} onPointerDownCapture={event => { if (!(event.target as HTMLElement).closest("input, textarea")) editGroup.current = null; }} onKeyDown={event => {
+      if ((event.target as HTMLElement).closest("input, textarea, select, [contenteditable=true]")) return;
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && ["z", "y"].includes(event.key.toLowerCase())) {
+        event.preventDefault(); travel(event.key.toLowerCase() === "y" || event.shiftKey ? "redo" : "undo");
+      }
+    }} className="grid h-[calc(100vh-7.75rem)] min-h-[38rem] grid-cols-[17rem_1fr_19rem] overflow-hidden border-t border-outline">
       <aside className="overflow-y-auto border-r border-outline bg-panel p-4">
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button className="rounded border border-outline px-2 py-1 text-xs disabled:opacity-40" disabled={!history.canUndo} onClick={() => travel("undo")}>{t("Undo graph change")}</button>
+          <button className="rounded border border-outline px-2 py-1 text-xs disabled:opacity-40" disabled={!history.canRedo} onClick={() => travel("redo")}>{t("Redo graph change")}</button>
+          <button className="rounded border border-outline px-2 py-1 text-xs disabled:opacity-40" disabled={!nodes.length} onClick={arrange}>{t("Arrange by dependencies")}</button>
+        </div>
+        {layoutError ? <p role="alert" className="mb-3 text-xs text-danger">{t("Fix cycles or missing connections before arranging the graph.")}</p> : null}
         <NodeFinder nodes={nodes.map(node => ({ id: node.id, label: `${nodeLabel(node.data, nodeName(node.data.definition.type))} · ${nodeName(node.data.definition.type)}` }))} selected={selectedNodeId} onSelect={id => {
           selectNode(id);
           setNodes(current => current.map(node => ({ ...node, selected: node.id === id })));
@@ -218,7 +254,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
           'node.a11yDescription.keyboardDisabled': t('Press Enter to select a node.'),
           'edge.a11yDescription.default': t('Press Enter to select an edge and Delete to remove it.'),
           'node.a11yDescription.ariaLiveMessage': ({ direction, x, y }) => t('Node moved {0}. Position: {1}, {2}.', { 0: t(direction), 1: x, 2: y }),
-        }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection} onNodeClick={(_, node) => selectNode(node.id)} onPaneClick={() => selectNode(null)} onNodesDelete={(deleted) => { const ids = new Set(deleted.map((node) => node.id)); setEdges((current) => current.filter((edge) => !ids.has(edge.source) && !ids.has(edge.target))); if (selectedNodeId && ids.has(selectedNodeId)) selectNode(null); }} fitView deleteKeyCode={["Backspace", "Delete"]} colorMode={theme}>
+        }} onNodeDragStart={() => { editGroup.current = crypto.randomUUID(); }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection} onNodeClick={(_, node) => selectNode(node.id)} onPaneClick={() => selectNode(null)} onNodesDelete={(deleted) => { const ids = new Set(deleted.map((node) => node.id)); setEdges((current) => current.filter((edge) => !ids.has(edge.source) && !ids.has(edge.target))); if (selectedNodeId && ids.has(selectedNodeId)) selectNode(null); }} fitView deleteKeyCode={["Backspace", "Delete"]} colorMode={theme}>
           <Background color={palette.grid} gap={22} size={1} /><Controls /><MiniMap nodeColor={palette.accent} maskColor={palette.mask} />
         </ReactFlow>
       </section>

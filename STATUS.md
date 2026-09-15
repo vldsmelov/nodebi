@@ -5,25 +5,28 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: authorized usability redesign started; first U1 implementation deployed.
-Cards, finder and input choices show meaningful names; optional node labels persist separately
-from output-field names. Dependency highlighting is view-only. Add-next-step creates a connected
-single-input node; replacing an input saves the final graph without a disconnected intermediate.
-Human baseline protocol is ready (docs/UX_OPERATOR_PROTOCOL.md); no human timing results yet.
-Instructions: docs/GRAPH_AUTHORING.md. Design rationale: ADR-069.
+Latest session: second U1 delivery implemented: dependency layout and local graph undo/redo.
+Layout is explicit and position-only. History coalesces focused text edits/dragging, restores
+compound node/edge changes, and saves through normal revision checks. It resets on reload.
+Graph saves now reject deletion/retyping of attached visualizations (409 VISUALIZATION_IN_USE),
+including concurrent dashboard attachment. Detach widgets explicitly before removing the node.
+Rationale: ADR-070; usage: docs/GRAPH_AUTHORING.md. No schema migration or dependency added.
 
-U1 checks: 40 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.
-19 browser scenarios pass in 2.3 min (10 opt-in authoring skips), including synthetic graph edits
-and full six-screen restart with identical graph/dashboard/results, three languages and two themes.
-Private run log: .backups/ux-graph-e2e.log; graph screenshot: .backups/ux-graph-labels.png reviewed.
-Backend implementation unchanged; 247 backend tests below remain prior acceptance evidence.
-No new P0/P1 or environment blocker. This closes the first U1 subtask, not the whole redesign.
+Current milestone: U1 in progress. Next: named/collapsible groups and adjustable panels, then
+U2 formula/preparation forms. U0 operator protocol is ready, human baseline remains unmeasured.
+Original reference project/data/layout preserved. Tests use isolated projects and PG schemas.
+Newly observed P2: an unconfigured Filter can show a raw Pydantic validation string in the
+output panel. Reproduce by appending Filter to an incomplete upstream draft. It predates history;
+replace it with actionable localized configuration feedback during the form UX work.
+No known new P0/P1 or environment blocker. Final browser run and evidence recorded below.
 
-Current milestone: U1 in progress. Next: groups, dependency layout, configurable panels and
-undo/redo, followed by U2 formula/preparation forms. U0 human study remains outstanding;
-it does not block implementing already observed usability improvements. Existing six-screen
-project was inspected read-only and its graph remained unchanged. No data reset or backend
-execution/API/schema/dependency changes. Tests use isolated synthetic projects.
+Final checks: 248 backend tests pass with PostgreSQL (4 SQLite-only skips); Ruff lint/format
+(104 files), mypy (66 app files), 44 frontend tests, TypeScript, ESLint and OpenAPI drift pass.
+Production images built/deployed. 21 browser scenarios pass in 2.2 min (10 opt-in skips),
+including graph undo/redo/layout, blocked visualization deletion recovery and all six dashboards
+after frontend/backend/PostgreSQL restart in three languages and both themes. Snapshot/result
+equality passes. Logs: .backups/ux-history-backend.log and .backups/ux-history-e2e.log.
+Synthetic layout screenshot .backups/ux-layout.png visually reviewed. No original data reset.
 
 Approved six-screen constructor extension: **COMPLETE** (2026-09-15).
 One retained editable workflow has 168 nodes, six dashboards and 55 widget placements.

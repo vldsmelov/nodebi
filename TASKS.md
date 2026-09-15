@@ -12,8 +12,11 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [ ] Conduct baseline with actual operators; no measurements claimed yet.
 * [~] U1: Meaningful node cards, groups, dependency focus, layout, next-step insertion and undo/redo.
   * [x] Presentation names, dependency view, connected next-step creation and atomic input replacement (40 frontend tests, 19 browser scenarios including restart).
-  * [ ] Groups, dependency layout, configurable panels and undo/redo.
+  * [x] Dependency layout and bounded undo/redo through normal revision-aware autosave.
+  * [x] Reject deletion of attached visualizations, including concurrent widget attachment (PostgreSQL race and browser recovery checked).
+  * [ ] Groups and configurable panels.
 * [ ] U2: Named formula tokens and batch preparation forms backed by ordinary explicit nodes.
+  * [ ] P2: Replace raw validation strings for unconfigured nodes with localized actionable feedback (observed in Filter output panel).
 * [ ] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
 * [ ] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
 * [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.

@@ -1,5 +1,31 @@
 # DECISIONS.md
 
+# ADR-070 - Local graph history, dependency layout and dashboard-safe deletion
+
+Date: 2026-09-15. Status: ACCEPTED.
+Context: operators need to undo compound graph edits and recover a manual layout. A graph-only
+undo must not cascade-delete widgets owned by separately saved dashboards.
+Decision: local history stores serialized graph drafts, excluding revisions and view/execution
+state. One focused text edit or drag is coalesced; new edits discard redo. Undo/redo feed the
+existing serialized autosave writer, using its latest acknowledged revision and conflict handling.
+History is bounded to 50 prior/future snapshots and an estimated 16 MiB UTF-16 payload including
+the current snapshot; if the current snapshot alone exceeds the budget, older history is dropped.
+History resets on editor remount; saved graph and recoverable draft remain persistent.
+Native text-field undo retains priority over graph keyboard shortcuts.
+
+Layout is a user-invoked left-to-right topological layering with stable ID ordering inside each
+layer and measured card spacing. It changes positions only and is one undoable action. Cycles
+or dangling endpoints reject layout without changing positions. No new layout dependency.
+It does not promise globally minimized edge crossings; collapsed groups remain subsequent work.
+
+Graph saves reject removing/retyping an attached visualization with VISUALIZATION_IN_USE (409)
+and node attribution. Remove its widget references explicitly first. The check locks removed
+visualization rows exclusively before graph writes; dashboard attachment already takes shared
+locks on those rows. This prevents a concurrent attach/delete race. A blocked undo retains its
+draft and can be reversed with redo. Whole-project/workflow deletion remains its separate explicit
+operation. No schema migration is needed. This refines the prior cascade behavior in ADR-057.
+Alternative rejected: snapshotting dashboard state in graph undo could overwrite independent
+dashboard edits; silently recreating a chart node would not restore deleted widget layouts.
 # ADR-069 - Readable graph authoring without changing calculation identity
 
 Date: 2026-09-15. Status: ACCEPTED; first U1 delivery.

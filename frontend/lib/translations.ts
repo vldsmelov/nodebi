@@ -1,5 +1,10 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Undo graph change": ["Отменить изменение", "Үзгәрешне кире кагарга"],
+  "Redo graph change": ["Повторить изменение", "Үзгәрешне кабатларга"],
+  "Arrange by dependencies": ["Расположить по зависимостям", "Бәйләнешләр буенча урнаштырырга"],
+  "Fix cycles or missing connections before arranging the graph.": ["Перед раскладкой исправьте циклы или отсутствующие связи.", "Урнаштырганчы циклларны яки җитмәгән бәйләнешләрне төзәтегез."],
+  "Remove this visualization from dashboards before deleting its node.": ["Перед удалением узла уберите эту визуализацию с дашбордов.", "Төенне бетергәнче бу визуальләштерүне күзәтү такталарыннан алыгыз."],
   "Node label": ["Название узла", "Төен исеме"],
   "Add next step": ["Добавить следующий шаг", "Киләсе адымны өстәргә"],
   "Show dependencies": ["Показать зависимости", "Бәйләнешләрне күрсәтергә"],

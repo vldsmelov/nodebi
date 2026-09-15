@@ -29,7 +29,7 @@ from app.schemas.workflows import (
 from app.services.execution import InMemoryExecutionCache, default_execution_logger
 from app.services.projects import ProjectService
 from app.services.source_access import ProjectSourceAccess
-from app.services.visualization_index import synchronize_visualizations
+from app.services.visualization_index import protect_used_visualizations, synchronize_visualizations
 
 
 def get_workflow(session: Session, workflow_id: uuid.UUID) -> Workflow:
@@ -81,6 +81,7 @@ def save_graph(
     # Serialize reference changes with source/project deletion. JSON configuration
     # cannot express this cross-table relationship as a database foreign key.
     ProjectService(session).lock(workflow.project_id)
+    protect_used_visualizations(session, workflow, payload)
     for node in payload.nodes:
         if node.type != "excel_source" or not node.config.get("source_id"):
             continue

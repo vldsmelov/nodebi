@@ -188,10 +188,22 @@ def test_chart_kpi_dashboard_persistence_and_atomic_conflicts(
         ).json()
         assert client.put(f"/api/v1/dashboards/{second['id']}", json=payload).status_code == 422
         assert client.get(f"/api/v1/dashboards/{second['id']}").json()["widgets"] == []
-        # Deleting the chart node removes its index/widget, while the KPI stays usable.
+        # Graph undo/delete must not cascade into a separately saved dashboard.
+        before_graph = client.get(f"/api/v1/workflows/{graph['id']}").json()
         graph["nodes"] = [n for n in graph["nodes"] if n["id"] != bar["node_id"]]
         graph["edges"] = [e for e in graph["edges"] if e["target_node_id"] != bar["node_id"]]
         graph["expected_revision"] = graph["revision"]
+        rejected = client.put(f"/api/v1/workflows/{graph['id']}", json=graph)
+        assert rejected.status_code == 409
+        assert rejected.json()["detail"]["code"] == "VISUALIZATION_IN_USE"
+        assert client.get(f"/api/v1/workflows/{graph['id']}").json() == before_graph
+        assert client.get(f"/api/v1/dashboards/{dashboard['id']}").json() == saved.json()
+        detached = {
+            **saved.json(),
+            "expected_revision": saved.json()["revision"],
+            "widgets": [w for w in saved.json()["widgets"] if w["visualization_id"] != bar["id"]],
+        }
+        assert client.put(f"/api/v1/dashboards/{dashboard['id']}", json=detached).status_code == 200
         assert client.put(f"/api/v1/workflows/{graph['id']}", json=graph).status_code == 200
         assert client.get(f"/api/v1/visualizations/{bar['id']}/result").status_code == 404
         remaining = client.get(f"/api/v1/dashboards/{dashboard['id']}").json()["widgets"]

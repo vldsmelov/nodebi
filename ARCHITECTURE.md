@@ -1,5 +1,14 @@
 # ARCHITECTURE.md
 
+## Graph history and layout (ADR-070)
+
+GraphHistory observes serialized drafts, coalesces focused text edits/dragging and supplies
+undo/redo drafts to the existing editor state and autosave writer. Revisions are never restored
+from history. Selection, preview values and dependency highlighting do not enter history.
+Graph layout computes topological layers and measured spacing; only positions are persisted.
+protect_used_visualizations locks removed visualization rows before graph mutation and rejects
+attached widgets with a typed 409 error, sharing the row-lock protocol of dashboard saves.
+
 ## Readable graph interaction (ADR-069)
 
 The shared graph-interaction module resolves presentation labels and validates connection edits.
