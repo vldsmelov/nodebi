@@ -3,8 +3,15 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.domain.parameters import ParameterValues
 from app.domain.visualizations import ChartType, NumberFormatConfig
 from app.schemas.workflows import ResolvedColumnRead, WorkflowCreate
+
+
+class VisualizationRequest(BaseModel):
+    parameters: ParameterValues = Field(default_factory=dict)
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=100, ge=1, le=1000)
 
 
 class VisualizationRead(BaseModel):

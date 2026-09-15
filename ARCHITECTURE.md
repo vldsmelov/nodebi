@@ -1,5 +1,18 @@
 # ARCHITECTURE.md
 
+## Typed workflow parameters (ADR-065)
+
+Workflow JSON declarations are revision-protected; runtime values are separate typed inputs
+on preview and POST visualization requests. ExecutionContext carries definitions/resolved
+values without persistence dependencies. Filter validates declaration/column compatibility
+during schema inference and requires its value during execution. Only dependent Filter cache
+keys include referenced values; downstream keys inherit the change. Unrelated values never
+invalidate Excel materialization. UI exposes declaration/default and temporary preview inputs;
+parameter changes remount result panels, leaving the graph/autosave state intact.
+Migration 0005 adds an empty-default JSON column. Legacy saves omitting declarations preserve
+them. Dashboard parameter bindings/navigation are not yet implemented.
+
+
 ## Presentation extensions (ADR-064)
 
 Workflow-owned VisualizationConfig includes vertical/horizontal Bar orientation and

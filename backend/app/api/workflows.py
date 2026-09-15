@@ -146,11 +146,10 @@ def preview_workflow_node(
     cache: ExecutionCache,
 ) -> PreviewRead:
     workflow = _workflow(session, workflow_id)
-    context = _execution_context(workflow, session, storage, settings, cache)
+    graph = _domain_graph(session, workflow)
+    context = _execution_context(workflow, session, storage, settings, cache, payload.parameters)
     try:
-        result = WorkflowExecutionService(registry).execute(
-            _domain_graph(session, workflow), node_id, context
-        )
+        result = WorkflowExecutionService(registry).execute(graph, node_id, context)
     except ExecutionFailure as exc:
         raise HTTPException(
             status_code=422 if exc.category == "validation" else 400,

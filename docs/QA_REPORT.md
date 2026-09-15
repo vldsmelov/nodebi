@@ -1,5 +1,23 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Workflow parameter checkpoint - 2026-09-15
+
+Typed Filter references are covered independently of the reference workbook: changing one
+parameter changes its dependent output/cache while the source loads once and unrelated values
+reuse downstream results. Defaults preserve zero/false; explicit null means missing. Invalid
+types, undeclared values, missing selections and stale saves fail explicitly. PostgreSQL
+migrations preserve old graphs and match ORM metadata. The UI scenario creates declarations,
+sets a default, selects a parameter in Filter, changes preview without changing graph revision,
+checks missing-value feedback and restores definitions/configuration after reload.
+Backend: 235 tests pass with PostgreSQL (three SQLite-only skips), Ruff lint/format and mypy.
+All 15 standard browser scenarios pass in 1.2 min, including full application/database restart;
+the private-workbook scenario remains separately opted in. Frontend: 32 tests, ESLint,
+TypeScript and OpenAPI drift pass. Both production images built and deployed. Before migration:
+ignored backup .backups/before-workflow-parameters-20260915.sql. No user-data reset.
+Reference overview restoration was checked separately: graph, revision and dashboard config
+unchanged after migration/restart; all nine widget results render again. Dashboard URL state,
+bindings/actions and five detailed screens remain unfinished.
+
 ## Constructor overview checkpoint - 2026-09-15
 
 The private-workbook UI authoring scenario passes in 53.8 s: 29 nodes and nine widgets,

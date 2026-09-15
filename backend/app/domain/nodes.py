@@ -1,6 +1,6 @@
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from logging import Logger
 from typing import TYPE_CHECKING, Protocol
@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Protocol
 from pydantic import BaseModel
 
 from app.domain.datasets import Dataset, DatasetSchema
+from app.domain.parameters import ParameterDefinition, ParameterValue
 from app.domain.sources import SourceAccess
 from app.domain.workflows import NodeInstance
 
@@ -58,6 +59,8 @@ class ExecutionContext:
     cache: ExecutionCache | None = None
     logger: Logger | None = None
     settings: "Settings | None" = None
+    parameter_definitions: tuple[ParameterDefinition, ...] = ()
+    parameters: dict[str, ParameterValue] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

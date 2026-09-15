@@ -2,6 +2,12 @@
 
 Editable reference overview and reproduction instructions: [constructor overview](docs/REFERENCE_OVERVIEW.md).
 
+Workflow parameters can be declared in the editor and selected as Filter values. Defaults
+are saved with the graph; temporary preview values do not create a revision. Preview and
+POST visualization-result requests accept a typed `parameters` object. Existing GET results
+use defaults. Migration 0005 adds declarations while preserving existing graphs. Dashboard
+parameter controls and navigation are still in progress; see [status](STATUS.md).
+
 ## Constructor extensions for dashboard parity
 
 The approved six-screen migration is tracked in `docs/OPOP_CONSTRUCTOR_PLAN.md`;

@@ -33,6 +33,7 @@ def test_postgresql_migrations_preserve_old_counters_and_match_models(db_engine:
             )
         )
         command.upgrade(config, "head")
+        assert connection.execute(text("SELECT parameters FROM workflows")).scalar_one() == []
         assert tuple(connection.execute(text("SELECT version, revision FROM workflows")).one()) == (
             1,
             7,

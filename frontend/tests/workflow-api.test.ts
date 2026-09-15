@@ -63,7 +63,7 @@ describe("workflow API", () => {
     await previewWorkflowNode("workflow-1", "node-1", 25);
 
     expect(fetchMock.mock.calls[0][0]).toContain("/workflows/workflow-1/nodes/node-1/preview");
-    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: "POST", body: "{\"limit\":25}" });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: "POST", body: JSON.stringify({ limit: 25, parameters: {} }) });
   });
 
   it("includes the diagnostic identifier in the message shown by the interface", async () => {

@@ -21,6 +21,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DataSource } from "@/features/data-sources/api";
 import { VisualizationView } from "@/features/dashboard/VisualizationView";
 import { saveWorkflow } from "./api";
+import { ParametersConfiguration } from "./ParametersConfiguration";
+import type { ParameterValues } from "./types";
 import { NodeOutputPanel } from "./NodeOutputPanel";
 import { WorkflowAutosave, type SaveState } from "./autosave";
 import { NodeConfiguration } from "./NodeConfiguration";
@@ -66,12 +68,16 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   const [saveState, setSaveState] = useState<SaveState>({ status: "saved", revision: workflow.revision, error: null });
   const [writer] = useState(() => new WorkflowAutosave(
     workflow.id, workflow.revision,
-    { name: workflow.name, nodes: workflow.nodes, edges: workflow.edges },
+    { name: workflow.name, nodes: workflow.nodes, edges: workflow.edges, parameters: workflow.parameters ?? [] },
     (payload) => saveWorkflow(workflow.id, payload),
     (state) => { setSaveState(state); if (state.status === "saved") onSaved?.(); },
     window.sessionStorage,
   ));
   const [recovered] = useState(() => writer.recover());
+  const [parameters, setParameters] = useState(recovered?.draft.parameters ?? workflow.parameters ?? []);
+  const [parameterValues, setParameterValues] = useState<ParameterValues>({});
+  const executionParameters = Object.fromEntries(parameters.filter(item => Object.hasOwn(parameterValues, item.name)).map(item => [item.name, parameterValues[item.name]]));
+  const parameterKey = JSON.stringify(executionParameters);
   const initialNodes = useMemo(() => (recovered?.draft.nodes ?? workflow.nodes).map((node) => toEditorNode(node, catalog)), [catalog, recovered, workflow.nodes]);
   const [nodes, setNodes, onNodesChange] = useNodesState<EditorNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState((recovered?.draft.edges ?? workflow.edges).map(toEditorEdge));
@@ -83,7 +89,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   const visibleDefinitions = catalog.filter((definition) => `${nodeName(definition.type)} ${t(definition.description)} ${definition.display_name}`.toLowerCase().includes(search.toLowerCase()));
   const saveStatus = saveState.status;
   const saveError = saveState.error;
-  const graph = useMemo(() => ({ name: workflow.name, nodes: serializeNodes(nodes), edges: serializeEdges(edges) }), [workflow.name, nodes, edges]);
+  const graph = useMemo(() => ({ name: workflow.name, nodes: serializeNodes(nodes), edges: serializeEdges(edges), parameters }), [workflow.name, nodes, edges, parameters]);
   const dirty = JSON.stringify(graph) !== writer.savedGraph || saveStatus !== "saved";
   const currentSchema = !dirty && resolvedSchema?.revision === saveState.revision ? resolvedSchema : undefined;
 
@@ -171,6 +177,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   return (
     <div className="grid h-[calc(100vh-7.75rem)] min-h-[38rem] grid-cols-[17rem_1fr_19rem] overflow-hidden border-t border-outline">
       <aside className="overflow-y-auto border-r border-outline bg-panel p-4">
+        <ParametersConfiguration definitions={parameters} onChange={setParameters} values={parameterValues} onValuesChange={setParameterValues} />
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">{t("Node library")}</p>
         <label className="mt-4 flex items-center gap-2 rounded-xl border border-outline bg-raised px-3 py-2"><Search size={14} className="text-muted" /><input aria-label={t("Search nodes")} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("Search nodes")} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted" /></label>
         <div className="mt-5 space-y-5">
@@ -211,13 +218,13 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
             else { const [source, sourceHandle] = event.target.value.split(":"); onConnect({ source, sourceHandle, target: selectedNode.id, targetHandle: port.id }); }
           }}><option value="">{t("Disconnected")}</option>{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
-        {selectedNode ? <NodeConfiguration type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} inputColumns={Object.fromEntries((selectedNode.data.definition.input_ports ?? []).map(port => {
+        {selectedNode ? <NodeConfiguration parameters={parameters} type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} inputColumns={Object.fromEntries((selectedNode.data.definition.input_ports ?? []).map(port => {
           const edge = edges.find(e => e.target === selectedNode.id && e.targetHandle === port.id);
           return [port.id, resolvedSchema?.nodes.find(n => n.node_id === edge?.source)?.columns ?? null];
         }))} onChange={updateSelectedConfig} /> : null}
         {selectedNode && dirty && selectedInputColumns ? <p className="mt-2 text-xs text-warning">{t("Field choices are from the last saved graph. Updating after save…")}</p> : null}
-        {selectedNode?.data.definition.category === "visualization" && !dirty ? <div className="mt-4 h-72"><VisualizationView id={selectedNode.id} revision={saveState.revision} /></div> : null}
-        {selectedNode && <NodeOutputPanel key={selectedNode.id} workflowId={workflow.id} nodeId={selectedNode.id}
+        {selectedNode?.data.definition.category === "visualization" && !dirty ? <div className="mt-4 h-72"><VisualizationView parameters={executionParameters} id={selectedNode.id} revision={saveState.revision} /></div> : null}
+        {selectedNode && <NodeOutputPanel parameters={executionParameters} key={`${selectedNode.id}:${parameterKey}`} workflowId={workflow.id} nodeId={selectedNode.id}
           revision={saveState.revision} dirty={dirty} schema={selectedSchema} issues={selectedIssues} />}
         {saveError ? <p className="mt-5 rounded-xl bg-danger-surface p-3 text-xs text-danger">{errorText(saveError)}</p> : null}
       </aside>

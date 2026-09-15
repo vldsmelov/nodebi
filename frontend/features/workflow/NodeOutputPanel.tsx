@@ -7,6 +7,7 @@ import { previewWorkflowNode } from "./api";
 import type { GraphIssue, NodeSchemaResult } from "./types";
 
 type Props = {
+  parameters?: import("./types").ParameterValues;
   workflowId: string;
   nodeId: string;
   revision: number;
@@ -16,9 +17,9 @@ type Props = {
 };
 
 /** Schema and preview are visible only for the currently acknowledged graph revision. */
-export function NodeOutputPanel({ workflowId, nodeId, revision, dirty, schema, issues }: Props) {
+function NodeOutputContent({ workflowId, nodeId, revision, dirty, schema, issues, parameters = {} }: Props) {
   const { t, errorText, cell } = useI18n();
-  const preview = useMutation({ mutationFn: (request: { nodeId: string; revision: number }) => previewWorkflowNode(workflowId, request.nodeId) });
+  const preview = useMutation({ mutationFn: (request: { nodeId: string; revision: number }) => previewWorkflowNode(workflowId, request.nodeId, 100, parameters) });
   const result = !dirty && preview.data?.revision === revision ? preview.data : undefined;
   return <>
     <button onClick={() => preview.mutate({ nodeId, revision })} disabled={preview.isPending || dirty}
@@ -54,4 +55,8 @@ export function NodeOutputPanel({ workflowId, nodeId, revision, dirty, schema, i
         </table></div>}
     </section>}
   </>;
+}
+
+export function NodeOutputPanel(props: Props) {
+  return <NodeOutputContent key={`${props.nodeId}:${JSON.stringify(props.parameters ?? {})}`} {...props} />;
 }

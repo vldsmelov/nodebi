@@ -16,6 +16,7 @@ from app.schemas.dashboards import (
     DashboardRead,
     DashboardSave,
     VisualizationList,
+    VisualizationRequest,
     VisualizationResult,
 )
 from app.schemas.workflows import WorkflowCreate
@@ -48,6 +49,29 @@ def visualization_result(
 ) -> VisualizationResult:
     return render_visualization(
         session, visualization_id, registry, storage, settings, cache, offset, limit
+    )
+
+
+@router.post("/api/v1/visualizations/{visualization_id}/result", response_model=VisualizationResult)
+def parameterized_visualization_result(
+    visualization_id: uuid.UUID,
+    payload: VisualizationRequest,
+    session: Database,
+    registry: Annotated[NodeRegistry, Depends(get_node_registry)],
+    storage: Annotated[StorageProvider, Depends(get_storage_provider)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    cache: Annotated[InMemoryExecutionCache, Depends(get_execution_cache)],
+) -> VisualizationResult:
+    return render_visualization(
+        session,
+        visualization_id,
+        registry,
+        storage,
+        settings,
+        cache,
+        payload.offset,
+        payload.limit,
+        payload.parameters,
     )
 
 

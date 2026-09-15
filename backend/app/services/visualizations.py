@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.domain.errors import ApplicationError
 from app.domain.nodes import NodeRegistry
+from app.domain.parameters import ParameterValue
 from app.domain.visualizations import CHART_TYPES, VisualizationConfig
 from app.infrastructure.storage import StorageProvider
 from app.models import Visualization, Workflow
@@ -27,6 +28,7 @@ def render_visualization(
     cache: InMemoryExecutionCache,
     offset: int = 0,
     limit: int = 100,
+    parameters: dict[str, ParameterValue] | None = None,
 ) -> VisualizationResult:
     visualization = session.get(Visualization, visualization_id)
     if visualization is None:
@@ -40,7 +42,7 @@ def render_visualization(
     node = next((n for n in graph.nodes if n.id == visualization.source_node_id), None)
     if node is None or node.type not in CHART_TYPES:
         raise ApplicationError("VISUALIZATION_NOT_FOUND", "Visualization node is unavailable.", 404)
-    context = execution_context(workflow, session, storage, settings, cache)
+    context = execution_context(workflow, session, storage, settings, cache, parameters)
     try:
         result = WorkflowExecutionService(registry).execute(graph, node.id, context)
     except ExecutionFailure as exc:

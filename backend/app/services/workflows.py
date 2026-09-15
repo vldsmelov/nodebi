@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.domain.errors import ApplicationError, GraphOwnershipError, WorkflowConflictError
 from app.domain.nodes import ExecutionContext, NodeRegistry, UnknownNodeTypeError
+from app.domain.parameters import ParameterDefinition, ParameterValue, resolve_parameters
 from app.domain.workflows import (
     NodeInstance,
     Position,
@@ -101,6 +102,8 @@ def save_graph(
                 node_id=str(node.id),
             )
     workflow.name = payload.name.strip()
+    if payload.parameters is not None:
+        workflow.parameters = [item.model_dump(mode="json") for item in payload.parameters]
     nodes = [
         WorkflowNode(
             id=node.id,
@@ -159,6 +162,7 @@ def read_workflow(session: Session, workflow: Workflow) -> WorkflowRead:
         select(WorkflowEdge).where(WorkflowEdge.workflow_id == workflow.id)
     ).all()
     return WorkflowRead(
+        parameters=workflow.parameters,
         revision=workflow.revision,
         id=workflow.id,
         project_id=workflow.project_id,
@@ -227,7 +231,13 @@ def execution_context(
     storage: StorageProvider,
     settings: Settings,
     cache: InMemoryExecutionCache,
+    parameters: dict[str, ParameterValue] | None = None,
 ) -> ExecutionContext:
+    definitions = tuple(ParameterDefinition.model_validate(item) for item in workflow.parameters)
+    try:
+        values = resolve_parameters(definitions, parameters or {})
+    except ValueError as exc:
+        raise ApplicationError("INVALID_PARAMETER", str(exc)) from exc
     return ExecutionContext(
         workflow.project_id,
         workflow.id,
@@ -236,4 +246,6 @@ def execution_context(
         cache=cache,
         logger=default_execution_logger(),
         settings=settings,
+        parameter_definitions=definitions,
+        parameters=values,
     )

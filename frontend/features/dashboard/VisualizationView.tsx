@@ -8,6 +8,7 @@ import { formatCell, nodeNames, numberLocale, parseDataDate, translate, type Loc
 import { useQuery } from "@tanstack/react-query";
 import type { EChartsOption } from "echarts";
 import { useEffect, useRef, useState } from "react";
+import type { ParameterValues } from "@/features/workflow/types";
 import { getVisualizationResult, type VisualizationResult } from "./api";
 
 export function format(value: unknown, result: VisualizationResult, locale: Locale, type?: string, columnId?: string): string {
@@ -95,10 +96,10 @@ function Chart({ result }: { result: VisualizationResult }) {
   return <div ref={ref} role="img" aria-label={result.title || nodeName(result.type)} className="h-full min-h-40 w-full" />;
 }
 
-function VisualizationPanel({ id, revision, titleOverride, hideTitle }: { id: string; revision?: number; titleOverride?: string; hideTitle?: boolean }) {
+function VisualizationPanel({ id, revision, titleOverride, hideTitle, parameters }: { id: string; revision?: number; titleOverride?: string; hideTitle?: boolean; parameters?: ParameterValues }) {
   const { t, errorText, locale, cell } = useI18n();
   const [offset, setOffset] = useState(0);
-  const query = useQuery({ queryKey: ["visualization-result", id, revision, offset], queryFn: () => getVisualizationResult(id, offset), retry: false });
+  const query = useQuery({ queryKey: ["visualization-result", id, revision, offset, parameters], queryFn: () => getVisualizationResult(id, offset, parameters), retry: false });
   if (query.isPending) return <p className="p-5 text-sm text-muted">{t("Loading visualization…")}</p>;
   if (query.error) return <div className="p-5 text-sm text-danger" role="alert">{errorText(query.error)}<button onClick={() => void query.refetch()} className="mt-3 block underline">{t("Retry visualization")}</button></div>;
   const result = query.data;
@@ -110,6 +111,6 @@ function VisualizationPanel({ id, revision, titleOverride, hideTitle }: { id: st
   </div>;
 }
 
-export function VisualizationView(props: { id: string; revision?: number; titleOverride?: string; hideTitle?: boolean }) {
-  return <VisualizationPanel key={`${props.id}:${props.revision}`} {...props} />;
+export function VisualizationView(props: { id: string; revision?: number; titleOverride?: string; hideTitle?: boolean; parameters?: ParameterValues }) {
+  return <VisualizationPanel key={`${props.id}:${props.revision}:${JSON.stringify(props.parameters)}`} {...props} />;
 }

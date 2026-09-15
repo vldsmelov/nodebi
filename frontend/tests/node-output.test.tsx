@@ -6,6 +6,23 @@ import { NodeOutputPanel } from "@/features/workflow/NodeOutputPanel";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+it("discards a late response after the selected parameter changes", async () => {
+  let resolve!: (value: Response) => void;
+  const fetcher = vi.fn(() => new Promise<Response>(done => { resolve = done; }));
+  vi.stubGlobal("fetch", fetcher);
+  const client = new QueryClient();
+  const panel = (selected: string) => <QueryClientProvider client={client}>
+    <NodeOutputPanel workflowId="workflow" nodeId="node" revision={1} dirty={false} issues={[]} parameters={{ selected }} />
+  </QueryClientProvider>;
+  const view = render(panel("A"));
+  fireEvent.click(screen.getByRole("button", { name: "Preview output" }));
+  await waitFor(() => expect(resolve).toBeDefined());
+  view.rerender(panel("B"));
+  resolve(new Response(JSON.stringify({ revision: 1, columns: [], rows: [], total_rows: 0, duration_ms: 1 })));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Preview output" })).toBeEnabled());
+  expect(screen.queryByText("The result is empty.")).toBeNull();
+});
+
 it("hides preview errors from an older graph revision", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: { code: "INVALID_FIELD", message: "Old field is missing" } }), { status: 422 })));
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });

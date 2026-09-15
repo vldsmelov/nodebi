@@ -18,6 +18,10 @@ export function localizeError(locale: Locale, error: unknown): string {
 }
 
 const messagePatterns: readonly [RegExp, string][] = [
+  [/^Parameter '(.+)' requires (.+)\.$/, "Parameter '{0}' requires {1}."],
+  [/^Filter parameter '(.+)' is required\.$/, "Filter parameter '{0}' is required."],
+  [/^Filter parameter '(.+)' is not declared\.$/, "Filter parameter '{0}' is not declared."],
+  [/^Filter parameter '(.+)' has an incompatible type\.$/, "Filter parameter '{0}' has an incompatible type."],
   [/^Cannot convert field (.+) at row (.+) to (.+)\.$/, "Cannot convert field {0} at row {1} to {2}."],
   [/^Formula has no saved result at (.+)\. Recalculate and save the workbook in Excel before uploading\.$/, "Formula has no saved result at {0}. Recalculate and save the workbook in Excel before uploading."],
   [/^Unknown column ID: ([\s\S]+)\.$/, "Unknown column ID: {0}."],

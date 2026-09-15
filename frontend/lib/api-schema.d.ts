@@ -253,7 +253,8 @@ export interface paths {
         /** Visualization Result */
         get: operations["visualization_result_api_v1_visualizations__visualization_id__result_get"];
         put?: never;
-        post?: never;
+        /** Parameterized Visualization Result */
+        post: operations["parameterized_visualization_result_api_v1_visualizations__visualization_id__result_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -539,6 +540,23 @@ export interface components {
              */
             currency: string;
         };
+        /** ParameterDefinition */
+        ParameterDefinition: {
+            /** Name */
+            name: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /**
+             * Logical Type
+             * @enum {string}
+             */
+            logical_type: "string" | "integer" | "float" | "boolean" | "date" | "datetime";
+            /** Default */
+            default?: string | number | boolean | null;
+        };
         /** PortRead */
         PortRead: {
             /** Id */
@@ -601,6 +619,10 @@ export interface components {
         };
         /** PreviewRequest */
         PreviewRequest: {
+            /** Parameters */
+            parameters?: {
+                [key: string]: string | number | boolean | null;
+            };
             /**
              * Limit
              * @default 100
@@ -710,6 +732,23 @@ export interface components {
              */
             type: "bar_chart" | "kpi" | "table" | "line_chart" | "area_chart" | "pie_chart" | "donut_chart" | "scatter_chart";
         };
+        /** VisualizationRequest */
+        VisualizationRequest: {
+            /** Parameters */
+            parameters?: {
+                [key: string]: string | number | boolean | null;
+            };
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
+            /**
+             * Limit
+             * @default 100
+             */
+            limit: number;
+        };
         /** VisualizationResult */
         VisualizationResult: {
             /** Column Formats */
@@ -817,6 +856,8 @@ export interface components {
         };
         /** WorkflowRead */
         WorkflowRead: {
+            /** Parameters */
+            parameters?: components["schemas"]["ParameterDefinition"][];
             /** Revision */
             revision: number;
             /**
@@ -858,6 +899,8 @@ export interface components {
             nodes: components["schemas"]["NodePayload"][];
             /** Edges */
             edges: components["schemas"]["EdgePayload"][];
+            /** Parameters */
+            parameters?: components["schemas"]["ParameterDefinition"][] | null;
         };
         /** WorkflowSchemaRead */
         WorkflowSchemaRead: {
@@ -1537,6 +1580,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualizationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parameterized_visualization_result_api_v1_visualizations__visualization_id__result_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                visualization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VisualizationRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

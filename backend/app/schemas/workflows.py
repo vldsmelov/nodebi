@@ -4,6 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.domain.parameters import ParameterDefinition, ParameterValues
+
 
 class PositionPayload(BaseModel):
     x: float
@@ -44,9 +46,20 @@ class WorkflowSave(WorkflowCreate):
     name: str = Field(min_length=1, max_length=200)
     nodes: list[NodePayload]
     edges: list[EdgePayload]
+    parameters: list[ParameterDefinition] | None = Field(default=None, max_length=64)
+
+    @field_validator("parameters")
+    @classmethod
+    def unique_parameters(
+        cls, value: list[ParameterDefinition] | None
+    ) -> list[ParameterDefinition] | None:
+        if value is not None and len({item.name for item in value}) != len(value):
+            raise ValueError("Workflow parameter names must be unique.")
+        return value
 
 
 class WorkflowRead(BaseModel):
+    parameters: list[ParameterDefinition] = Field(default_factory=list)
     revision: int
     id: uuid.UUID
     project_id: uuid.UUID
@@ -127,6 +140,7 @@ class WorkflowSchemaRead(BaseModel):
 
 
 class PreviewRequest(BaseModel):
+    parameters: ParameterValues = Field(default_factory=dict)
     limit: int = Field(default=100, ge=1, le=10_000)
 
 

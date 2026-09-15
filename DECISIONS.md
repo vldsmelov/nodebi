@@ -1,5 +1,26 @@
 # DECISIONS.md
 
+# ADR-065 - Workflow parameters are execution inputs
+
+Date: 2026-09-15. Status: ACCEPTED; workflow slice implemented, dashboard bindings pending.
+Context: detail screens need explicit filters while keeping global denominators independent.
+Decision: persist up to 64 named, typed declarations/defaults on workflow (migration 0005).
+The existing graph revision protects declaration changes; omitting parameters in legacy save
+requests preserves them, while an explicit empty list removes them. Runtime values are request
+context, never a graph save. A Filter condition selects a literal or one declared parameter.
+Missing values fail only when the dependent filter executes; schemas remain available.
+Supplied unknown/invalid types fail explicitly. Null overrides a default; omission uses it.
+Only referenced values enter Filter cache identity; downstream inherits that identity and
+independent/source branches reuse their cache. Preview/component query identity includes the
+view values to discard late results. POST visualization result accepts the same typed context;
+existing GET remains valid with defaults. No formula interpolation or hidden global filtering.
+Alternatives rejected: mutating graph literals on navigation, including every view value in
+all cache keys, and silently skipping filters when required selections are missing.
+Consequences: dates use ISO strings, integers fit signed Int64, float values are finite;
+saved defaults are explicit, while temporary editor preview values reset on reload. Dashboard
+URL restoration and cross-workflow bindings remain the next delivery slice.
+
+
 # ADR-064 - Prepared values and presentation formats
 
 Date: 2026-09-15. Status: ACCEPTED.

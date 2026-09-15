@@ -1,6 +1,8 @@
 import type { components } from "@/lib/api-schema";
 
 export type WorkflowPosition = components["schemas"]["PositionPayload"];
+export type WorkflowParameter = components["schemas"]["ParameterDefinition"];
+export type ParameterValues = Record<string, string | number | boolean | null>;
 export type WorkflowNode = components["schemas"]["NodePayload"];
 export type WorkflowEdge = components["schemas"]["EdgePayload"];
 export type Workflow = components["schemas"]["WorkflowRead"];

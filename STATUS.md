@@ -18,17 +18,28 @@ strict Convert Types, Unpivot, Window, safe string/null/division expressions;
 horizontal Bar, string KPI and per-column table formats. All use ordinary editor forms.
 See docs/REFERENCE_OVERVIEW.md, docs/OPOP_CONSTRUCTOR_PLAN.md and ADR-063/064.
 
-Checks: 223 backend tests pass with PostgreSQL (3 SQLite-only skips), Ruff and mypy;
-31 frontend tests, ESLint, TypeScript and OpenAPI drift checks pass. Production Docker
-build passed for the presentation slice. All 14 standard browser scenarios pass,
-including backend/PostgreSQL/frontend restart (1.1 min); private-workbook authoring
-is separately opted in and passed (53.8 s), including widget geometry and browser reload.
-User files, oracle and screenshots remain ignored. No data reset or new P0/P1.
+Latest completed task: typed workflow parameters with editor declarations/defaults and
+separate preview values. Filter can reference a parameter; schemas do not require a runtime
+value. Runtime values affect only dependent cache branches, with node-attributed missing-value
+errors and late-response isolation. GET visualizations use defaults; POST accepts typed values.
+Migration 0005 applied after backup .backups/before-workflow-parameters-20260915.sql.
+Legacy saves omitting parameters preserve declarations. No reset; previous projects unchanged.
 
-Next: typed workflow/dashboard parameters, Filter references, dependency-scoped cache,
-URL navigation, highlights and dynamic titles, then five detailed dashboards and full
-six-screen parity/restart acceptance. Full transfer is NOT complete. No environment
-blocker is known. Original MVP/localization/theme evidence below remains historical.
+Checks: 235 backend tests pass with PostgreSQL (3 SQLite-only skips), including migration
+upgrade/downgrade and compatibility. Ruff lint/format and mypy (63 files) pass. Frontend:
+32 tests, ESLint, TypeScript, OpenAPI drift and production builds pass. All 15 standard browser
+scenarios pass in 1.2 min, including parameter authoring/switching without revision changes,
+three languages, themes and full backend/database/frontend restart. The private-workbook
+scenario was separately verified at the overview checkpoint (53.8 s). After the parameter
+migration/restart the same 29 nodes, graph revision and dashboard config remain unchanged;
+all nine overview widget results render. No new P0/P1 in the delivered slices.
+
+Next: dashboard declarations and explicit workflow bindings, URL state/history, value selectors,
+navigation actions, highlights and dynamic titles; then five detailed dashboards and full
+six-screen parity acceptance. Temporary editor preview values intentionally reset on reload;
+dashboard URL restoration is still pending. Full transfer is NOT complete. No environment
+blocker is known. Current architecture decisions ADR-063/064/065; overview checkpoint b70b457.
+Original MVP/localization/theme evidence below remains historical.
 
 Last completed task (2026-09-14): persistent light/dark theme selector. Semantic colors cover
 forms, feedback, React Flow canvas and ECharts. Dark remains the default; the cookie restores

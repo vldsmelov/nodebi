@@ -28,10 +28,11 @@ export function previewWorkflowNode(
   workflowId: string,
   nodeId: string,
   limit = 100,
+  parameters: import("./types").ParameterValues = {},
 ): Promise<NodePreview> {
   return request(`/api/v1/workflows/${workflowId}/nodes/${nodeId}/preview`, {
     method: "POST",
-    body: JSON.stringify({ limit }),
+    body: JSON.stringify({ limit, parameters }),
   });
 }
 

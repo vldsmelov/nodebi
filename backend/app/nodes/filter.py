@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime
 from enum import StrEnum
 from functools import reduce
@@ -7,6 +8,7 @@ import polars as pl
 from pydantic import BaseModel, Field
 
 from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema, LogicalType
+from app.domain.errors import NodeExecutionError
 from app.domain.nodes import (
     ExecutionContext,
     NodeCategory,
@@ -39,6 +41,7 @@ class FilterCondition(BaseModel):
     column_id: str = Field(min_length=1)
     operator: FilterOperator
     value: Any = None
+    parameter: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class FilterConfig(BaseModel):
@@ -85,7 +88,12 @@ class FilterExecutor:
         return FilterConfig.model_validate(node.config)
 
     def _resolve(
-        self, node: NodeInstance, schema: DatasetSchema
+        self,
+        node: NodeInstance,
+        schema: DatasetSchema,
+        context: ExecutionContext,
+        *,
+        executing: bool = False,
     ) -> tuple[tuple[FilterCondition, ColumnSchema, Any], ...]:
         columns = {column.column_id: column for column in schema.columns}
         resolved: list[tuple[FilterCondition, ColumnSchema, Any]] = []
@@ -98,6 +106,37 @@ class FilterExecutor:
                     f"Operator '{condition.operator}' is not valid for {column.logical_type}."
                 )
             value = None
+            if condition.parameter:
+                if condition.value is not None or condition.operator in NULL_OPERATORS:
+                    raise ValueError("Choose either a literal filter value or a parameter.")
+                definition = next(
+                    (
+                        item
+                        for item in context.parameter_definitions
+                        if item.name == condition.parameter
+                    ),
+                    None,
+                )
+                if definition is None:
+                    raise ValueError(f"Filter parameter '{condition.parameter}' is not declared.")
+                if definition.logical_type != column.logical_type and not (
+                    definition.logical_type == "integer"
+                    and column.logical_type == LogicalType.FLOAT
+                ):
+                    raise ValueError(
+                        f"Filter parameter '{condition.parameter}' has an incompatible type."
+                    )
+                if executing:
+                    value = definition.checked(
+                        context.parameters.get(definition.name, definition.default)
+                    )
+                    if value is None:
+                        raise NodeExecutionError(
+                            f"Filter parameter '{condition.parameter}' is required."
+                        )
+                    value = self._coerce(value, column.logical_type)
+                resolved.append((condition, column, value))
+                continue
             if condition.operator not in NULL_OPERATORS:
                 if condition.value is None or condition.value == "":
                     raise ValueError("Filter value is required for this operator.")
@@ -139,14 +178,13 @@ class FilterExecutor:
     def validate(
         self, node: NodeInstance, input_schemas: dict[str, DatasetSchema], context: ExecutionContext
     ) -> ValidationResult:
-        del context
         schema = input_schemas.get("input")
         if schema is None:
             return ValidationResult(
                 (ValidationIssue("MISSING_INPUT_SCHEMA", "Filter requires an input."),)
             )
         try:
-            self._resolve(node, schema)
+            self._resolve(node, schema, context)
         except ValueError as exc:
             return ValidationResult((ValidationIssue("INVALID_FILTER", str(exc), "conditions"),))
         return ValidationResult()
@@ -154,21 +192,22 @@ class FilterExecutor:
     def infer_schema(
         self, node: NodeInstance, input_schemas: dict[str, DatasetSchema], context: ExecutionContext
     ) -> DatasetSchema:
-        del context
         schema = input_schemas.get("input")
         if schema is None:
             raise ValueError("Filter requires an input schema.")
-        self._resolve(node, schema)
+        self._resolve(node, schema, context)
         return schema
 
     def execute(
         self, node: NodeInstance, inputs: dict[str, Dataset], context: ExecutionContext
     ) -> Dataset:
-        del context
         source = inputs.get("input")
         if source is None:
             raise ValueError("Filter requires an input dataset.")
-        expressions = [self._expression(*item) for item in self._resolve(node, source.schema)]
+        expressions = [
+            self._expression(*item)
+            for item in self._resolve(node, source.schema, context, executing=True)
+        ]
         predicate = reduce(lambda left, right: left & right, expressions)
         return Dataset(
             source.frame.filter(predicate),
@@ -205,6 +244,20 @@ class FilterExecutor:
                 return expression.is_not_null()
 
 
+def filter_cache_identity(node: NodeInstance, context: ExecutionContext) -> str:
+    used = {
+        item.parameter
+        for item in FilterConfig.model_validate(node.config).conditions
+        if item.parameter
+    }
+    values = {}
+    for definition in context.parameter_definitions:
+        if definition.name in used:
+            value = definition.checked(context.parameters.get(definition.name, definition.default))
+            values[definition.name] = value
+    return json.dumps(values, sort_keys=True, ensure_ascii=True, allow_nan=False)
+
+
 def filter_definition() -> NodeDefinition:
     return NodeDefinition(
         type="filter",
@@ -218,4 +271,5 @@ def filter_definition() -> NodeDefinition:
         schema_inference_mode=SchemaInferenceMode.STATIC,
         executor=FilterExecutor(),
         icon="list-filter",
+        cache_identity=filter_cache_identity,
     )
