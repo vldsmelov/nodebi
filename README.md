@@ -1,5 +1,7 @@
 # Node BI
 
+Editable reference overview and reproduction instructions: [constructor overview](docs/REFERENCE_OVERVIEW.md).
+
 ## Constructor extensions for dashboard parity
 
 The approved six-screen migration is tracked in `docs/OPOP_CONSTRUCTOR_PLAN.md`;

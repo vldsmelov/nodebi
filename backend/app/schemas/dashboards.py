@@ -3,7 +3,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.domain.visualizations import ChartType
+from app.domain.visualizations import ChartType, NumberFormatConfig
 from app.schemas.workflows import ResolvedColumnRead, WorkflowCreate
 
 
@@ -20,6 +20,8 @@ class VisualizationList(BaseModel):
 
 
 class VisualizationResult(BaseModel):
+    column_formats: dict[str, NumberFormatConfig] = Field(default_factory=dict)
+    orientation: Literal["vertical", "horizontal"] = "vertical"
     visualization_id: uuid.UUID
     revision: int
     type: ChartType

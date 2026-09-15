@@ -25,13 +25,18 @@ CHART_NAMES: dict[ChartType, str] = {
 CHART_TYPES = tuple(CHART_NAMES)
 
 
-class VisualizationConfig(BaseModel):
+class NumberFormatConfig(BaseModel):
+    number_format: Literal["number", "currency", "percent"] = "number"
+    decimals: int = Field(default=2, ge=0, le=8)
+    currency: str = Field(default="USD", pattern="^[A-Z]{3}$")
+
+
+class VisualizationConfig(NumberFormatConfig):
     title: str = Field(default="", max_length=200)
     value_column_id: str | None = Field(default=None, min_length=1)
     category_column_id: str | None = Field(default=None, min_length=1)
     column_ids: list[str] | None = None
-    number_format: Literal["number", "currency", "percent"] = "number"
-    decimals: int = Field(default=2, ge=0, le=8)
-    currency: str = Field(default="USD", pattern="^[A-Z]{3}$")
+    column_formats: dict[str, NumberFormatConfig] = Field(default_factory=dict, max_length=1024)
+    orientation: Literal["vertical", "horizontal"] = "vertical"
     show_legend: bool = True
     show_labels: bool = False

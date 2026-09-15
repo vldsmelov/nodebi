@@ -1,5 +1,17 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Constructor overview checkpoint - 2026-09-15
+
+The private-workbook UI authoring scenario passes in 53.8 s: 29 nodes and nine widgets,
+all overview KPI/cost/class/service values compared with original opop_bi v1.2 output,
+exact saved widget geometry and browser restoration. Reproduction: REFERENCE_OVERVIEW.md.
+The standard suite passes 14 browser scenarios (one private-workbook opt-in skip), including
+frontend/backend/PostgreSQL restart. Backend: 223 passed with PostgreSQL and three
+SQLite-only skips; Ruff lint/format and mypy pass. Frontend: 31 tests, ESLint, TypeScript,
+OpenAPI drift and Docker production build pass. New presentation coverage checks string KPI,
+persisted horizontal orientation, per-column ratios and formatted horizontal labels.
+Five detailed reference screens and parameter/navigation acceptance are still pending.
+
 ## Light/dark theme follow-up — 2026-09-14
 
 The shared semantic palette and persistent selector pass 26 frontend tests, ESLint, TypeScript,

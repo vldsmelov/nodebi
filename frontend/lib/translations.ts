@@ -1,5 +1,13 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Orientation": ["Ориентация", "Юнәлеш"],
+  "Vertical": ["Вертикальная", "Вертикаль"],
+  "Horizontal": ["Горизонтальная", "Горизонталь"],
+  "Column formats": ["Форматы столбцов", "Багана форматлары"],
+  "Use default format": ["Общий формат", "Гомуми формат"],
+  "Format for {0}": ["Формат: {0}", "Формат: {0}"],
+  "Decimals for {0}": ["Знаков после запятой: {0}", "Өтердән соңгы билгеләр: {0}"],
+  "Currency for {0}": ["Валюта: {0}", "Валюта: {0}"],
   "Conversion fields must be unique.": ["Поля преобразования не должны повторяться.", "Үзгәртү кырлары кабатланмаска тиеш."],
   "Unpivot identifier and value fields must be distinct.": ["Поля идентификации и разворачиваемые поля не должны пересекаться.", "Тану һәм күчерелә торган кырлар кисешмәскә тиеш."],
   "Unpivot fields require compatible types. Convert them first.": ["Для разворота нужны совместимые типы. Сначала преобразуйте поля.", "Күчерү өчен ярашлы типлар кирәк. Башта кырларны үзгәртегез."],
@@ -356,7 +364,7 @@ export const translations: Record<string, readonly [string, string]> = {
   "Category": ["Категория", "Төркем"],
   "Chart category": ["Категория диаграммы", "Диаграмма төркеме"],
   "Chart value": ["Значение диаграммы", "Диаграмма кыйммәте"],
-  "Connect a Group By with no dimensions to produce one total row.": ["Подключите группировку без полей группировки, чтобы получить одну итоговую строку.", "Бер гомуми нәтиҗә юлын алу өчен төркемләү кырлары булмаган төркемләүне тоташтырыгыз."],
+  "Connect exactly one row containing a number or text value.": ["Подключите ровно одну строку с числом или текстовым значением.", "Сан яки текст кыйммәте булган нәкъ бер юлны тоташтырыгыз."],
   "Select numeric field": ["Выберите числовое поле", "Санлы кырны сайлагыз"],
   "Number format": ["Формат чисел", "Саннар форматы"],
   "Number": ["Число", "Сан"],

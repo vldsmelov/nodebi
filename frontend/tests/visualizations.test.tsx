@@ -3,9 +3,10 @@ import { fireEvent, screen } from "@testing-library/react";
 import { render } from "./render";
 import { afterEach, expect, it, vi } from "vitest";
 import type { VisualizationResult } from "@/features/dashboard/api";
-import { chartOptions, VisualizationView } from "@/features/dashboard/VisualizationView";
+import { chartOptions, format, VisualizationView } from "@/features/dashboard/VisualizationView";
 
 const result: VisualizationResult = {
+  orientation: "vertical",
   visualization_id: "chart", revision: 1, type: "line_chart", title: "Revenue", value_field: "total", category_field: "day",
   number_format: "number", decimals: 2, currency: "USD", show_labels: false, show_legend: true,
   total_rows: 2, offset: 0, limit: 2, truncated: false,
@@ -16,6 +17,23 @@ const result: VisualizationResult = {
   rows: [{ day: "2026-01-01", total: 10 }, { day: "2026-01-02", total: 20 }],
 };
 afterEach(() => vi.unstubAllGlobals());
+
+it("formats table ratios independently and preserves text KPI values", () => {
+  const settings = { ...result, column_formats: { ratio: { number_format: "percent" as const, decimals: 1, currency: "USD" } } };
+  expect(format(0.125, settings, "en", "float", "ratio")).toBe("12.5%");
+  expect(format(0.125, settings, "en", "float", "total")).toBe("0.13");
+  expect(format("Class A", settings, "ru", "string")).toBe("Class A");
+});
+
+it("uses horizontal bars without changing the prepared ordering", () => {
+  const options = chartOptions({ ...result, type: "bar_chart", orientation: "horizontal" });
+  expect(options.xAxis).toMatchObject({ type: "value" });
+  expect(options.yAxis).toMatchObject({ type: "category", inverse: true, data: ["2026-01-01", "2026-01-02"] });
+  expect(options.series).toMatchObject([{ type: "bar", data: [10, 20] }]);
+  const percent = chartOptions({ ...result, type: "bar_chart", orientation: "horizontal", number_format: "percent", decimals: 1 }, "en");
+  const series = percent.series as { label: { formatter: (params: { value: number }) => string } }[];
+  expect(series[0].label.formatter({ value: 0.125 })).toBe("12.5%");
+});
 
 it("uses a temporal axis for dates and preserves prepared values", () => {
   const options = chartOptions(result);

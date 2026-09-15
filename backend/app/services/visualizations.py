@@ -79,6 +79,8 @@ def render_visualization(
     else:
         offset, limit = 0, result.output.row_count
     return VisualizationResult(
+        column_formats=config.column_formats,
+        orientation=config.orientation,
         visualization_id=visualization_id,
         revision=workflow.revision,
         type=node.type,

@@ -19,6 +19,21 @@ from app.models import Project, Visualization
 from app.nodes.visualization import VisualizationExecutor
 
 
+def test_text_kpi_keeps_original_value_and_still_requires_one_row() -> None:
+    executor = VisualizationExecutor()
+    schema = DatasetSchema((ColumnSchema("name", "name", "Name", LogicalType.STRING, False),))
+    context = ExecutionContext(uuid.uuid4(), uuid.uuid4(), uuid.uuid4())
+    node = NodeInstance(uuid.uuid4(), "kpi", 1, Position(0, 0), {"value_column_id": "name"})
+    result = executor.execute(
+        node, {"input": Dataset(pl.DataFrame({"name": ["Class A"]}), schema)}, context
+    )
+    assert result.frame.item() == "Class A"
+    with pytest.raises(NodeExecutionError, match="exactly one row"):
+        executor.execute(
+            node, {"input": Dataset(pl.DataFrame({"name": ["A", "B"]}), schema)}, context
+        )
+
+
 def analytical_graph(client: TestClient, project_id: uuid.UUID) -> dict:
     workbook = Workbook()
     sheet = workbook.active
@@ -120,6 +135,23 @@ def test_chart_kpi_dashboard_persistence_and_atomic_conflicts(
         assert client.get(f"/api/v1/visualizations/{kpi['id']}/result").json()["rows"] == [
             {"total": 60.0}
         ]
+        chart_node = next(node for node in graph["nodes"] if node["id"] == bar["node_id"])
+        chart_node["config"]["orientation"] = "horizontal"
+        chart_node["config"]["column_formats"] = {
+            chart_node["config"]["value_column_id"]: {
+                "number_format": "percent",
+                "decimals": 1,
+                "currency": "USD",
+            }
+        }
+        graph["expected_revision"] = graph["revision"]
+        updated = client.put(f"/api/v1/workflows/{graph['id']}", json=graph)
+        assert updated.status_code == 200, updated.text
+        graph = updated.json()
+        formatted = client.get(f"/api/v1/visualizations/{bar['id']}/result").json()
+        assert formatted["orientation"] == "horizontal"
+        assert formatted["column_formats"] == chart_node["config"]["column_formats"]
+        assert formatted["rows"] == result.json()["rows"]
         dashboard = client.post(
             f"/api/v1/projects/{project_id}/dashboards", json={"name": "Sales"}
         ).json()

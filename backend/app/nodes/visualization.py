@@ -21,6 +21,8 @@ class VisualizationExecutor(UnaryExecutor):
     ) -> DatasetSchema:
         schema = input_schema(input_schemas)
         config = VisualizationConfig.model_validate(node.config)
+        for column_id in config.column_formats:
+            schema.by_id(column_id)
         if node.type == "table":
             ids = (
                 config.column_ids
@@ -33,7 +35,11 @@ class VisualizationExecutor(UnaryExecutor):
         if not config.value_column_id:
             raise ValueError("Select a numeric value field.")
         value = schema.by_id(config.value_column_id)
-        if value.logical_type not in {LogicalType.INTEGER, LogicalType.FLOAT, LogicalType.UNKNOWN}:
+        if value.logical_type not in {
+            LogicalType.INTEGER,
+            LogicalType.FLOAT,
+            LogicalType.UNKNOWN,
+        } and not (node.type == "kpi" and value.logical_type == LogicalType.STRING):
             raise ValueError("Select a numeric value field.")
         if node.type != "kpi":
             if not config.category_column_id:
@@ -57,7 +63,10 @@ class VisualizationExecutor(UnaryExecutor):
         config = VisualizationConfig.model_validate(node.config)
         assert config.value_column_id is not None
         value_name = source.schema.by_id(config.value_column_id).engine_name
-        if (~source.frame[value_name].cast(pl.Float64).is_finite()).any():
+        if (
+            source.schema.by_id(config.value_column_id).logical_type != LogicalType.STRING
+            and (~source.frame[value_name].cast(pl.Float64).is_finite()).any()
+        ):
             raise NodeExecutionError("Visualization values must be finite numbers or empty.")
         if node.type == "scatter_chart":
             assert config.category_column_id is not None

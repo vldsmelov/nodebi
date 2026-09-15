@@ -520,6 +520,25 @@ export interface components {
             /** Issues */
             issues: components["schemas"]["GraphIssueRead"][];
         };
+        /** NumberFormatConfig */
+        NumberFormatConfig: {
+            /**
+             * Number Format
+             * @default number
+             * @enum {string}
+             */
+            number_format: "number" | "currency" | "percent";
+            /**
+             * Decimals
+             * @default 2
+             */
+            decimals: number;
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+        };
         /** PortRead */
         PortRead: {
             /** Id */
@@ -693,6 +712,16 @@ export interface components {
         };
         /** VisualizationResult */
         VisualizationResult: {
+            /** Column Formats */
+            column_formats?: {
+                [key: string]: components["schemas"]["NumberFormatConfig"];
+            };
+            /**
+             * Orientation
+             * @default vertical
+             * @enum {string}
+             */
+            orientation: "vertical" | "horizontal";
             /**
              * Visualization Id
              * Format: uuid

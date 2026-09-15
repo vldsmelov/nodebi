@@ -5,7 +5,8 @@
 * [x] Excel layout, real content bounds, merged headers, row identity and formula diagnostics.
 * [x] Convert Types and typed string/null/safe division formulas.
 * [x] Unpivot and Window with configuration forms and UI acceptance.
-* [ ] Build and verify the editable overview graph on the supplied workbook.
+* [x] Build and verify the editable overview graph on the supplied workbook (29 nodes, 9 widgets).
+* [x] Horizontal Bar, text KPI and per-column table formats with persistence and regression checks.
 * [ ] Typed parameters, graph filters, dashboard navigation and cache isolation.
 * [ ] Presentation extensions and all six saved dashboards.
 * [ ] Reference parity, UI construction/editing, restart and full quality checks.

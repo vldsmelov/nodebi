@@ -1,5 +1,19 @@
 # DECISIONS.md
 
+# ADR-064 - Prepared values and presentation formats
+
+Date: 2026-09-15. Status: ACCEPTED.
+Context: reference screens require horizontal rankings, text titles as KPI values and
+tables mixing counts, amounts and ratios. Decision: add orientation and column-ID-keyed
+number formats to the existing workflow visualization config; allow one string row for KPI.
+Ratios remain fractions and Intl formats them as percentages. Horizontal bars retain upstream
+ordering. Alternatives rejected: multiplying ratios in rendering, implicit chart aggregation
+or a second semantic config on widgets. Existing JSON config and default values preserve
+old projects without a migration. No runtime dependency is added.
+Evidence: the overview is authored through UI with ordinary nodes; independent original-code
+oracle checks every displayed indicator and row. Private workbook/oracle remain outside Git.
+
+
 # ADR-063 - Dashboard parity through general constructor capabilities
 
 Date: 2026-09-14. Status: ACCEPTED; implementation in progress.

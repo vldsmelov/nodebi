@@ -1,30 +1,34 @@
 # Node BI Development Status
 
-Last updated: 2026-09-14
-Release: **MVP COMPLETE — 0.1.0, local single-user scope**
+Last updated: 2026-09-15
+Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Current task (2026-09-14): approved constructor extensions and six-screen opop_bi
-dashboard parity; IN PROGRESS. See docs/OPOP_CONSTRUCTOR_PLAN.md and ADR-063.
-Completed preparation slice: Excel header start/count, merged headers, real content
-bounds, optional source-row identity, missing-formula diagnostics, layout-aware cache;
-Convert Types, Unpivot, Window and typed safe string/null/division expressions.
-All are ordinary node configurations with editor forms and RU/EN/TT messages.
-Provided workbook reads 45 raw rows and 38 source columns plus row identity using
-headers 3?4; service-row filtering is intentionally a future editable graph step.
+Active extension: six-screen opop_bi parity through ordinary constructor configuration.
+The overview is delivered: 29 editable nodes and nine saved widgets, authored through
+UI. All overview indicators, class rows/shares, cost slices and 36 service rows match
+an independent oracle exported from the reviewed original implementation.
+Local project: 6547673e-c856-48f8-af35-83ef354d4a58, available at
+http://localhost:3000/projects/6547673e-c856-48f8-af35-83ef354d4a58/dashboard.
+Private artifact .backups/reference-overview-project.json holds the IDs/configuration.
 
-Checks: 222 backend tests pass with PostgreSQL matrix (3 SQLite-only skips);
-29 frontend tests, Ruff, mypy, ESLint, TypeScript, OpenAPI generation/check and
-production build pass. All 14 browser scenarios pass in 55.6 s, including a new
-UI-only preparation graph and reload. Main stack rebuilt/deployed for this slice.
-No data reset; user workbook excluded from Git. No new P0/P1 found in this slice.
+Completed: multirow/merged Excel headers, real content bounds, source-row identity,
+strict Convert Types, Unpivot, Window, safe string/null/division expressions;
+horizontal Bar, string KPI and per-column table formats. All use ordinary editor forms.
+See docs/REFERENCE_OVERVIEW.md, docs/OPOP_CONSTRUCTOR_PLAN.md and ADR-063/064.
 
-Next: build and numerically verify the editable overview graph, then typed
-workflow/dashboard parameters, navigation and the remaining five dashboards.
-No reference dashboard has been delivered yet; full six-screen parity is NOT
-complete. Missing parameters/navigation/presentation remain required work, not
-an environmental blocker. Previous release evidence below is retained as history.
+Checks: 223 backend tests pass with PostgreSQL (3 SQLite-only skips), Ruff and mypy;
+31 frontend tests, ESLint, TypeScript and OpenAPI drift checks pass. Production Docker
+build passed for the presentation slice. All 14 standard browser scenarios pass,
+including backend/PostgreSQL/frontend restart (1.1 min); private-workbook authoring
+is separately opted in and passed (53.8 s), including widget geometry and browser reload.
+User files, oracle and screenshots remain ignored. No data reset or new P0/P1.
+
+Next: typed workflow/dashboard parameters, Filter references, dependency-scoped cache,
+URL navigation, highlights and dynamic titles, then five detailed dashboards and full
+six-screen parity/restart acceptance. Full transfer is NOT complete. No environment
+blocker is known. Original MVP/localization/theme evidence below remains historical.
 
 Last completed task (2026-09-14): persistent light/dark theme selector. Semantic colors cover
 forms, feedback, React Flow canvas and ECharts. Dark remains the default; the cookie restores

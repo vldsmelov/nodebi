@@ -1,5 +1,15 @@
 # ARCHITECTURE.md
 
+## Presentation extensions (ADR-064)
+
+Workflow-owned VisualizationConfig includes vertical/horizontal Bar orientation and
+column-ID-keyed numeric formats. The typed rendering result carries these settings.
+KPI accepts a single numeric or string value; all other chart numeric checks remain.
+The frontend formats ratios, counts and amounts without modifying prepared values.
+Dashboard widgets continue to store references and layout only. Existing JSON config
+accepts the new optional fields with compatible defaults; no migration is needed.
+
+
 ## Constructor preparation extensions (ADR-063)
 
 WorksheetLayout is a frozen value passed from Excel Source through SourceAccess to

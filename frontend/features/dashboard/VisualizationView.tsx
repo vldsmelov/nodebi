@@ -10,7 +10,8 @@ import type { EChartsOption } from "echarts";
 import { useEffect, useRef, useState } from "react";
 import { getVisualizationResult, type VisualizationResult } from "./api";
 
-function format(value: unknown, result: VisualizationResult, locale: Locale, type?: string): string {
+export function format(value: unknown, result: VisualizationResult, locale: Locale, type?: string, columnId?: string): string {
+  const settings = (columnId && result.column_formats?.[columnId]) || result;
   if (value === null || value === undefined) return "—";
   if (Array.isArray(value)) return value.map((item, index) => index === 0
     ? formatCell(locale, item, result.columns.find(column => column.engine_name === result.category_field)?.logical_type)
@@ -18,11 +19,11 @@ function format(value: unknown, result: VisualizationResult, locale: Locale, typ
   if (typeof value !== "number") return formatCell(locale, value, type);
   try {
     return new Intl.NumberFormat(numberLocale[locale], {
-      style: result.number_format === "number" ? "decimal" : result.number_format,
-      currency: result.currency, minimumFractionDigits: result.decimals,
-      maximumFractionDigits: result.decimals,
+      style: settings.number_format === "number" ? "decimal" : settings.number_format,
+      currency: settings.currency, minimumFractionDigits: settings.decimals,
+      maximumFractionDigits: settings.decimals,
     }).format(value);
-  } catch { return value.toFixed(result.decimals); }
+  } catch { return value.toFixed(settings.decimals); }
 }
 
 export function chartOptions(result: VisualizationResult, locale: Locale = "ru", theme: Theme = "dark"): EChartsOption {
@@ -40,6 +41,15 @@ export function chartOptions(result: VisualizationResult, locale: Locale = "ru",
       data: result.rows.map(row => ({ name: String(row[x] ?? translate(locale, "(empty)")), value: Number(row[y] ?? 0) })),
     }],
   };
+  if (result.type === "bar_chart" && result.orientation === "horizontal") return {
+    ...base, grid: { left: "30%", right: 45, top: 25, bottom: 55 },
+    xAxis: { type: "value", axisLabel: { formatter: value => format(value, result, locale) } },
+    yAxis: { type: "category", inverse: true, data: result.rows.map(row => String(row[x] ?? "")),
+      axisLabel: { width: 170, overflow: "truncate" } },
+    series: [{ type: "bar", name: y, data: result.rows.map(row => row[y]),
+      itemStyle: { color: themePalette[theme].accent },
+      label: { show: result.show_labels, position: "right", formatter: (parameters: { value?: unknown }) => format(parameters.value, result, locale) } }],
+  } as EChartsOption;
   const xType = result.columns.find(c => c.engine_name === x)?.logical_type;
   const scatter = result.type === "scatter_chart";
   const line = ["line_chart", "area_chart"].includes(result.type);
@@ -94,7 +104,7 @@ function VisualizationPanel({ id, revision, titleOverride, hideTitle }: { id: st
   const result = query.data;
   return <div className="flex h-full min-h-0 flex-col">{!hideTitle ? <h3 className="px-4 pt-2 text-sm text-muted">{titleOverride ?? result.title}</h3> : null}
     {result.type === "table" ? <>
-      <div className="min-h-0 flex-1 overflow-auto p-3"><table className="min-w-full text-xs"><thead><tr>{result.columns.map(column => <th key={column.column_id} className="border-b border-outline px-3 py-2 text-left">{column.display_name}</th>)}</tr></thead><tbody>{result.rows.map((row, index) => <tr key={index}>{result.columns.map(column => <td key={column.column_id} className="border-b border-outline px-3 py-2 whitespace-nowrap">{format(row[column.engine_name], result, locale, column.logical_type)}</td>)}</tr>)}</tbody></table>{!result.rows.length ? <p className="mt-3 text-muted">{t("No rows on this page.")}</p> : null}</div>
+      <div className="min-h-0 flex-1 overflow-auto p-3"><table className="min-w-full text-xs"><thead><tr>{result.columns.map(column => <th key={column.column_id} className="border-b border-outline px-3 py-2 text-left">{column.display_name}</th>)}</tr></thead><tbody>{result.rows.map((row, index) => <tr key={index}>{result.columns.map(column => <td key={column.column_id} className="border-b border-outline px-3 py-2 whitespace-nowrap">{format(row[column.engine_name], result, locale, column.logical_type, column.column_id)}</td>)}</tr>)}</tbody></table>{!result.rows.length ? <p className="mt-3 text-muted">{t("No rows on this page.")}</p> : null}</div>
       <div className="flex items-center justify-between gap-3 p-3 text-xs"><button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 100))} className="disabled:opacity-30">{t("Previous page")}</button><span>{t("Total rows: {0} · page {1}", { 0: cell(result.total_rows), 1: cell(Math.floor(offset / 100) + 1) })}</span><button disabled={!result.truncated} onClick={() => setOffset(offset + 100)} className="disabled:opacity-30">{t("Next page")}</button></div>
     </> : result.type === "kpi" ? <div className="grid flex-1 place-items-center p-5 text-4xl font-semibold text-accent" data-testid="kpi-value">{result.rows[0]?.[result.value_field!] == null ? t("No value") : format(result.rows[0][result.value_field!], result, locale)}</div> : result.rows.length ? <div className="min-h-0 flex-1"><Chart result={result} /></div> : <p className="p-5 text-muted">{t("No rows to visualize.")}</p>}
   </div>;
