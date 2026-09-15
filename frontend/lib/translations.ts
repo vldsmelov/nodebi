@@ -1,5 +1,12 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Node label": ["Название узла", "Төен исеме"],
+  "Add next step": ["Добавить следующий шаг", "Киләсе адымны өстәргә"],
+  "Show dependencies": ["Показать зависимости", "Бәйләнешләрне күрсәтергә"],
+  "Entire workflow": ["Весь процесс", "Бөтен процесс"],
+  "Sources of selected node": ["Источники выбранного узла", "Сайланган төеннең чыганаклары"],
+  "Affected downstream nodes": ["Зависимые узлы", "Бәйле төеннәр"],
+  "Conditions: {0}": ["Условий: {0}", "Шартлар: {0}"],
   "Workflow nodes": ["Узлы процесса", "Процесс төеннәре"],
   "Find workflow node": ["Найти узел процесса", "Процесс төенен табарга"],
   "Edit workflow node": ["Редактировать узел процесса", "Процесс төенен үзгәртергә"],

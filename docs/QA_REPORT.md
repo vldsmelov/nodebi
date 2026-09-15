@@ -2,6 +2,16 @@
 
 ## Presentation and Class checkpoint - 2026-09-15
 
+Subsequent U1 authoring checkpoint: 40 frontend tests, TypeScript, ESLint, OpenAPI drift and
+production Docker build pass. 19 browser scenarios pass in 2.3 minutes, including the six-screen
+restart/result comparison, three languages and both themes (10 opt-in authoring skips).
+New regression covers presentation label persistence without renaming a field, dependency
+view without revisions, connected next-step creation and input replacement with no disconnected
+save. Unit cases cover cycles, saturated ports and branched dependency paths. Older selector
+assumptions were corrected; input labels retain both meaningful name and type. Graph screenshot
+reviewed, original reference graph unchanged. Details: [graph authoring](GRAPH_AUTHORING.md).
+Human usability/timing evaluation is still pending; it is not implied by browser test success.
+
 247 backend tests, PostgreSQL matrix, Ruff/mypy, 37 frontend tests, ESLint, TypeScript,
 OpenAPI drift and production builds pass. All 16 standard browser scenarios pass with
 application/database restart. Dynamic titles and selected IDs are authored through the UI;

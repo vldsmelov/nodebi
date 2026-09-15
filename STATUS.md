@@ -5,14 +5,25 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: manual-authoring UX review completed on 2026-09-15.
-See docs/CONSTRUCTOR_UX_REVIEW.md for the current manual journey, measured graph complexity,
-observed usability limits and proposed U0-U5 redesign. Live graph matches the accepted snapshot:
-115 data/calculation nodes, 53 visualization nodes, 172 edges, 55 widget placements.
-Functional UI automation is not a human usability study; no manual completion-time claim is made.
-Only documentation changed in this review. Prior quality evidence below remains unchanged;
-tests were not rerun for documentation. Next proposed work: U0 baseline/prototype and U1 graph
-readability. The redesign is planned, not implemented; existing project/data remain intact.
+Latest session: authorized usability redesign started; first U1 implementation deployed.
+Cards, finder and input choices show meaningful names; optional node labels persist separately
+from output-field names. Dependency highlighting is view-only. Add-next-step creates a connected
+single-input node; replacing an input saves the final graph without a disconnected intermediate.
+Human baseline protocol is ready (docs/UX_OPERATOR_PROTOCOL.md); no human timing results yet.
+Instructions: docs/GRAPH_AUTHORING.md. Design rationale: ADR-069.
+
+U1 checks: 40 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.
+19 browser scenarios pass in 2.3 min (10 opt-in authoring skips), including synthetic graph edits
+and full six-screen restart with identical graph/dashboard/results, three languages and two themes.
+Private run log: .backups/ux-graph-e2e.log; graph screenshot: .backups/ux-graph-labels.png reviewed.
+Backend implementation unchanged; 247 backend tests below remain prior acceptance evidence.
+No new P0/P1 or environment blocker. This closes the first U1 subtask, not the whole redesign.
+
+Current milestone: U1 in progress. Next: groups, dependency layout, configurable panels and
+undo/redo, followed by U2 formula/preparation forms. U0 human study remains outstanding;
+it does not block implementing already observed usability improvements. Existing six-screen
+project was inspected read-only and its graph remained unchanged. No data reset or backend
+execution/API/schema/dependency changes. Tests use isolated synthetic projects.
 
 Approved six-screen constructor extension: **COMPLETE** (2026-09-15).
 One retained editable workflow has 168 nodes, six dashboards and 55 widget placements.

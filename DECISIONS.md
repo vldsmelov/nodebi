@@ -1,5 +1,23 @@
 # DECISIONS.md
 
+# ADR-069 - Readable graph authoring without changing calculation identity
+
+Date: 2026-09-15. Status: ACCEPTED; first U1 delivery.
+Context: repeated node types, unnamed input choices and disconnect-before-reconnect made
+the 168-node project difficult to edit manually.
+Decision: use optional node.ui.label as a presentation name, falling back to semantic title,
+output name, sheet name and localized type. Cards, finder and input choices share this naming.
+The label uses existing revision-protected UI JSON; no new DB structure or execution field.
+Dependency highlighting traverses actual edges and dims unrelated nodes without removing them
+or persisting view state. Changing selection never changes graph semantics.
+Add-next-step creates one compatible single-input node and edge in one editor update; Join/Union
+remain explicit multi-input operations. Input replacement validates the resulting graph with
+the old input edge removed, retaining port limits and cycle checks, and saves one final graph.
+Alternatives rejected: replacing field names with node labels, deleting unrelated nodes from
+the displayed graph state, or saving a disconnected intermediate graph. Backend validation and
+optimistic revisions remain authoritative. Grouping/layout/history and formula UX are subsequent
+deliveries; human timing results are not inferred from automated tests.
+
 # ADR-068 - Direct access to nodes in large editable graphs
 
 Date: 2026-09-15. Status: ACCEPTED.

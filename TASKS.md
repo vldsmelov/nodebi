@@ -5,10 +5,14 @@
 * [x] Review current manual journey, saved graph and editor forms; distinguish functional acceptance from human usability.
 * [x] Document findings and staged redesign in docs/CONSTRUCTOR_UX_REVIEW.md.
 
-The following is a proposed implementation roadmap, not completed functionality:
+Implementation authorized; stages below remain incomplete until their acceptance passes:
 
-* [ ] U0: Human baseline tasks and prototypes; collect time, errors and assistance needed.
-* [ ] U1: Meaningful node cards, groups, dependency focus, layout, next-step insertion and undo/redo.
+* [~] U0: Human baseline tasks and prototypes; collect time, errors and assistance needed.
+  * [x] Define operator tasks, evidence collection and comparison protocol (docs/UX_OPERATOR_PROTOCOL.md).
+  * [ ] Conduct baseline with actual operators; no measurements claimed yet.
+* [~] U1: Meaningful node cards, groups, dependency focus, layout, next-step insertion and undo/redo.
+  * [x] Presentation names, dependency view, connected next-step creation and atomic input replacement (40 frontend tests, 19 browser scenarios including restart).
+  * [ ] Groups, dependency layout, configurable panels and undo/redo.
 * [ ] U2: Named formula tokens and batch preparation forms backed by ordinary explicit nodes.
 * [ ] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
 * [ ] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.

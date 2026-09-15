@@ -1,5 +1,14 @@
 # ARCHITECTURE.md
 
+## Readable graph interaction (ADR-069)
+
+The shared graph-interaction module resolves presentation labels and validates connection edits.
+Optional node.ui.label changes only presentation; semantic output-field names stay in config.
+Cards, finder and input selectors use the same label fallback. Dependency view is derived from
+edges and applied only to React Flow rendering, outside serialized nodes/edges. Next-step
+creation batches node/edge edits; input replacement validates the final edge set, preserving
+port cardinality and DAG checks. Backend validation and revision-checked saves remain unchanged.
+
 ## Large-graph node access (ADR-068)
 
 NodeFinder filters the current editor nodes locally by configured label/type/ID. Selection

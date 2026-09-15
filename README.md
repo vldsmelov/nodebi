@@ -1537,6 +1537,8 @@ project data was reset. See docs/QA_REPORT.md for reproducing the acceptance run
 
 ## Six-screen constructor project (2026-09-15)
 
+Graph authoring improvements: [node labels, dependency view and connected next steps](docs/GRAPH_AUTHORING.md).
+
 The approved opop_bi transfer is complete as ordinary editable Node BI configuration:
 168 nodes, six dashboards, 55 widget placements. See the [final acceptance report](docs/OPOP_CONSTRUCTOR_ACCEPTANCE.md)
 for the local project link, reference comparison, restart evidence and repeat commands.

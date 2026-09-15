@@ -15,6 +15,7 @@ test("configure two-input transforms and propagate Pivot fields to Select Column
     await page.getByRole("button", { name: "Create workflow", exact: true }).click();
     await page.getByTitle("Add Excel Source").click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const source = `${await page.locator(".react-flow__node").last().getAttribute("data-id")}:dataset`;
     await page.getByTitle("Add Join").click();
     await page.getByLabel("Input left").selectOption({ index: 1 });
     await page.getByLabel("Input right").selectOption({ index: 1 });
@@ -25,7 +26,6 @@ test("configure two-input transforms and propagate Pivot fields to Select Column
     await page.getByRole("button", { name: "Preview output" }).click();
     await expect(page.getByRole("columnheader", { name: "order_id__right", exact: true })).toBeVisible();
     await page.getByTitle("Add Union").click();
-    const source = await page.getByLabel("Input left").locator("option").filter({ hasText: "Excel Source (" }).getAttribute("value");
     await page.getByLabel("Input left").selectOption(source!);
     await page.getByLabel("Input right").selectOption(source!);
     await expect(page.getByRole("button", { name: "Preview output" })).toBeEnabled();

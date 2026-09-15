@@ -12,6 +12,10 @@ are outside this extension. This work is additional to the completed original MV
 
 Large workflows must allow users to find and open existing nodes by configured name, type
 or identity while preserving drafts. Selecting a node does not save a graph revision.
+Nodes may have separate presentation labels, without renaming output fields. Authors can
+highlight a node's sources/dependents, append a compatible next step with its connection and
+replace an input without persisting a disconnected intermediate state. The approved usability
+redesign follows docs/CONSTRUCTOR_UX_REVIEW.md; its stages are tracked separately from parity.
 
 ## 1. Document Purpose
 
