@@ -11,16 +11,20 @@
 * [x] Editor parameter forms, preview values, stale response protection and UI acceptance.
 * [x] Dashboard parameter bindings, URL state, value selectors and navigation actions; UI and restart regression pass.
 * [x] Parameterized titles and stable-ID highlighting; preserve complete comparison data.
-* [~] Five detailed saved dashboards, following the verified overview.
+* [x] Five detailed saved dashboards, following the verified overview.
   * [x] Class: editable branches, four-slice parity, overview actions, URL restoration.
   * [x] Service: shared strict article preparation, full 36-service parity, class navigation.
   * [x] Cost-type overview: totals, leaders, services, classes and article charts; all three types match.
   * [x] Class/Service layout authoring via drag/resize with preserved bindings/navigation.
-  * [~] Cost/class ranks, service shares and article detail.
-  * [ ] Cost/service screen, full six-screen navigation, display-format parity and acceptance.
-* [ ] Reference parity, UI construction/editing, restart and full quality checks.
+  * [x] Cost/class: all 12 slices, global class ranks, service shares and article detail.
+  * [x] Cost/service: all 108 slices, peer ranks/highlighting, article shares and navigation.
+  * [x] Six-screen transitions, normalized labels and reference display precision through UI.
+  * [x] Search/open distant workflow nodes; retain draft and avoid selection-only graph saves.
+  * [x] All detail layouts, complete restart/theme/language acceptance and final quality gates.
+* [x] Reference parity, UI construction/editing, restart and full quality checks.
 
 Specification and screen matrix: docs/OPOP_CONSTRUCTOR_PLAN.md.
+Completed: docs/OPOP_CONSTRUCTOR_ACCEPTANCE.md (164 slices, 168 nodes, six dashboards).
 
 ## User-requested light theme — 2026-09-14
 

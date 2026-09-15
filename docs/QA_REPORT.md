@@ -221,3 +221,20 @@ only general import/preparation capabilities; it is not evidence of dashboard pa
   header_row=3, header_rows=2; optional row identity adds a 39th column. No financial
   totals or reference parity are claimed. User data stays outside Git.
 - Main backend/frontend images rebuilt; persistent volumes were not reset.
+
+## Constructor extension final acceptance - 2026-09-15
+
+Approved six-screen scope is complete: 168 editable graph nodes and 55 widget placements.
+All 164 reference slices were compared to pinned original outputs. The final chart audit
+verified two doughnuts/ten bars and reference orientations; all layouts persist.
+
+247 backend tests pass on PostgreSQL (3 SQLite-only skips); Ruff lint/format and mypy pass.
+37 frontend tests, ESLint, TypeScript, OpenAPI drift and production build pass. The final
+browser run passes 18 scenarios in 1.8 min; 10 private authoring scenarios are intentionally
+opt-in and were exercised separately. Restart acceptance verifies identical graph, dashboards
+and 55 widget results after restarting frontend/backend/PostgreSQL. All six pages restore
+URL slices; service-cost rendering passes three languages and both themes. Russian/light
+and Tatar/dark screenshots reviewed. No open extension P0/P1.
+
+[Final report and reproduction](OPOP_CONSTRUCTOR_ACCEPTANCE.md) documents private artifacts,
+backup, stage-history distinctions and the non-blocking source-row-ID selector limitation.

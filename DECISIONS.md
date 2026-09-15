@@ -1,5 +1,19 @@
 # DECISIONS.md
 
+# ADR-068 - Direct access to nodes in large editable graphs
+
+Date: 2026-09-15. Status: ACCEPTED.
+Context: while finishing the 165-node reference workflow, keyboard focus did not consistently
+bring distant existing nodes into the visible canvas. Requiring manual panning obstructed
+ordinary editing of the authored project.
+Decision: provide a local searchable node picker by configured name/title, type or ID. Choosing
+an entry opens its existing configuration and fits the canvas to that node. Duplicate labels
+remain distinct by ID. Selection and viewport are UI state, excluded from graph persistence;
+pending configuration edits survive moving to another node. No new execution/API dependency.
+Alternative: changing whole-graph minimum zoom makes labels unreadable and does not address
+finding a specific node. Regression uses two nodes 50000 units apart, repeated names, identity
+search, an unsaved edit and unchanged positions/revision for selection-only interaction.
+
 # ADR-067 - Explicit title templates and presentation-only selection
 
 Date: 2026-09-15. Status: ACCEPTED.
@@ -46,12 +60,12 @@ aggregation, storing browsing state as graph edits and silent truncation of choi
 Consequences: source fields removed after configuration yield recoverable runtime errors;
 authors select choice nodes upstream of filters when all options must remain available.
 Client URL integer values must be safe JavaScript integers. Existing Float64 limits remain.
-Highlighting and dynamic titles, followed by the five detailed reference screens, remain pending.
+Implemented by ADR-067 and the completed six-screen acceptance (docs/OPOP_CONSTRUCTOR_ACCEPTANCE.md).
 
 
 # ADR-065 - Workflow parameters are execution inputs
 
-Date: 2026-09-15. Status: ACCEPTED; workflow slice implemented, dashboard bindings pending.
+Date: 2026-09-15. Status: ACCEPTED; workflow and dashboard slices implemented (ADR-066).
 Context: detail screens need explicit filters while keeping global denominators independent.
 Decision: persist up to 64 named, typed declarations/defaults on workflow (migration 0005).
 The existing graph revision protects declaration changes; omitting parameters in legacy save
@@ -67,7 +81,7 @@ Alternatives rejected: mutating graph literals on navigation, including every vi
 all cache keys, and silently skipping filters when required selections are missing.
 Consequences: dates use ISO strings, integers fit signed Int64, float values are finite;
 saved defaults are explicit, while temporary editor preview values reset on reload. Dashboard
-URL restoration and cross-workflow bindings remain the next delivery slice.
+URL restoration and cross-workflow bindings are implemented under ADR-066.
 
 
 # ADR-064 - Prepared values and presentation formats
@@ -86,7 +100,7 @@ oracle checks every displayed indicator and row. Private workbook/oracle remain 
 
 # ADR-063 - Dashboard parity through general constructor capabilities
 
-Date: 2026-09-14. Status: ACCEPTED; implementation in progress.
+Date: 2026-09-14. Status: ACCEPTED; implementation and six-screen acceptance complete on 2026-09-15.
 Context: the user requires replacement of six opop_bi analytical screens as proof
 of the constructor, explicitly rejecting a dedicated financial backend.
 Decision: all financial expressions, column mappings, totals and drill paths live
@@ -94,7 +108,7 @@ in editable project configuration. Extend common import, node and presentation
 contracts; retain existing persistence, execution and visualization boundaries.
 Alternative rejected: custom calculation service/template screen bypassing the graph.
 Consequences: complete parity depends on parameters/navigation as well as preparation;
-the original MVP remains released but the new scope is not complete yet.
+the original MVP remains released; the new scope is now verified in docs/OPOP_CONSTRUCTOR_ACCEPTANCE.md.
 
 Preparation decisions: explicit header start/count with actual merged ranges; preserve
 column identity and expose an optional source-row column. Ignore formatting-only tails,

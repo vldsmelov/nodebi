@@ -50,6 +50,14 @@ test("configure multirow Excel headers and general preparation nodes in the edit
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Preview output" }).click();
     await expect(page.getByRole("table").getByRole("row")).toHaveCount(7);
+    await page.getByRole("group", { name: "Fields to turn into rows" }).getByLabel("Values / Units").uncheck();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Preview output" }).click();
+    await expect(page.getByRole("table").getByRole("row")).toHaveCount(4);
+    await page.getByRole("group", { name: "Fields to turn into rows" }).getByLabel("Values / Units").check();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Preview output" }).click();
+    await expect(page.getByRole("table").getByRole("row")).toHaveCount(7);
     await page.reload();
     await expect(page.locator(".react-flow__node")).toHaveCount(4);
   } finally {

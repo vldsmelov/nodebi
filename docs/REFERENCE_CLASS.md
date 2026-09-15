@@ -24,5 +24,8 @@ artifact without review. It never deletes or resets data. Output remains ignored
 
 Verification on 2026-09-15: all four classes, every displayed scalar, share, chart value and service
 row match the pinned original implementation. Browser navigation/reload and preservation of all
-original nodes pass (45.5 seconds). Service and cost-detail destinations remain the next work;
-the six-screen transfer is not complete.
+original nodes pass (45.5 seconds). Subsequent service/cost destinations and full six-screen
+acceptance are complete; see the final report linked below.
+
+Final status (2026-09-15): [six-screen acceptance](OPOP_CONSTRUCTOR_ACCEPTANCE.md) supersedes
+this historical checkpoint, including final graph/widget IDs, chart kinds and restart evidence.

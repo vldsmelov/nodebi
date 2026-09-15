@@ -1,5 +1,10 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Workflow nodes": ["Узлы процесса", "Процесс төеннәре"],
+  "Find workflow node": ["Найти узел процесса", "Процесс төенен табарга"],
+  "Edit workflow node": ["Редактировать узел процесса", "Процесс төенен үзгәртергә"],
+  "Name, type or identifier": ["Название, тип или идентификатор", "Исем, төр яки идентификатор"],
+  "No matching workflow nodes.": ["Подходящие узлы не найдены.", "Туры килгән төеннәр табылмады."],
   "Use parameters in title": ["Использовать параметры в заголовке", "Баш исемдә параметрларны кулланырга"],
   "Insert title parameter": ["Вставить параметр в заголовок", "Баш исемгә параметр куярга"],
   "Highlight selection": ["Выделение выбранной записи", "Сайланган язманы аерып күрсәтү"],

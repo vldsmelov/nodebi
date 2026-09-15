@@ -44,7 +44,7 @@ inefficiency, exclusive indirect cost and total calculations. Group By produces 
 and class totals; Window and safe_divide produce ratios. Unpivot supplies the cost pie.
 Sort/Limit define rankings and the top-40 table after full aggregation.
 
-The overview has five KPI widgets (including inefficiency share), two donut charts,
+The overview has five KPI widgets (including inefficiency share), a cost donut and vertical class bar,
 and two tables. This preserves the reference's indicators; the share is a separate KPI
 instead of a second value embedded in one card. Class shares use per-column percent
 formatting; counts have zero decimal places. All underlying values remain unrounded.
@@ -53,3 +53,6 @@ top-service rows against the original implementation. It also verifies widget ge
 and restoration after a browser reload. Full server restart is a separate acceptance gate.
 
 No user workbook, oracle, screenshot, credentials or source financial values belong in Git.
+
+Final status (2026-09-15): [six-screen acceptance](OPOP_CONSTRUCTOR_ACCEPTANCE.md) supersedes
+this historical checkpoint, including final graph/widget IDs, chart kinds and restart evidence.

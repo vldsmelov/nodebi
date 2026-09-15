@@ -11,17 +11,19 @@ import {
   Edge,
   MiniMap,
   ReactFlow,
+  type ReactFlowInstance,
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Plus, Search, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { DataSource } from "@/features/data-sources/api";
 import { VisualizationView } from "@/features/dashboard/VisualizationView";
 import { saveWorkflow } from "./api";
 import { ParametersConfiguration } from "./ParametersConfiguration";
+import { NodeFinder } from "./NodeFinder";
 import type { ParameterValues } from "./types";
 import { NodeOutputPanel } from "./NodeOutputPanel";
 import { WorkflowAutosave, type SaveState } from "./autosave";
@@ -83,6 +85,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   const [edges, setEdges, onEdgesChange] = useEdgesState((recovered?.draft.edges ?? workflow.edges).map(toEditorEdge));
   const themedEdges = useMemo(() => edges.map(edge => ({ ...edge, style: { ...edge.style, stroke: palette.accent } })), [edges, palette.accent]);
   const [search, setSearch] = useState("");
+  const flow = useRef<ReactFlowInstance<EditorNode, Edge> | null>(null);
   const selectedNodeId = useWorkflowUi((state) => state.selectedNodeId);
   const selectNode = useWorkflowUi((state) => state.selectNode);
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
@@ -177,6 +180,11 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   return (
     <div className="grid h-[calc(100vh-7.75rem)] min-h-[38rem] grid-cols-[17rem_1fr_19rem] overflow-hidden border-t border-outline">
       <aside className="overflow-y-auto border-r border-outline bg-panel p-4">
+        <NodeFinder nodes={nodes.map(node => ({ id: node.id, label: `${String(node.data.config.title || node.data.config.name || node.data.config.sheet_name || "")} · ${nodeName(node.data.definition.type)}` }))} selected={selectedNodeId} onSelect={id => {
+          selectNode(id);
+          setNodes(current => current.map(node => ({ ...node, selected: node.id === id })));
+          void flow.current?.fitView({ nodes: [{ id }], padding: 0.5, minZoom: 0.5, maxZoom: 1, duration: 0 });
+        }} />
         <ParametersConfiguration definitions={parameters} onChange={setParameters} values={parameterValues} onValuesChange={setParameterValues} />
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">{t("Node library")}</p>
         <label className="mt-4 flex items-center gap-2 rounded-xl border border-outline bg-raised px-3 py-2"><Search size={14} className="text-muted" /><input aria-label={t("Search nodes")} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("Search nodes")} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted" /></label>
@@ -190,7 +198,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
       <section className="relative bg-page">
         <div className="absolute right-4 top-4 z-10 rounded-full border border-outline bg-surface/90 px-3 py-1.5 text-xs text-muted backdrop-blur">{saveStatus === "saving" ? t("Saving…") : saveStatus === "saved" ? t("Saved") : saveStatus === "error" ? t("Save failed") : t("Ready")}</div>
         {saveStatus === "error" ? <div className="absolute left-4 top-4 z-10 max-w-sm rounded-xl bg-danger-surface p-3 text-xs text-danger" role="alert">{errorText(saveError)}<div className="mt-2 flex gap-3"><button onClick={() => void writer.flush()}>{t("Retry save")}</button><button onClick={() => { if (window.confirm(t("Discard this local draft and load the saved workflow?"))) { sessionStorage.removeItem(writer.key); window.location.reload(); } }}>{t("Discard draft and reload")}</button></div></div> : null}
-        <ReactFlow<EditorNode, Edge> nodes={nodes} edges={themedEdges} nodeTypes={nodeTypes} ariaLabelConfig={{
+        <ReactFlow<EditorNode, Edge> onInit={instance => { flow.current = instance; }} nodes={nodes} edges={themedEdges} nodeTypes={nodeTypes} ariaLabelConfig={{
           'controls.ariaLabel': t('Canvas controls'),
           'controls.zoomIn.ariaLabel': t('Zoom in'), 'controls.zoomOut.ariaLabel': t('Zoom out'),
           'controls.fitView.ariaLabel': t('Fit view'), 'controls.interactive.ariaLabel': t('Toggle interactivity'),

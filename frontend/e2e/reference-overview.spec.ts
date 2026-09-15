@@ -160,7 +160,7 @@ test("author and verify the reference overview entirely through the constructor"
     await page.getByLabel("Decimals for Услуг", { exact: true }).fill("0");
     await page.getByLabel("Format for Доля", { exact: true }).selectOption("percent");
     await saved();
-    const classPie = await chart("Donut Chart", orderedClasses, "Распределение по классам", agg(classes, 1), field(category));
+    const classPie = await chart("Bar Chart", orderedClasses, "Распределение по классам", agg(classes, 1), field(category));
     const orderedServices = await sort(base, [[field(base), "descending"], ["col_39", "ascending"]]);
     const top = await add("Limit", orderedServices, async () => { await page.getByLabel("Maximum rows", { exact: true }).fill("40"); });
     const serviceTable = await table(top, "Топ услуг (до 40)", ["Класс", "Услуга", "Итого"]);

@@ -10,6 +10,9 @@ as specified in docs/OPOP_CONSTRUCTOR_PLAN.md. Three interface languages and bot
 themes remain supported. Spreadsheet editing and reference deployment/authentication
 are outside this extension. This work is additional to the completed original MVP.
 
+Large workflows must allow users to find and open existing nodes by configured name, type
+or identity while preserving drafts. Selecting a node does not save a graph revision.
+
 ## 1. Document Purpose
 
 This document defines the product requirements for the MVP of the node-based Business Intelligence platform.

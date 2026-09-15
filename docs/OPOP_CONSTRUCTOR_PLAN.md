@@ -42,3 +42,8 @@ and both themes. User workbooks and secrets are not committed. No data reset.
 Completion requires all six screens, editable without DB/hidden JSON changes,
 numeric parity on the supplied workbook, unrelated-domain regression fixtures,
 URL restoration, restart acceptance, tests, lint, types and production build.
+
+## Completion
+
+All six screens delivered and verified on 2026-09-15. See [final acceptance](OPOP_CONSTRUCTOR_ACCEPTANCE.md)
+for the saved project, 164 reference slices, UI editing, full restart and quality evidence.

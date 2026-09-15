@@ -14,12 +14,7 @@ export class ConstructorAuthor {
     const page = this.page, count = await page.locator(".react-flow__node").count();
     if (this.created.length < this.resume.length) {
       const id = this.resume[this.created.length]; this.created.push(id);
-      const node = page.locator(`.react-flow__node[data-id="${id}"]`);
-      await node.focus();
-      await expect(node).toBeInViewport();
-      await node.click();
-      await expect(node).toHaveClass(/selected/);
-      await this.closeDetails();
+      await this.selectNode(id);
       // Reviewed recovery: all earlier nodes are complete; only the final node was interrupted.
       if (this.created.length === this.resume.length) { await configure(); await this.saved(); }
       return id;
@@ -34,7 +29,15 @@ export class ConstructorAuthor {
   }
 
   private async closeDetails() {
-    for (const details of await this.page.locator("aside").last().locator("details[open]").all()) await details.locator("summary").first().click();
+    const open = this.page.locator("aside").last().locator("details[open]");
+    while (await open.count()) await open.first().locator("summary").first().click();
+  }
+
+  async selectNode(id: string) {
+    const node = this.page.locator(`.react-flow__node[data-id="${id}"]`);
+    await this.page.getByLabel("Find workflow node", { exact: true }).fill("");
+    await this.page.getByLabel("Edit workflow node", { exact: true }).selectOption(id);
+    await expect(node).toHaveClass(/selected/); await this.closeDetails();
   }
 
   calc(upstream: string, name: string, expression: string) {
@@ -163,7 +166,7 @@ export class ConstructorAuthor {
   rank(upstream: string, name: string, partitions: string[], keys: [string, string][]) {
     return this.add("Window", upstream, async () => {
       await this.page.getByLabel("Output field name", { exact: true }).fill(name);
-      await this.page.getByLabel("Operation", { exact: true }).selectOption("row_number");
+      await this.page.getByRole("combobox", { name: "Operation", exact: true }).selectOption("row_number");
       for (const label of partitions) await this.page.getByRole("group", { name: "Partition fields", exact: true }).getByLabel(label, { exact: true }).check();
       for (const [index, [column, direction]] of keys.entries()) {
         await this.page.getByRole("button", { name: "Add sort field", exact: true }).click();

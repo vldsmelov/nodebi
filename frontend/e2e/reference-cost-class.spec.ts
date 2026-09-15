@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ConstructorAuthor, calculated as field, aggregate as agg, hex } from "./constructor-author";
 import { authorDashboard, widgetAction } from "./dashboard-author";
@@ -12,7 +12,8 @@ test.use({ actionTimeout: 20000 });
 test("author cost/class ranks, service shares and article detail through the constructor", async ({ page, request }) => {
   test.skip(!enabled, "Opt-in private cost/class authoring");
   test.setTimeout(600000);
-  expect(existsSync(output), "Review retained progress before repeating authoring").toBe(false);
+  const resume = process.env.NODEBI_REFERENCE_RESUME_COST_CLASS === "1" ? JSON.parse(readFileSync(output, "utf8")) : null;
+  if (!resume) expect(existsSync(output), "Review retained progress before repeating authoring").toBe(false);
   const load = (name: string) => JSON.parse(readFileSync(resolve(`../.backups/${name}.json`), "utf8"));
   const previous = load("reference-cost-project"), serviceProject = load("reference-service-project"), overview = load("reference-overview-project"), classProject = load("reference-class-project"), oracle = load("opop-expected");
   expect(previous.completed).toBe(true);
@@ -21,7 +22,12 @@ test("author cost/class ranks, service shares and article detail through the con
   const named = (name: string) => initial.nodes.find((node: { config: { name?: string } }) => node.config.name === name).id;
   const category = field(named("Класс")), service = field(named("Услуга")), total = field(named("Итого"));
   const c = previous.branches as Record<string, string>, b = serviceProject.branches as Record<string, string>;
-  const author = new ConstructorAuthor(page), widgets: { id: string; title: string }[] = [], branches: Record<string, string> = {};
+  if (resume) {
+    expect(resume.projectId).toBe(projectId); expect(resume.createdNodes).toHaveLength(1);
+    expect(initial.nodes.find((node: { id: string }) => node.id === resume.createdNodes[0])).toMatchObject({ type: "window", config: { name: "Ранг класса по виду" } });
+    copyFileSync(output, resolve("../.backups/reference-cost-class-before-resume.json"));
+  }
+  const author = new ConstructorAuthor(page, resume?.createdNodes ?? []), widgets: { id: string; title: string }[] = [], branches: Record<string, string> = {};
   let completed = false, dashboardId = "";
   const chart = async (kind: string, upstream: string, title: string, value: string, category?: string, format = "number", decimals = 2) => {
     const id = await author.chart(kind, upstream, title, value, category, format, decimals); widgets.push({ id, title }); return id;
@@ -69,7 +75,7 @@ test("author cost/class ranks, service shares and article detail through the con
     const articles = await author.sort(await author.filter(articleShares, category, "class_name"), [[agg(articleTotals, 0), "descending"]]);
     const articleTable = await table(articles, "Статьи вида затрат в классе", ["Статья", "Сумма статьи класса", "Доля статьи в виде класса"], ["Доля статьи в виде класса"]);
     const positiveArticles = await author.literalFilter(articles, agg(articleTotals, 0), "greater_than", "0");
-    const articlePie = await chart("Donut Chart", await author.limit(positiveArticles, 15), "Структура статей вида в классе", agg(articleTotals, 0), b.articleName);
+    const articlePie = await chart("Bar Chart", await author.limit(positiveArticles, 15), "Структура статей вида в классе", agg(articleTotals, 0), b.articleName);
     for (const reference of oracle.screens.cost_class) {
       const scope = reference.cost_scope;
       const result = async (id: string) => {
@@ -117,7 +123,7 @@ test("author cost/class ranks, service shares and article detail through the con
     await page.reload(); await expect(page.locator("[data-widget-id]")).toHaveCount(widgets.length);
     await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
     const graph = await (await request.get(`${api}/api/v1/workflows/${workflowId}`)).json();
-    for (const node of initial.nodes) expect(graph.nodes.find((item: { id: string }) => item.id === node.id)).toEqual(node);
+    for (const node of previous.graph.nodes) expect(graph.nodes.find((item: { id: string }) => item.id === node.id)).toEqual(node);
     completed = true;
   } finally {
     const graph = await (await request.get(`${api}/api/v1/workflows/${workflowId}`)).json();

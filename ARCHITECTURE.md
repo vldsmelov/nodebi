@@ -1,5 +1,12 @@
 # ARCHITECTURE.md
 
+## Large-graph node access (ADR-068)
+
+NodeFinder filters the current editor nodes locally by configured label/type/ID. Selection
+opens the shared configuration panel and fits the React Flow viewport to the selected node.
+Selection/viewport stay outside serialized graph state; pending edits remain in the autosave
+draft. Reference authoring recipes are test tooling, with no application runtime dependency.
+
 ## Dashboard view state and navigation (ADR-066)
 
 DashboardConfiguration is a typed JSON value persisted with dashboard revision (migration 0006).

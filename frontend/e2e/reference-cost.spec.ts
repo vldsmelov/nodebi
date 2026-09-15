@@ -76,10 +76,11 @@ test("author cost-type overview with ordinary graph totals, leaders and article 
     const leaderClass = await author.limit(orderedClasses, 1);
     const classLeaderKpi = await addChart("KPI", leaderClass, "Класс — лидер вида", category);
     const positiveClasses = await author.literalFilter(orderedClasses, agg(classes, 1), "greater_than", "0");
-    const classPie = await addChart("Donut Chart", positiveClasses, "Распределение вида по классам", agg(classes, 1), category);
+    const classPie = await addChart("Bar Chart", positiveClasses, "Распределение вида по классам", agg(classes, 1), category);
     const positiveServices = await author.literalFilter(services, b.costValue, "greater_than", "0");
     const serviceTop = await author.limit(positiveServices, 25);
     const serviceBar = await addChart("Bar Chart", serviceTop, "Топ услуг по виду затрат", b.costValue, service);
+    await page.getByLabel("Orientation", { exact: true }).selectOption("vertical"); await author.saved();
     await context(["__source_row__", "Класс"]);
     const classTable = await addTable(orderedClasses, "Классы по виду затрат", ["Класс", "Количество услуг", "Сумма вида в классе", "Доля класса в виде", "Доля вида в классе"], ["Доля класса в виде", "Доля вида в классе"]);
     const serviceTable = await addTable(services, "Услуги по виду затрат", ["Класс", "Услуга", "Сумма вида", "Доля услуги в виде", "Доля вида в услуге"], ["Доля услуги в виде", "Доля вида в услуге"]);

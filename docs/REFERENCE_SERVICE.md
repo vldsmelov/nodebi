@@ -16,7 +16,7 @@ The peer comparison connects before the service filter and highlights the row id
 Its population and the class-share denominator therefore remain independent of selected service.
 Class table rows navigate to Service; a parent link returns to the same class. URL reload restores
 both values. Direct selection currently shows original row numbers; the class table provides
-named service selection. Cost-detail destinations are the next authoring work.
+named service selection. Cost-detail destinations were completed in the final acceptance.
 
 `reference-service.spec.ts` authors the 45 new nodes and the dashboard through UI. All 36 service
 slices matched the pinned original route outputs, including article order, amounts, cost shares
@@ -29,3 +29,6 @@ nodes; it passed in 26.8 seconds. No data was reset or reconstructed behind the 
 Private configuration/progress: `.backups/reference-service-project.json`; review is opt-in with
 `NODEBI_REFERENCE_SERVICE_PROJECT` and `NODEBI_REFERENCE_EXPECTED`. Authoring additionally uses
 `NODEBI_REFERENCE_CLASS_PROJECT` and refuses to overwrite an existing progress artifact.
+
+Final status (2026-09-15): [six-screen acceptance](OPOP_CONSTRUCTOR_ACCEPTANCE.md) supersedes
+this historical checkpoint, including final graph/widget IDs, chart kinds and restart evidence.

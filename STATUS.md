@@ -5,56 +5,34 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Active extension: six-screen opop_bi parity through ordinary constructor configuration.
-The overview is delivered: 29 editable nodes and nine saved widgets, authored through
-UI. All overview indicators, class rows/shares, cost slices and 36 service rows match
-an independent oracle exported from the reviewed original implementation.
-Local project: 6547673e-c856-48f8-af35-83ef354d4a58, available at
-http://localhost:3000/projects/6547673e-c856-48f8-af35-83ef354d4a58/dashboard.
-Private artifact .backups/reference-overview-project.json holds the IDs/configuration.
+Approved six-screen constructor extension: **COMPLETE** (2026-09-15).
+One retained editable workflow has 168 nodes, six dashboards and 55 widget placements.
+All calculations, financial mappings, filters and transitions are ordinary project settings.
+Local project: http://localhost:3000/projects/6547673e-c856-48f8-af35-83ef354d4a58/dashboard.
 
-Completed: multirow/merged Excel headers, real content bounds, source-row identity,
-strict Convert Types, Unpivot, Window, safe string/null/division expressions;
-horizontal Bar, string KPI and per-column table formats. All use ordinary editor forms.
-See docs/REFERENCE_OVERVIEW.md, docs/OPOP_CONSTRUCTOR_PLAN.md and ADR-063/064.
+Last completed: Cost/class and Cost/service, final navigation/formatting/chart audit, all six
+layouts, large-graph node finder, full reference acceptance and documentation. All 164 reference
+slices match the pinned original outputs. Two doughnuts and ten bars use the reference chart
+orientations. No financial-specific runtime was introduced. Decisions: ADR-063 through ADR-068.
 
-Latest completed task: dashboard typed declarations, explicit workflow bindings, data-sourced
-value selectors, URL slice/history restoration, widget drill-through and parent links.
-Configuration and navigation are edited through UI; context fields retain stable row IDs.
-The node-values endpoint executes ordinary graph nodes and returns bounded searchable choices.
-Migration 0006 applied after .backups/before-dashboard-navigation-20260915.sql backup.
-Definitions/layout remain revision-protected; browsing values never save a graph/dashboard.
-Legacy saves omitting configuration preserve it. No data reset or new P0/P1 in this slice.
-Details: docs/DASHBOARD_NAVIGATION.md and ADR-066.
-Presentation follow-up completed: explicit parameter templates for titles and stable-ID
-selection highlighting. Selection changes preserve comparison rows and values (ADR-067).
+Final checks: 247 backend tests pass with PostgreSQL (3 SQLite-only skips), Ruff lint/format,
+mypy; 37 frontend tests, ESLint, TypeScript, OpenAPI drift and production build pass.
+18 browser scenarios pass in 1.8 min, with 10 intentionally skipped opt-in authoring recipes.
+The final acceptance restarts frontend/backend/PostgreSQL and verifies identical graph,
+dashboards and all 55 widget results. All six URL slices reopen; three languages and both
+themes pass. Final Russian/light and Tatar/dark screenshots were visually reviewed.
 
-Checks: 247 backend tests pass with PostgreSQL (3 SQLite-only skips), Ruff lint/format,
-mypy (66 files); 37 frontend tests, ESLint, TypeScript, OpenAPI drift and production builds.
-All 16 standard browser scenarios pass in 1.3 min, including navigation/choices authored via
-UI, URL reload/history, themes/localization and backend/database/frontend restart. Private
-reference overview authoring remains separately opted in (prior verified 53.8 s).
+Evidence and repeat commands: docs/OPOP_CONSTRUCTOR_ACCEPTANCE.md, docs/QA_REPORT.md.
+Private final configuration: .backups/reference-finalized-project.json; browser log:
+.backups/six-screen-full-e2e.log. Final database backup:
+.backups/constructor-parity-final-20260915.sql (source files remain separately in storage).
+Original user project/data preserved; no reset. Production frontend is deployed locally.
 
-Class screen delivered through UI: 18 additional nodes (47 total), nine widgets, class selector,
-overview drill-through and parent link. All four class slices match the original indicators,
-shares, chart series and service table rows; original 29 nodes are unchanged. Private browser
-authoring/parity scenario passes in 45.5 s; IDs: .backups/reference-class-project.json.
-Service screen delivered: 45 additional nodes (92 total), eight widgets and reusable article
-Unpivot/Union branches. All 36 services match original route outputs, including article rows,
-cost shares and complete peer comparison. Class drill-through and parent return/reload pass.
-The authoring test needed a scoped navigation selector; retained-project review repeated all
-numeric checks and completed navigation in 26.8 s. No graph/data rollback was needed.
-Private IDs: .backups/reference-service-project.json; details docs/REFERENCE_SERVICE.md.
-Cost-type overview delivered: 34 additional nodes (126 total), ten widgets, all three types
-match original totals, leaders, table rows and positive/top-limited chart series. Reviewed UI
-resume passed in 39.2 s; prior 92 nodes are unchanged. IDs .backups/reference-cost-project.json.
-Class/Service layouts authored through resize/drag and restored with bindings/actions unchanged;
-the layout acceptance passes in 23.8 s. Details docs/REFERENCE_COST.md.
-Current task: author cost/class ranks and article detail, then cost/service and full navigation
-and full six-screen parity acceptance. The overview project above remains available, but
-full transfer is NOT complete. No environment blocker is known. Current decisions ADR-063
-through ADR-067. Checkpoints: b70b457 overview, d1e495b workflow parameters, e128b0b navigation.
-Original MVP/localization/theme evidence below remains historical.
+Known extension limitations: direct service selector shows source-row IDs; named selection
+is available through tables/peer charts. Authored labels are not automatically translated.
+No open P0/P1 or environment blocker. Current task: complete; next task: normal maintenance
+and user feedback, with optional backlog outside the agreed delivery. Historical checkpoint
+reports below describe earlier test counts and do not supersede this final acceptance.
 
 Last completed task (2026-09-14): persistent light/dark theme selector. Semantic colors cover
 forms, feedback, React Flow canvas and ECharts. Dark remains the default; the cookie restores

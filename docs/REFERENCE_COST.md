@@ -24,4 +24,7 @@ Private artifact: `.backups/reference-cost-project.json`. The opt-in recipe is
 `NODEBI_REFERENCE_RESUME_COST=1` and validates the reviewed interruption point. Raw workbook,
 reference outputs and recovery backups remain ignored by Git.
 
-Cost/class and cost/service screens and complete cross-screen navigation are still pending.
+Cost/class, cost/service and complete cross-screen navigation are now delivered.
+
+Final status (2026-09-15): [six-screen acceptance](OPOP_CONSTRUCTOR_ACCEPTANCE.md) supersedes
+this historical checkpoint, including final graph/widget IDs, chart kinds and restart evidence.
