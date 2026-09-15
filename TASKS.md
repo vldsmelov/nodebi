@@ -1,5 +1,19 @@
 # TASKS.md
 
+## Manual-authoring UX review and proposed redesign (2026-09-15)
+
+* [x] Review current manual journey, saved graph and editor forms; distinguish functional acceptance from human usability.
+* [x] Document findings and staged redesign in docs/CONSTRUCTOR_UX_REVIEW.md.
+
+The following is a proposed implementation roadmap, not completed functionality:
+
+* [ ] U0: Human baseline tasks and prototypes; collect time, errors and assistance needed.
+* [ ] U1: Meaningful node cards, groups, dependency focus, layout, next-step insertion and undo/redo.
+* [ ] U2: Named formula tokens and batch preparation forms backed by ordinary explicit nodes.
+* [ ] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
+* [ ] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
+* [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.
+
 ## Approved constructor/dashboard parity extension (2026-09-14)
 
 * [x] Excel layout, real content bounds, merged headers, row identity and formula diagnostics.

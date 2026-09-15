@@ -5,6 +5,15 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest session: manual-authoring UX review completed on 2026-09-15.
+See docs/CONSTRUCTOR_UX_REVIEW.md for the current manual journey, measured graph complexity,
+observed usability limits and proposed U0-U5 redesign. Live graph matches the accepted snapshot:
+115 data/calculation nodes, 53 visualization nodes, 172 edges, 55 widget placements.
+Functional UI automation is not a human usability study; no manual completion-time claim is made.
+Only documentation changed in this review. Prior quality evidence below remains unchanged;
+tests were not rerun for documentation. Next proposed work: U0 baseline/prototype and U1 graph
+readability. The redesign is planned, not implemented; existing project/data remain intact.
+
 Approved six-screen constructor extension: **COMPLETE** (2026-09-15).
 One retained editable workflow has 168 nodes, six dashboards and 55 widget placements.
 All calculations, financial mappings, filters and transitions are ordinary project settings.
@@ -30,8 +39,8 @@ Original user project/data preserved; no reset. Production frontend is deployed 
 
 Known extension limitations: direct service selector shows source-row IDs; named selection
 is available through tables/peer charts. Authored labels are not automatically translated.
-No open P0/P1 or environment blocker. Current task: complete; next task: normal maintenance
-and user feedback, with optional backlog outside the agreed delivery. Historical checkpoint
+No open P0/P1 or environment blocker. Constructor parity is complete; the subsequent UX review
+and proposed redesign are recorded above. Historical checkpoint
 reports below describe earlier test counts and do not supersede this final acceptance.
 
 Last completed task (2026-09-14): persistent light/dark theme selector. Semantic colors cover
