@@ -2,6 +2,8 @@
 
 import { useI18n } from "@/lib/i18n";
 
+import { FormulaEditor } from "./FormulaEditor";
+
 import type { ResolvedColumn } from "./types";
 
 type Props = {
@@ -38,8 +40,7 @@ export function CalculatedColumnConfiguration({ config, columns, onChange }: Pro
   const expression = typeof config.expression === "string" ? config.expression : "";
   return <div className="mt-6"><h2>{t("Calculated Column")}</h2>
     <label className="mt-3 block text-xs">{t("Output field name")}<input aria-label={t("Output field name")} className={control} value={String(config.name ?? "")} onChange={e => onChange({ ...config, name: e.target.value })} /></label>
-    <label className="mt-3 block text-xs">{t("Expression")}<textarea aria-label={t("Expression")} className={control} rows={4} value={expression} onChange={e => onChange({ ...config, expression: e.target.value })} placeholder={t("quantity * price")} /></label>
-    <select aria-label={t("Insert formula field")} className={control} value="" onChange={e => { if (e.target.value) onChange({ ...config, expression: `${expression}[${e.target.value}]` }); }}><option value="">{t("Select field")}</option>{columns?.map(c => <option key={c.column_id} value={c.column_id}>{c.display_name}</option>)}</select>
+    <FormulaEditor expression={expression} columns={columns} onChange={expression => onChange({ ...config, expression })} />
     <p className="mt-3 text-xs leading-5 text-muted">{t("Formula functions: trim, lower, coalesce, safe_divide. Field references survive renaming.")}</p>
   </div>;
 }

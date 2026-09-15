@@ -77,3 +77,19 @@ of displaying validation-library internals. An empty Filter asks you to add list
 Nested errors identify their row starting from one. The same details remain available in
 Russian, English and Tatar, including execution diagnostics. Changing language preserves edits.
 This first U2 delivery does not yet change formula authoring or add batch preparation forms.
+
+## Named formula fields (second U2 delivery)
+
+Calculated Column now shows **Readable formula** above its canonical **Expression** text.
+Bracket references display current field names/types. Click a token, then choose a field in
+**Insert formula field** to replace just that reference. Alternatively place the cursor or
+select text in Expression before inserting. **Find formula field** searches names and IDs.
+Operators/functions can still be typed normally; **Formula function help** lists signatures.
+
+Selecting a field inserts its stable ID. An upstream rename updates the token label without
+changing the saved formula. Bare field identifiers typed manually retain their existing
+name-dependent semantics; the helper does not silently convert them. Duplicate display names
+show engine names/IDs; the token tooltip exposes those identifiers too. Missing fields are
+marked explicitly and must be repaired before execution. Quoted text is not rendered as a
+reference. Backend validation and preview remain the authority for type/operation correctness.
+The named view supplements the text editor; it is not a rich text replacement in this delivery.

@@ -5,27 +5,27 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: first U2 delivery implements field-specific configuration errors (ADR-072).
-Empty Filter conditions and other schema-invalid settings now produce controlled messages
-with exact node/config attribution, not Pydantic model/input dumps. The UI renders nested
-issues in all three languages and translates common setting labels/list positions.
-Browser repair scenario passes: open invalid Filter, switch languages, add condition, save,
-and preview successfully. Existing user project/data/layout remain untouched.
+Latest session: second U2 delivery adds FormulaEditor named reference tokens, cursor/selection
+insertion, searchable schema-aware field choices, types and function signature hints (ADR-073).
+Click a token to select its canonical span, then choose a replacement field. Upstream renames
+refresh labels without changing stored IDs. Quoted strings remain literal; missing references
+are marked. Canonical text editing remains visible. No new evaluator or persisted expression.
 
-Current milestone: U2 in progress; last completed task: configuration feedback acceptance.
-Last completed: configuration error implementation and focused acceptance; U1 remains complete.
-Next: named formula tokens and cursor-aware field insertion, then batch preparation forms.
-U0 human baseline remains unmeasured; no operator speed improvement is claimed.
-The recorded empty-Filter validation P2 is fixed. No known new P0/P1 or environment blocker.
-Unknown validation categories use general setting guidance; domain/executor messages and
-HTTP request validation remain separate existing paths.
+Current milestone: U2 in progress; last completed task: formula helper acceptance.
+Last completed: named token insertion/replacement and upstream rename acceptance; U1 complete.
+Next: batch calculated-field/preparation forms and grouped Unpivot authoring. Rich provenance
+labels and diagnostics beside the expression remain unfinished U2 details. Duplicate names
+currently include engine name/ID, and errors still use the existing output panel.
+U0 operator measurements remain pending. Original reference project/data are unchanged.
+No known new P0/P1 or blocker. Empty-Filter raw validation P2 remains fixed.
 
-Current checks: 249 backend tests pass with PostgreSQL (4 SQLite-only skips); Ruff lint/format
-(104 files), mypy (66 files), 47 frontend tests, TypeScript, ESLint and OpenAPI drift pass.
-Production backend/frontend builds pass and are deployed. All 23 browser scenarios pass
-(10 opt-in skips), including all six dashboards/results after application/PostgreSQL restart.
-Logs: .backups/ux-validation-backend.log, .backups/ux-validation-focused.log,
-.backups/ux-validation-e2e.log. No schema/API shape/dependency changes.
+Checks: 50 frontend tests, TypeScript, ESLint, OpenAPI drift and production frontend build pass.
+Focused browser formula replacement/rename/reload test passes with computed output 9.
+All 24 browser scenarios pass (10 opt-in skips), including six-screen result equality after
+application/PostgreSQL restart, both themes and three languages (.backups/ux-formula-e2e.log).
+Frontend deployed.
+Backend unchanged; previous baseline: 249 tests with PostgreSQL, 4 SQLite-only skips,
+Ruff lint/format and mypy pass. No API/schema/dependency changes.
 
 Approved six-screen constructor extension: **COMPLETE** (2026-09-15).
 One retained editable workflow has 168 nodes, six dashboards and 55 widget placements.

@@ -1,5 +1,13 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Readable formula": ["Формула с названиями полей", "Кыр исемнәре белән формула"],
+  "Field schema unavailable: {0}": ["Схема поля недоступна: {0}", "Кыр схемасы юк: {0}"],
+  "Missing field: {0}": ["Поле не найдено: {0}", "Кыр табылмады: {0}"],
+  "Select a field to start a formula.": ["Выберите поле для начала формулы.", "Формуланы башлау өчен кыр сайлагыз."],
+  "Click a field token, then choose another field to replace it. Edit operators and text below.": ["Нажмите на поле в формуле и выберите другое для замены. Операторы и текст редактируются ниже.", "Формуладагы кырга басыгыз һәм алыштыру өчен башка кыр сайлагыз. Операторларны һәм текстны түбәндә үзгәртегез."],
+  "Find formula field": ["Поиск поля для формулы", "Формула өчен кыр эзләү"],
+  "Formula function help": ["Справка по функциям", "Функцияләр турында белешмә"],
+  "Functions run on the server. Arguments must have compatible types.": ["Функции выполняются на сервере. Типы аргументов должны быть совместимы.", "Функцияләр серверда башкарыла. Аргумент төрләре туры килергә тиеш."],
   "Operator": ["Оператор", "Оператор"],
   "Source": ["Источник", "Чыганак"],
   "Check this setting and choose a valid value.": ["Проверьте настройку и выберите допустимое значение.", "Көйләүне тикшерегез һәм дөрес кыйммәт сайлагыз."],

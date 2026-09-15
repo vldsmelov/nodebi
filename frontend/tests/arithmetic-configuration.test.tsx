@@ -20,6 +20,17 @@ it("inserts stable column references without replacing the expression", () => {
   expect(screen.getByLabelText("Expression")).toHaveValue("2 * [q]");
 });
 
+it("replaces a selected named token without changing surrounding arithmetic", () => {
+  render(<Form type="calculated_column" />);
+  fireEvent.change(screen.getByLabelText("Expression"), { target: { value: "2 * [q] + 5" } });
+  fireEvent.click(screen.getByRole("button", { name: "Quantity · integer" }));
+  fireEvent.change(screen.getByLabelText("Insert formula field"), { target: { value: "c" } });
+  expect(screen.getByLabelText("Expression")).toHaveValue("2 * [c] + 5");
+  expect(screen.getByRole("button", { name: "Category · string" })).toBeVisible();
+  fireEvent.change(screen.getByLabelText("Find formula field"), { target: { value: "Category" } });
+  expect(screen.queryByRole("option", { name: "Quantity · integer" })).not.toBeInTheDocument();
+});
+
 it("restricts aggregation choices when the selected field becomes nonnumeric", () => {
   render(<Form type="group_by" />);
   fireEvent.click(screen.getByText("Add aggregation"));

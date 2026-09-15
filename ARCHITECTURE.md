@@ -1,5 +1,13 @@
 # ARCHITECTURE.md
 
+## Named formula presentation (ADR-073)
+
+FormulaEditor owns cursor/search interaction; formula-presentation recognizes canonical bracket
+references while leaving quoted text intact. It resolves labels/types from input schemas,
+never evaluates expressions. Token selection maps to canonical offsets; inserting a field
+updates the existing expression config through ordinary autosave/history. Schema renames only
+change presentation. No extra persisted display expression or formula source of truth exists.
+
 ## Configuration feedback (ADR-072)
 
 WorkflowGraphValidator converts Pydantic structured errors to individual GraphIssue entries

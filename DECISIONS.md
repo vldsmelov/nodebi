@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# ADR-073 - Named formula presentation over canonical expressions
+
+Date: 2026-09-15. Status: ACCEPTED; second U2 delivery.
+Context: stable column references survive renaming but make formulas difficult to read, and
+field insertion previously always appended at the end.
+Decision: FormulaEditor renders bracket references as clickable field-name/type tokens while
+retaining the canonical expression textarea for operators, functions and free text. Clicking
+a token selects exactly its canonical span; field selection replaces that span or inserts at
+the remembered cursor. Schema updates refresh labels without rewriting stored expressions.
+Quoted strings remain opaque under the same reference-recognition pattern used by the backend.
+This is presentation, not a second expression evaluator/type checker. Raw identifier formulas
+remain supported and are not silently converted into stable references.
+Field lookup searches display/engine names and IDs; duplicate labels include engine names and
+full IDs. Missing references and unavailable schema are distinguished. Function signatures
+are hints; backend compilation remains authoritative. No API/schema/dependency change.
+Alternatives rejected: replacing saved IDs with names breaks rename stability; contenteditable
+with embedded editable nodes adds selection/clipboard complexity to this first delivery.
+Consequence: both readable tokens and canonical text remain visible. Unified rich text editing,
+more detailed provenance labels and inline expression diagnostics are not claimed here.
+
 # ADR-072 - Field-specific configuration feedback
 
 Date: 2026-09-15. Status: ACCEPTED; first U2 delivery.

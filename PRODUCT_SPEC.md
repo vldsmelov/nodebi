@@ -25,6 +25,10 @@ connections, and open members from a list. Group membership survives saves; diss
 preserves its nodes. Panel widths and collapse state restore on same-tab reload without graph
 revisions. Group nesting and moving groups as a unit are not part of this delivery.
 
+Calculated formulas provide a readable field-token view beside the canonical text editor.
+Users can search fields by name, insert at the cursor and replace a selected token. Stable
+references retain identity after upstream renaming; backend validation remains authoritative.
+
 ## 1. Document Purpose
 
 This document defines the product requirements for the MVP of the node-based Business Intelligence platform.

@@ -17,7 +17,8 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [x] Persistent flat groups, collapse with boundary connections, member navigation and configurable panels; projection/revision/undo/output regression verified.
 * [~] U2: Named formula tokens and batch preparation forms backed by ordinary explicit nodes.
   * [x] P2: Field-specific configuration feedback replaces raw Pydantic dumps; nested errors retained in English/Russian/Tatar; empty Filter repair verified.
-  * [ ] Named formula tokens, cursor insertion and schema-aware field lookup.
+  * [x] Named formula token view, cursor/selection insertion, schema-aware field lookup and signature hints; canonical text editing retained (ADR-073).
+  * [ ] Rich source labels and expression diagnostics adjacent to the formula; current duplicate labels use engine names/IDs.
   * [ ] Batch preparation/calculated-field forms and grouped Unpivot authoring.
 * [ ] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
 * [ ] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.

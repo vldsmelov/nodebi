@@ -1,5 +1,18 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Formula presentation checkpoint - 2026-09-15
+
+50 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.
+Unit/component cases cover literal quoted/escaped strings, stable references after renaming,
+missing fields, duplicate display names, canonical selection replacement and field search.
+Browser acceptance replaces a named field token, restores it, renames the upstream field,
+verifies the updated token with unchanged canonical ID, computes 9 and restores after reload.
+24 browser scenarios pass in 2.5 min (10 opt-in skips), including six-screen result equality
+after application/PostgreSQL restart, both themes and three languages. Log .backups/ux-formula-e2e.log.
+Backend remains unchanged; previous 249-test PostgreSQL baseline applies.
+This is a readable token view with canonical text editing, not a rich text editor. Detailed
+provenance labels and expression-adjacent errors remain planned; no human speed claim is made.
+
 ## Configuration feedback checkpoint - 2026-09-15
 
 249 backend tests pass with PostgreSQL (4 SQLite-only skips), Ruff lint/format (104 files),
