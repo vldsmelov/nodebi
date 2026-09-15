@@ -10,7 +10,10 @@
 * [x] Typed workflow declarations/defaults, Filter references, execution values and cache isolation.
 * [x] Editor parameter forms, preview values, stale response protection and UI acceptance.
 * [x] Dashboard parameter bindings, URL state, value selectors and navigation actions; UI and restart regression pass.
-* [ ] Presentation extensions and all six saved dashboards.
+* [x] Parameterized titles and stable-ID highlighting; preserve complete comparison data.
+* [~] Five detailed saved dashboards, following the verified overview.
+  * [x] Class: editable branches, four-slice parity, overview actions, URL restoration.
+  * [ ] Service and three cost screens, shared article preparation and full navigation.
 * [ ] Reference parity, UI construction/editing, restart and full quality checks.
 
 Specification and screen matrix: docs/OPOP_CONSTRUCTOR_PLAN.md.

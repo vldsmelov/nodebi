@@ -58,6 +58,28 @@ def test_text_kpi_result_keeps_extra_navigation_identity(db_engine: Engine, tmp_
         assert result["context_column_ids"] == ["col_2"]
         assert {column["column_id"] for column in result["columns"]} == {"col_1", "col_2"}
         assert result["rows"] == [{"category": "A", "quantity": 2}]
+        graph["parameters"] = [{"name": "selected", "logical_type": "string"}]
+        chart = next(node for node in graph["nodes"] if node["type"] == "bar_chart")
+        chart["config"].update(
+            title="Compare {selected}",
+            title_template=True,
+            highlight_column_id="col_1",
+            highlight_parameter="selected",
+        )
+        graph["expected_revision"] += 1
+        assert client.put(f"/api/v1/workflows/{graph['id']}", json=graph).status_code == 200
+        results = [
+            client.post(
+                f"/api/v1/visualizations/{chart['id']}/result",
+                json={"parameters": {"selected": value}},
+            ).json()
+            for value in ("A", "B")
+        ]
+        assert results[0]["rows"] == results[1]["rows"]
+        assert results[0]["title"] == "Compare A"
+        assert results[1]["title"] == "Compare B"
+        assert results[0]["highlight_field"] == "category"
+        assert results[1]["highlight_value"] == "B"
     finally:
         app.dependency_overrides.clear()
 

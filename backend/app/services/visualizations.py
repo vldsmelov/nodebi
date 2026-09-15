@@ -6,7 +6,7 @@ from app.config import Settings
 from app.domain.errors import ApplicationError
 from app.domain.nodes import NodeRegistry
 from app.domain.parameters import ParameterValue
-from app.domain.visualizations import CHART_TYPES, VisualizationConfig
+from app.domain.visualizations import CHART_TYPES, TITLE_PARAMETER, VisualizationConfig
 from app.infrastructure.storage import StorageProvider
 from app.models import Visualization, Workflow
 from app.schemas.dashboards import VisualizationResult
@@ -76,7 +76,17 @@ def render_visualization(
     ):
         fields.insert(0, result.schema.by_id(config.category_column_id))
     included = {column.column_id for column in fields}
-    for identity in config.context_column_ids:
+    context_columns = list(config.context_column_ids)
+    if config.highlight_column_id and (
+        config.highlight_column_id not in included
+        or (
+            node.type == "table"
+            and config.column_ids is not None
+            and config.highlight_column_id not in config.column_ids
+        )
+    ):
+        context_columns.append(config.highlight_column_id)
+    for identity in context_columns:
         if identity not in included:
             fields.append(result.schema.by_id(identity))
             included.add(identity)
@@ -86,13 +96,28 @@ def render_visualization(
     else:
         offset, limit = 0, result.output.row_count
     return VisualizationResult(
-        context_column_ids=config.context_column_ids,
+        highlight_field=result.schema.by_id(config.highlight_column_id).engine_name
+        if config.highlight_column_id
+        else None,
+        highlight_value=context.parameters.get(config.highlight_parameter)
+        if config.highlight_parameter
+        else None,
+        context_column_ids=context_columns,
         column_formats=config.column_formats,
         orientation=config.orientation,
         visualization_id=visualization_id,
         revision=workflow.revision,
         type=node.type,
-        title=config.title,
+        title=TITLE_PARAMETER.sub(
+            lambda match: str(
+                context.parameters.get(match[1])
+                if context.parameters.get(match[1]) is not None
+                else "—"
+            ),
+            config.title,
+        )
+        if config.title_template
+        else config.title,
         value_field=result.schema.by_id(config.value_column_id).engine_name
         if node.type != "table" and config.value_column_id
         else None,

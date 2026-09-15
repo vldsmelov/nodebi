@@ -891,6 +891,10 @@ export interface components {
         };
         /** VisualizationResult */
         VisualizationResult: {
+            /** Highlight Field */
+            highlight_field?: string | null;
+            /** Highlight Value */
+            highlight_value?: string | number | boolean | null;
             /** Context Column Ids */
             context_column_ids?: string[];
             /** Column Formats */

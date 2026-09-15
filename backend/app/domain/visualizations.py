@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -23,6 +24,7 @@ CHART_NAMES: dict[ChartType, str] = {
     "scatter_chart": "Scatter Chart",
 }
 CHART_TYPES = tuple(CHART_NAMES)
+TITLE_PARAMETER = re.compile(r"\{([A-Za-z][A-Za-z0-9_]{0,63})\}")
 
 
 class NumberFormatConfig(BaseModel):
@@ -33,6 +35,9 @@ class NumberFormatConfig(BaseModel):
 
 class VisualizationConfig(NumberFormatConfig):
     title: str = Field(default="", max_length=200)
+    title_template: bool = False
+    highlight_column_id: str | None = Field(default=None, min_length=1)
+    highlight_parameter: str | None = Field(default=None, min_length=1, max_length=64)
     value_column_id: str | None = Field(default=None, min_length=1)
     category_column_id: str | None = Field(default=None, min_length=1)
     column_ids: list[str] | None = None

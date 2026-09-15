@@ -10,7 +10,7 @@ from app.domain.nodes import (
     PortKind,
     SchemaInferenceMode,
 )
-from app.domain.visualizations import CHART_NAMES, CHART_TYPES, VisualizationConfig
+from app.domain.visualizations import CHART_NAMES, CHART_TYPES, TITLE_PARAMETER, VisualizationConfig
 from app.domain.workflows import NodeInstance
 from app.nodes.common import UnaryExecutor, input_schema
 
@@ -21,6 +21,24 @@ class VisualizationExecutor(UnaryExecutor):
     ) -> DatasetSchema:
         schema = input_schema(input_schemas)
         config = VisualizationConfig.model_validate(node.config)
+        parameters = {item.name: item for item in context.parameter_definitions}
+        if config.title_template and any(
+            name not in parameters for name in TITLE_PARAMETER.findall(config.title)
+        ):
+            raise ValueError("The title references an undeclared workflow parameter.")
+        if bool(config.highlight_column_id) != bool(config.highlight_parameter):
+            raise ValueError("Select both a highlight field and a workflow parameter.")
+        if config.highlight_column_id and config.highlight_parameter:
+            highlighted = schema.by_id(config.highlight_column_id)
+            parameter = parameters.get(config.highlight_parameter)
+            if parameter is None or (
+                parameter.logical_type != highlighted.logical_type
+                and not (
+                    parameter.logical_type == "integer"
+                    and highlighted.logical_type == LogicalType.FLOAT
+                )
+            ):
+                raise ValueError("The highlight parameter and field must have compatible types.")
         for column_id in config.column_formats:
             schema.by_id(column_id)
         for column_id in config.context_column_ids:
@@ -36,7 +54,13 @@ class VisualizationExecutor(UnaryExecutor):
             return DatasetSchema(
                 tuple(
                     schema.by_id(identity)
-                    for identity in dict.fromkeys([*ids, *config.context_column_ids])
+                    for identity in dict.fromkeys(
+                        [
+                            *ids,
+                            *config.context_column_ids,
+                            *([config.highlight_column_id] if config.highlight_column_id else []),
+                        ]
+                    )
                 )
             )
         if not config.value_column_id:

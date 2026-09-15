@@ -4,7 +4,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, model_validator
 
 from app.domain.dashboards import DashboardConfiguration, NavigationAction
-from app.domain.parameters import ParameterValues
+from app.domain.parameters import ParameterValue, ParameterValues
 from app.domain.visualizations import ChartType, NumberFormatConfig
 from app.schemas.workflows import ResolvedColumnRead, WorkflowCreate
 
@@ -28,6 +28,8 @@ class VisualizationList(BaseModel):
 
 
 class VisualizationResult(BaseModel):
+    highlight_field: str | None = None
+    highlight_value: ParameterValue = None
     context_column_ids: list[str] = Field(default_factory=list)
     column_formats: dict[str, NumberFormatConfig] = Field(default_factory=dict)
     orientation: Literal["vertical", "horizontal"] = "vertical"

@@ -26,17 +26,23 @@ Migration 0006 applied after .backups/before-dashboard-navigation-20260915.sql b
 Definitions/layout remain revision-protected; browsing values never save a graph/dashboard.
 Legacy saves omitting configuration preserve it. No data reset or new P0/P1 in this slice.
 Details: docs/DASHBOARD_NAVIGATION.md and ADR-066.
+Presentation follow-up completed: explicit parameter templates for titles and stable-ID
+selection highlighting. Selection changes preserve comparison rows and values (ADR-067).
 
 Checks: 247 backend tests pass with PostgreSQL (3 SQLite-only skips), Ruff lint/format,
-mypy (66 files); 36 frontend tests, ESLint, TypeScript, OpenAPI drift and production builds.
+mypy (66 files); 37 frontend tests, ESLint, TypeScript, OpenAPI drift and production builds.
 All 16 standard browser scenarios pass in 1.3 min, including navigation/choices authored via
 UI, URL reload/history, themes/localization and backend/database/frontend restart. Private
 reference overview authoring remains separately opted in (prior verified 53.8 s).
 
-Next: selected-record highlighting and dynamic titles, then five detailed reference dashboards
+Class screen delivered through UI: 18 additional nodes (47 total), nine widgets, class selector,
+overview drill-through and parent link. All four class slices match the original indicators,
+shares, chart series and service table rows; original 29 nodes are unchanged. Private browser
+authoring/parity scenario passes in 45.5 s; IDs: .backups/reference-class-project.json.
+Current task: service details and reusable article branches; then three cost dashboards
 and full six-screen parity acceptance. The overview project above remains available, but
 full transfer is NOT complete. No environment blocker is known. Current decisions ADR-063
-through ADR-066. Checkpoints: b70b457 overview, d1e495b workflow parameters.
+through ADR-067. Checkpoints: b70b457 overview, d1e495b workflow parameters, e128b0b navigation.
 Original MVP/localization/theme evidence below remains historical.
 
 Last completed task (2026-09-14): persistent light/dark theme selector. Semantic colors cover

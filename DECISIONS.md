@@ -1,5 +1,23 @@
 # DECISIONS.md
 
+# ADR-067 - Explicit title templates and presentation-only selection
+
+Date: 2026-09-15. Status: ACCEPTED.
+Context: detail screens must identify their selected slice and highlight a service without
+filtering out the comparison population or changing denominators.
+Decision: visualization nodes optionally enable title_template and reference declared workflow
+parameters with {name}. Existing literal titles retain their meaning because templates default
+to disabled. Substitution accepts only declared identifiers; it does not execute expressions.
+Highlight configuration pairs a stable field ID with a compatible workflow parameter. Result
+metadata carries that field and value; table and chart rendering preserve row order and values.
+Hidden table context retains the identifier when it is not a displayed column. Zero and false
+remain valid identities, and duplicate display labels do not select unrelated records.
+Alternatives rejected: implicit title interpolation, filtering the comparison chart, matching
+display labels or storing selection as a graph edit. No database migration is needed because
+these optional defaults live in existing node configuration JSON.
+Validation: backend parameter/type/result regression, frontend duplicate-label/zero-ID test,
+UI authoring and URL restoration acceptance, full application/database restart. All checks pass.
+
 # ADR-066 - Dashboard view state and explicit drill-through
 
 Date: 2026-09-15. Status: ACCEPTED.

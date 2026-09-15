@@ -1,5 +1,16 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Use parameters in title": ["Использовать параметры в заголовке", "Баш исемдә параметрларны кулланырга"],
+  "Insert title parameter": ["Вставить параметр в заголовок", "Баш исемгә параметр куярга"],
+  "Highlight selection": ["Выделение выбранной записи", "Сайланган язманы аерып күрсәтү"],
+  "Choose a stable identifier field to highlight the selected record.": ["Выберите поле устойчивого идентификатора для выделения записи.", "Язманы аерып күрсәтү өчен тотрыклы идентификатор кырын сайлагыз."],
+  "Highlight field": ["Поле для выделения", "Аерып күрсәтү кыры"],
+  "Highlight parameter": ["Параметр выделения", "Аерып күрсәтү параметры"],
+  "No highlighting": ["Без выделения", "Аерып күрсәтмичә"],
+  "Select parameter": ["Выберите параметр", "Параметрны сайлагыз"],
+  "The title references an undeclared workflow parameter.": ["Заголовок ссылается на необъявленный параметр процесса.", "Баш исем игълан ителмәгән процесс параметрына сылтый."],
+  "Select both a highlight field and a workflow parameter.": ["Выберите поле выделения и параметр процесса.", "Аерып күрсәтү кырын һәм процесс параметрын сайлагыз."],
+  "The highlight parameter and field must have compatible types.": ["Типы параметра и поля выделения должны быть совместимыми.", "Аерып күрсәтү параметры һәм кырының төрләре туры килергә тиеш."],
   "Retry": ["Повторить", "Кабатларга"],
   "Choices from data": ["Значения из данных", "Мәгълүматтан кыйммәтләр"],
   "Choices workflow for {0}": ["Процесс значений для {0}", "{0} өчен кыйммәтләр процессы"],

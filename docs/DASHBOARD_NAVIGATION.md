@@ -36,3 +36,14 @@ selected slice, revision stability, reload, history, parent link and invalid-URL
 
 This delivery does not complete the six-screen reference transfer. Highlighting, dynamic
 titles and the five detailed reference dashboards are the next tasks.
+# Dynamic titles and selected records
+
+Visualization settings can enable **Use parameters in title** and insert a declared workflow
+parameter as `{name}`. The default is a literal title, including any braces. Missing optional
+values display an em dash. Invalid parameter references produce a configuration error.
+
+**Highlight selection** pairs a result field with a workflow parameter of a compatible type.
+Choose a stable record identifier when labels can repeat. Highlighting changes presentation
+only: comparison rows, their order and values remain intact. Table rows and chart items show
+the selection; table context fields can retain a hidden identifier. These settings are saved
+on the visualization node and remain editable in all three languages and both themes.

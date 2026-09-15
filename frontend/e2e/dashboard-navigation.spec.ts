@@ -33,6 +33,11 @@ test("build dashboard drill-through in the UI and restore URL slices and history
     const filter = page.getByLabel("Input input").locator("option").filter({ hasText: "Filter (" });
     await page.getByLabel("Input input").selectOption((await filter.getAttribute("value"))!);
     await page.getByLabel("Chart title").fill("Selected country");
+    await page.getByLabel("Use parameters in title").check();
+    await page.getByLabel("Insert title parameter").selectOption("country");
+    await page.getByText("Highlight selection", { exact: true }).click();
+    await page.getByLabel("Highlight field", { exact: true }).selectOption({ label: "country" });
+    await page.getByLabel("Highlight parameter", { exact: true }).selectOption("country");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.goto(`/projects/${project.id}/dashboard`);
     await page.getByRole("button", { name: "Create dashboard", exact: true }).click();
@@ -45,7 +50,7 @@ test("build dashboard drill-through in the UI and restore URL slices and history
     await page.getByRole("button", { name: "New dashboard", exact: true }).click();
     await expect(page.getByLabel("Dashboard name")).toHaveValue("Sales dashboard");
     await page.getByLabel("Dashboard name").fill("Country detail");
-    await page.getByLabel("Add visualization").selectOption({ label: "Selected country" });
+    await page.getByLabel("Add visualization").selectOption({ label: "Selected country {country}" });
     await page.getByRole("button", { name: "Add widget", exact: true }).click();
     await page.getByText("Dashboard settings", { exact: true }).click();
     await page.getByRole("button", { name: "Add dashboard parameter", exact: true }).click();
@@ -75,6 +80,8 @@ test("build dashboard drill-through in the UI and restore URL slices and history
     await expect(page.getByLabel("Dashboard name")).toHaveValue("Country detail");
     expect(JSON.parse(new URL(page.url()).searchParams.get("parameters")!)).toEqual({ selection: "Korea" });
     await expect(page.getByRole("table")).toContainText("Korea");
+    await expect(page.getByRole("heading", { name: "Selected country Korea", exact: true })).toBeVisible();
+    await expect(page.getByRole("table").locator('tbody tr[aria-selected="true"]').first()).toBeVisible();
     const slice = await page.getByRole("table").innerText();
     await page.reload();
     await expect(page.getByLabel("Dashboard name")).toHaveValue("Country detail");

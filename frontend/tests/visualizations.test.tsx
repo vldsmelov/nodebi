@@ -3,7 +3,7 @@ import { fireEvent, screen } from "@testing-library/react";
 import { render } from "./render";
 import { afterEach, expect, it, vi } from "vitest";
 import type { VisualizationResult } from "@/features/dashboard/api";
-import { chartOptions, format, VisualizationView } from "@/features/dashboard/VisualizationView";
+import { chartOptions, format, isHighlighted, VisualizationView } from "@/features/dashboard/VisualizationView";
 
 const result: VisualizationResult = {
   orientation: "vertical",
@@ -17,6 +17,15 @@ const result: VisualizationResult = {
   rows: [{ day: "2026-01-01", total: 10 }, { day: "2026-01-02", total: 20 }],
 };
 afterEach(() => vi.unstubAllGlobals());
+
+it("highlights stable identities without changing values or prepared row order", () => {
+  const selected = { ...result, type: "bar_chart" as const, orientation: "horizontal" as const, highlight_field: "identity", highlight_value: 0, rows: [{ day: "Repeated", total: 10, identity: 1 }, { day: "Repeated", total: 20, identity: 0 }] };
+  expect(isHighlighted(selected, selected.rows[0])).toBe(false);
+  expect(isHighlighted(selected, selected.rows[1])).toBe(true);
+  const options = chartOptions(selected);
+  expect(options.series).toMatchObject([{ data: [{ value: 10, itemStyle: { opacity: 0.35 } }, { value: 20, itemStyle: { opacity: 1 } }] }]);
+  expect(options.yAxis).toMatchObject({ data: ["Repeated", "Repeated"] });
+});
 
 it("passes the selected row's stable IDs while keeping context fields out of the table", async () => {
   const table = { ...result, type: "table", context_column_ids: ["identity"], columns: [...result.columns, { column_id: "identity", engine_name: "row_id", display_name: "Stable ID", logical_type: "integer", nullable: false, metadata: {} }], rows: [{ day: "Same label", total: 10, row_id: 1 }, { day: "Same label", total: 20, row_id: 2 }] };

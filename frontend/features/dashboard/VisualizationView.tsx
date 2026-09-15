@@ -27,9 +27,16 @@ export function format(value: unknown, result: VisualizationResult, locale: Loca
   } catch { return value.toFixed(settings.decimals); }
 }
 
+export function isHighlighted(result: VisualizationResult, row: Record<string, unknown>): boolean {
+  return !!result.highlight_field && result.highlight_value != null && row[result.highlight_field] === result.highlight_value;
+}
+
 export function chartOptions(result: VisualizationResult, locale: Locale = "ru", theme: Theme = "dark"): EChartsOption {
   const x = result.category_field!;
   const y = result.value_field!;
+  const hasHighlight = !!result.highlight_field && result.highlight_value != null;
+  const highlightStyle = (row: Record<string, unknown>) => hasHighlight ? { itemStyle: { opacity: isHighlighted(result, row) ? 1 : 0.35, borderWidth: isHighlighted(result, row) ? 2 : 0, borderColor: themePalette[theme].accent } } : {};
+  const point = (value: unknown, row: Record<string, unknown>) => hasHighlight ? { value, ...highlightStyle(row) } : value;
   const base: EChartsOption = {
     useUTC: true,
     backgroundColor: "transparent", aria: { enabled: true, label: { description: result.title || translate(locale, nodeNames[result.type]) } },
@@ -39,7 +46,7 @@ export function chartOptions(result: VisualizationResult, locale: Locale = "ru",
   if (["pie_chart", "donut_chart"].includes(result.type)) return {
     ...base, series: [{ type: "pie", radius: result.type === "donut_chart" ? ["40%", "65%"] : "65%",
       label: { show: result.show_labels },
-      data: result.rows.map(row => ({ name: String(row[x] ?? translate(locale, "(empty)")), value: Number(row[y] ?? 0) })),
+      data: result.rows.map(row => ({ name: String(row[x] ?? translate(locale, "(empty)")), value: Number(row[y] ?? 0), ...highlightStyle(row) })),
     }],
   };
   if (result.type === "bar_chart" && result.orientation === "horizontal") return {
@@ -47,7 +54,7 @@ export function chartOptions(result: VisualizationResult, locale: Locale = "ru",
     xAxis: { type: "value", axisLabel: { formatter: value => format(value, result, locale) } },
     yAxis: { type: "category", inverse: true, data: result.rows.map(row => String(row[x] ?? "")),
       axisLabel: { width: 170, overflow: "truncate" } },
-    series: [{ type: "bar", name: y, data: result.rows.map(row => row[y]),
+    series: [{ type: "bar", name: y, data: result.rows.map(row => point(row[y], row)),
       itemStyle: { color: themePalette[theme].accent },
       label: { show: result.show_labels, position: "right", formatter: (parameters: { value?: unknown }) => format(parameters.value, result, locale) } }],
   } as EChartsOption;
@@ -67,7 +74,7 @@ export function chartOptions(result: VisualizationResult, locale: Locale = "ru",
     },
     yAxis: { type: "value", axisLabel: { formatter: value => format(value, result, locale) } },
     series: [{ type: scatter ? "scatter" : line ? "line" : "bar", name: y,
-      data: points, itemStyle: { color: themePalette[theme].accent },
+      data: points.map((value, index) => point(value, result.rows[index])), itemStyle: { color: themePalette[theme].accent },
       label: { show: result.show_labels, position: "top", formatter: (parameters: { value?: unknown }) => format(Array.isArray(parameters.value) ? parameters.value[1] : parameters.value, result, locale) },
       ...(result.type === "area_chart" ? { areaStyle: { opacity: 0.3 } } : {}),
     }],
@@ -111,7 +118,7 @@ function VisualizationPanel({ id, revision, titleOverride, hideTitle, parameters
   const selectRow = (row: Record<string, unknown>) => onSelect?.(Object.fromEntries(result.columns.map(column => [column.column_id, row[column.engine_name]])));
   return <div className="flex h-full min-h-0 flex-col">{!hideTitle ? <h3 className="px-4 pt-2 text-sm text-muted">{titleOverride ?? result.title}</h3> : null}
     {result.type === "table" ? <>
-      <div className="min-h-0 flex-1 overflow-auto p-3"><table className="min-w-full text-xs"><thead><tr>{visibleColumns.map(column => <th key={column.column_id} className="border-b border-outline px-3 py-2 text-left">{column.display_name}</th>)}</tr></thead><tbody>{result.rows.map((row, index) => <tr key={index} tabIndex={onSelect ? 0 : undefined} className={onSelect ? "cursor-pointer hover:bg-accent/10" : undefined} onClick={onSelect ? () => selectRow(row) : undefined} onKeyDown={onSelect ? event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectRow(row); } } : undefined}>{visibleColumns.map(column => <td key={column.column_id} className="border-b border-outline px-3 py-2 whitespace-nowrap">{format(row[column.engine_name], result, locale, column.logical_type, column.column_id)}</td>)}</tr>)}</tbody></table>{!result.rows.length ? <p className="mt-3 text-muted">{t("No rows on this page.")}</p> : null}</div>
+      <div className="min-h-0 flex-1 overflow-auto p-3"><table className="min-w-full text-xs"><thead><tr>{visibleColumns.map(column => <th key={column.column_id} className="border-b border-outline px-3 py-2 text-left">{column.display_name}</th>)}</tr></thead><tbody>{result.rows.map((row, index) => <tr key={index} tabIndex={onSelect ? 0 : undefined} aria-selected={result.highlight_field ? isHighlighted(result, row) : undefined} className={`${onSelect ? "cursor-pointer hover:bg-accent/10" : ""} ${isHighlighted(result, row) ? "bg-accent/15 font-semibold" : ""}`} onClick={onSelect ? () => selectRow(row) : undefined} onKeyDown={onSelect ? event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectRow(row); } } : undefined}>{visibleColumns.map(column => <td key={column.column_id} className="border-b border-outline px-3 py-2 whitespace-nowrap">{format(row[column.engine_name], result, locale, column.logical_type, column.column_id)}</td>)}</tr>)}</tbody></table>{!result.rows.length ? <p className="mt-3 text-muted">{t("No rows on this page.")}</p> : null}</div>
       <div className="flex items-center justify-between gap-3 p-3 text-xs"><button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 100))} className="disabled:opacity-30">{t("Previous page")}</button><span>{t("Total rows: {0} · page {1}", { 0: cell(result.total_rows), 1: cell(Math.floor(offset / 100) + 1) })}</span><button disabled={!result.truncated} onClick={() => setOffset(offset + 100)} className="disabled:opacity-30">{t("Next page")}</button></div>
     </> : result.type === "kpi" ? <div className="grid flex-1 place-items-center p-5 text-4xl font-semibold text-accent" data-testid="kpi-value" role={onSelect ? "button" : undefined} tabIndex={onSelect ? 0 : undefined} onClick={onSelect ? () => selectRow(result.rows[0]) : undefined} onKeyDown={onSelect ? event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectRow(result.rows[0]); } } : undefined}>{result.rows[0]?.[result.value_field!] == null ? t("No value") : format(result.rows[0][result.value_field!], result, locale)}</div> : result.rows.length ? <div className="min-h-0 flex-1"><Chart result={result} onSelect={onSelect} /></div> : <p className="p-5 text-muted">{t("No rows to visualize.")}</p>}
   </div>;
