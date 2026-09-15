@@ -1,5 +1,21 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Group/panel checkpoint - 2026-09-15
+
+46 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.
+22 browser scenarios pass in 2.5 min (10 opt-in authoring skips), including six-screen
+result/configuration equality after frontend/backend/PostgreSQL restart, both themes and
+three languages. Backend unchanged; previous PostgreSQL/backend quality baseline below applies.
+Group regressions check duplicate boundary labels retain node/port identities, internal edges
+survive projection, membership persists, rename supports undo, dissolution preserves nodes,
+and collapse/panel resizing do not save revisions. Preview rows/columns match before/after.
+Initial focused test exposed a Shift-selection mismatch with React Flow's default modifier;
+the editor now explicitly uses Shift as advertised. A test fixture with an empty Filter was
+invalid; replaced by a configured Limit to verify real successful calculation invariance.
+Final log: .backups/ux-groups-e2e.log; focused log: .backups/ux-groups-focused.log.
+Visual evidence: .backups/ux-groups.png. Desktop canvas may need Fit view after widening panels.
+Human authoring speed is not measured. Existing raw-validation P2 remains queued in U2.
+
 ## Presentation and Class checkpoint - 2026-09-15
 
 Second U1 delivery adds bounded graph history and dependency layout. Backend regression now

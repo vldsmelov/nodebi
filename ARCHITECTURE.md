@@ -1,5 +1,15 @@
 # ARCHITECTURE.md
 
+## Presentation groups and editor panels (ADR-071)
+
+Group membership persists in node.ui.group. graph-groups derives hidden members, synthetic
+proxy cards and boundary edges solely for rendering; serialization always uses original nodes
+and edges. Proxy change events cannot mutate graph state. Each boundary handle retains the
+original node/port identity. Group creation/rename/dissolution follows normal graph history.
+GroupPanel provides member navigation; selecting a hidden member expands its group.
+EditorPanels stores bounded widths and collapsed names separately in sessionStorage by workflow.
+These view preferences do not change revisions, semantic configuration or execution caches.
+
 ## Graph history and layout (ADR-070)
 
 GraphHistory observes serialized drafts, coalesces focused text edits/dragging and supplies

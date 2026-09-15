@@ -23,14 +23,13 @@ using the normal schema/error feedback.
 
 Names persist in existing node UI metadata with optimistic revision checks and draft recovery.
 Three languages and both themes remain supported. No execution/API/database changes or new
-dependencies were needed for the first delivery. Grouping and adjustable panels remain U1
-work; layout/history are described below. Formula tokens and later stages remain planned.
+dependencies were needed for the first delivery. Grouping and adjustable panels are described below, along with layout/history. Formula tokens and later stages remain planned.
 
 ## Dependency layout and undo/redo (second U1 delivery)
 
 Choose **Arrange by dependencies** to place sources on the left and their dependents to the
 right. Shared inputs precede their consumers. Layout affects positions only; **Undo graph change**
-returns to the previous layout. Long branches can still require panning; grouping remains planned.
+returns to the previous layout. Long branches can still require panning; named groups reduce visible detail.
 
 Undo/redo covers configuration, presentation labels, parameters, node/edge creation/deletion,
 input replacement and movement. One focused text-field editing session or drag is one step.
@@ -51,3 +50,21 @@ were modified while implementing this feature.
 
 Human evaluation protocol: [operator tasks](UX_OPERATOR_PROTOCOL.md).
 Design and complete roadmap: [UX review](CONSTRUCTOR_UX_REVIEW.md).
+
+## Groups and panel widths (third U1 delivery)
+
+Click a node, then Shift-click additional nodes. Open **Node groups**, enter a name and choose
+**Group selected nodes**. Select an existing group to add selected nodes, rename it, or open
+individual members. **Ungroup selected nodes** removes their membership; **Dissolve group**
+removes the entire group without deleting nodes or connections. Membership changes support undo.
+
+**Collapse group** replaces its members visually with a summary showing boundary connections.
+Expand it to edit or connect members. Searching for a member or choosing it in the group list
+expands the group and opens its configuration. Groups are flat presentation sections, not new
+calculation operations. Their summary cards cannot be dragged or deleted. Expanded members
+remain individually movable. Use **Fit view** after resizing panels if nodes leave the viewport.
+
+Open **Editor panels** to adjust library/configuration widths or reset both. Widths are capped
+by the available viewport; the desktop editor retains a minimum canvas width. Collapse and
+width preferences restore on reload in the same tab, independently of graph saves and undo.
+Authored group names remain user content; all controls support Russian, English and Tatar.

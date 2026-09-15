@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# ADR-071 - Presentation groups and independent editor view preferences
+
+Date: 2026-09-15. Status: ACCEPTED.
+Context: large graphs need named sections without replacing explicit executable nodes.
+Decision: flat membership uses existing node.ui.group metadata. Names identify groups within
+one workflow; renaming updates all members atomically through normal autosave/history.
+Dissolving removes membership only. Empty groups disappear; nesting and group dragging are
+not included. Expanded cards show membership; the group member list opens real node settings.
+Collapsed groups are a canvas projection with synthetic, non-editable proxy nodes. Boundary
+handles retain original node/port identities, including duplicate display names. Original edge
+IDs and graph data remain authoritative. Proxies never enter persistence, history or execution.
+Collapsing arbitrary groups does not imply that each group is a single executable DAG step.
+Expand a group to edit its internal nodes or connect ports.
+Collapse state and bounded panel widths are per-workflow sessionStorage view preferences,
+separate from recoverable graph drafts. Reload preserves them in the same tab; they do not
+create revisions or undo steps. Finder/member navigation expands a hidden member automatically.
+Alternative rejected: backend subgraph executors or persisted proxy nodes would complicate
+execution and risk changing calculations for a presentation-only requirement. No migration,
+API change or dependency is needed. Human usability gains remain unmeasured.
+
 # ADR-070 - Local graph history, dependency layout and dashboard-safe deletion
 
 Date: 2026-09-15. Status: ACCEPTED.

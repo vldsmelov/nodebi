@@ -32,6 +32,9 @@ import { WorkflowNodeCard, type EditorNode } from "./WorkflowNodeCard";
 import { useWorkflowUi } from "./store";
 import type { NodeDefinition, Workflow, WorkflowEdge, WorkflowNode, WorkflowSchemaResult } from "./types";
 
+import { GroupPanel } from "./GroupPanel";
+import { EditorPanels, useEditorView } from "./EditorPanels";
+import { groupName, groupProxyId, projectGroups } from "./graph-groups";
 import { GraphHistory } from "./graph-history";
 import { layoutGraph } from "./graph-layout";
 import type { GraphDraft } from "./autosave";
@@ -90,6 +93,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   const [nodes, setNodes, onNodesChange] = useNodesState<EditorNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState((recovered?.draft.edges ?? workflow.edges).map(toEditorEdge));
   const themedEdges = useMemo(() => edges.map(edge => ({ ...edge, style: { ...edge.style, stroke: palette.accent } })), [edges, palette.accent]);
+  const [view, setView] = useEditorView(workflow.id);
   const [dependencyView, setDependencyView] = useState<DependencyView>("all");
   const [search, setSearch] = useState("");
   const flow = useRef<ReactFlowInstance<EditorNode, Edge> | null>(null);
@@ -98,9 +102,36 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
   const visibleDefinitions = catalog.filter((definition) => `${nodeName(definition.type)} ${t(definition.description)} ${definition.display_name}`.toLowerCase().includes(search.toLowerCase()));
   const highlighted = selectedNodeId && dependencyView !== "all" ? dependencyIds(edges, selectedNodeId, dependencyView) : null;
-  const displayNodes = nodes.map(node => ({ ...node, style: { ...node.style, opacity: highlighted && !highlighted.has(node.id) ? 0.2 : 1 } }));
-  const displayEdges = themedEdges.map(edge => ({ ...edge, style: { ...edge.style, opacity: highlighted && !(highlighted.has(edge.source) && highlighted.has(edge.target)) ? 0.1 : 1 } }));
-  const focusNodes = (ids: string[]) => { void flow.current?.fitView({ nodes: ids.map(id => ({ id })), padding: 0.3, maxZoom: 1, duration: 0 }); };
+  const selectedIds = new Set(nodes.filter(node => node.selected || node.id === selectedNodeId).map(node => node.id));
+  const groupNames = [...new Set(nodes.map(groupName).filter(Boolean))].sort();
+  const groups = groupNames.map(name => { const members = nodes.filter(node => groupName(node) === name); return { name, count: members.length, members: members.map(node => ({ id: node.id, label: nodeLabel(node.data, nodeName(node.data.definition.type)) })) }; });
+  const expandGroup = (name: string) => setView(current => ({ ...current, collapsed: current.collapsed.filter(item => item !== name) }));
+  const openNode = (id: string) => {
+    const node = nodes.find(item => item.id === id);
+    if (!node) return;
+    expandGroup(groupName(node)); selectNode(id);
+    setNodes(current => current.map(item => ({ ...item, selected: item.id === id })));
+    requestAnimationFrame(() => { void flow.current?.fitView({ nodes: [{ id }], padding: 0.5, minZoom: 0.5, maxZoom: 1, duration: 0 }); });
+  };
+  const assignGroup = (name: string) => {
+    setNodes(current => current.map(node => selectedIds.has(node.id) ? { ...node, data: { ...node.data, ui: { ...node.data.ui, group: name } } } : node));
+    expandGroup(name);
+  };
+  const changeGroup = (from: string, to: string) => {
+    setNodes(current => current.map(node => groupName(node) === from ? { ...node, data: { ...node.data, ui: { ...node.data.ui, group: to } } } : node));
+    setView(current => ({ ...current, collapsed: current.collapsed.filter(name => name !== from) }));
+  };
+  const toggleGroup = (name: string) => {
+    if (view.collapsed.includes(name)) { expandGroup(name); return; }
+    setView(current => ({ ...current, collapsed: [...current.collapsed, name] }));
+    setNodes(current => current.map(node => groupName(node) === name ? { ...node, selected: false } : node));
+    if (selectedNode && groupName(selectedNode) === name) selectNode(null);
+  };
+  const projection = projectGroups(nodes, themedEdges, view.collapsed, expandGroup, node => nodeLabel(node.data, nodeName(node.data.definition.type)));
+  const displayNodes = projection.nodes.map(node => ({ ...node, style: { ...node.style, opacity: highlighted && !(node.data.group ? nodes.some(member => groupName(member) === node.data.group!.name && highlighted.has(member.id)) : highlighted.has(node.id)) ? 0.2 : 1 } }));
+  const originalEdges = new Map(edges.map(edge => [edge.id, edge]));
+  const displayEdges = projection.edges.map(edge => { const original = originalEdges.get(edge.id)!; return { ...edge, style: { ...edge.style, opacity: highlighted && !(highlighted.has(original.source) && highlighted.has(original.target)) ? 0.1 : 1 } }; });
+  const focusNodes = (ids: string[]) => { void flow.current?.fitView({ nodes: [...new Set(ids.map(id => { const node = nodes.find(item => item.id === id); const name = node && groupName(node); return name && view.collapsed.includes(name) ? groupProxyId(name) : id; }))].map(id => ({ id })), padding: 0.3, maxZoom: 1, duration: 0 }); };
   const following = selectedNode ? catalog.filter(definition => definition.input_ports.length === 1 && selectedNode.data.definition.output_ports.some(output => output.kind === definition.input_ports[0].kind && (output.max_connections === null || edges.filter(edge => edge.source === selectedNode.id && edge.sourceHandle === output.id).length < output.max_connections))) : [];
   const addFollowing = (type: string) => {
     const definition = following.find(item => item.type === type);
@@ -173,7 +204,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
     if (definition.type === "excel_source" && !firstSource?.workbook.sheets[0]) return;
     const id = crypto.randomUUID();
     const config = definition.type === "excel_source" ? { source_id: firstSource.id, sheet_name: firstSource.workbook.sheets[0].name } : {};
-    setNodes((current) => [...current, { id, type: "workflowNode", position: { x: 80 + (current.length % 3) * 310, y: 80 + Math.floor(current.length / 3) * 180 }, data: { definition, config } }]);
+    setNodes((current) => [...current.map(node => ({ ...node, selected: false })), { id, selected: true, type: "workflowNode", position: { x: 80 + (current.length % 3) * 310, y: 80 + Math.floor(current.length / 3) * 180 }, data: { definition, config } }]);
     selectNode(id);
   };
 
@@ -211,7 +242,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
       if ((event.ctrlKey || event.metaKey) && !event.altKey && ["z", "y"].includes(event.key.toLowerCase())) {
         event.preventDefault(); travel(event.key.toLowerCase() === "y" || event.shiftKey ? "redo" : "undo");
       }
-    }} className="grid h-[calc(100vh-7.75rem)] min-h-[38rem] grid-cols-[17rem_1fr_19rem] overflow-hidden border-t border-outline">
+    }} className="grid h-[calc(100vh-7.75rem)] min-h-[38rem] overflow-hidden border-t border-outline" style={{ gridTemplateColumns: `minmax(180px, min(${view.left}px, 25vw)) minmax(320px, 1fr) minmax(220px, min(${view.right}px, 40vw))`, minWidth: 720 }}>
       <aside className="overflow-y-auto border-r border-outline bg-panel p-4">
         <div className="mb-4 flex flex-wrap gap-2">
           <button className="rounded border border-outline px-2 py-1 text-xs disabled:opacity-40" disabled={!history.canUndo} onClick={() => travel("undo")}>{t("Undo graph change")}</button>
@@ -219,11 +250,9 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
           <button className="rounded border border-outline px-2 py-1 text-xs disabled:opacity-40" disabled={!nodes.length} onClick={arrange}>{t("Arrange by dependencies")}</button>
         </div>
         {layoutError ? <p role="alert" className="mb-3 text-xs text-danger">{t("Fix cycles or missing connections before arranging the graph.")}</p> : null}
-        <NodeFinder nodes={nodes.map(node => ({ id: node.id, label: `${nodeLabel(node.data, nodeName(node.data.definition.type))} · ${nodeName(node.data.definition.type)}` }))} selected={selectedNodeId} onSelect={id => {
-          selectNode(id);
-          setNodes(current => current.map(node => ({ ...node, selected: node.id === id })));
-          void flow.current?.fitView({ nodes: [{ id }], padding: 0.5, minZoom: 0.5, maxZoom: 1, duration: 0 });
-        }} />
+        <EditorPanels left={view.left} right={view.right} change={(left, right) => setView(current => ({ ...current, left, right }))} />
+        <GroupPanel groups={groups} selectedCount={selectedIds.size} collapsed={view.collapsed} assign={assignGroup} rename={changeGroup} dissolve={name => changeGroup(name, "")} toggle={toggleGroup} openNode={openNode} />
+        <NodeFinder nodes={nodes.map(node => ({ id: node.id, label: `${nodeLabel(node.data, nodeName(node.data.definition.type))} · ${nodeName(node.data.definition.type)}` }))} selected={selectedNodeId} onSelect={openNode} />
         <label className="mb-4 block text-xs">{t("Show dependencies")}
           <select aria-label={t("Show dependencies")} className="mt-2 w-full rounded-lg border border-outline bg-control p-2" value={dependencyView} onChange={event => {
             const value = event.target.value as DependencyView; setDependencyView(value);
@@ -245,7 +274,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
       <section className="relative bg-page">
         <div className="absolute right-4 top-4 z-10 rounded-full border border-outline bg-surface/90 px-3 py-1.5 text-xs text-muted backdrop-blur">{saveStatus === "saving" ? t("Saving…") : saveStatus === "saved" ? t("Saved") : saveStatus === "error" ? t("Save failed") : t("Ready")}</div>
         {saveStatus === "error" ? <div className="absolute left-4 top-4 z-10 max-w-sm rounded-xl bg-danger-surface p-3 text-xs text-danger" role="alert">{errorText(saveError)}<div className="mt-2 flex gap-3"><button onClick={() => void writer.flush()}>{t("Retry save")}</button><button onClick={() => { if (window.confirm(t("Discard this local draft and load the saved workflow?"))) { sessionStorage.removeItem(writer.key); window.location.reload(); } }}>{t("Discard draft and reload")}</button></div></div> : null}
-        <ReactFlow<EditorNode, Edge> onInit={instance => { flow.current = instance; }} nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} ariaLabelConfig={{
+        <ReactFlow<EditorNode, Edge> multiSelectionKeyCode="Shift" onInit={instance => { flow.current = instance; }} nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} ariaLabelConfig={{
           'controls.ariaLabel': t('Canvas controls'),
           'controls.zoomIn.ariaLabel': t('Zoom in'), 'controls.zoomOut.ariaLabel': t('Zoom out'),
           'controls.fitView.ariaLabel': t('Fit view'), 'controls.interactive.ariaLabel': t('Toggle interactivity'),
@@ -254,7 +283,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
           'node.a11yDescription.keyboardDisabled': t('Press Enter to select a node.'),
           'edge.a11yDescription.default': t('Press Enter to select an edge and Delete to remove it.'),
           'node.a11yDescription.ariaLiveMessage': ({ direction, x, y }) => t('Node moved {0}. Position: {1}, {2}.', { 0: t(direction), 1: x, 2: y }),
-        }} onNodeDragStart={() => { editGroup.current = crypto.randomUUID(); }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection} onNodeClick={(_, node) => selectNode(node.id)} onPaneClick={() => selectNode(null)} onNodesDelete={(deleted) => { const ids = new Set(deleted.map((node) => node.id)); setEdges((current) => current.filter((edge) => !ids.has(edge.source) && !ids.has(edge.target))); if (selectedNodeId && ids.has(selectedNodeId)) selectNode(null); }} fitView deleteKeyCode={["Backspace", "Delete"]} colorMode={theme}>
+        }} onNodeDragStart={() => { editGroup.current = crypto.randomUUID(); }} onNodesChange={changes => { const real = changes.filter(change => "id" in change && nodes.some(node => node.id === change.id)); if (real.length) onNodesChange(real); }} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection} onNodeClick={(_, node) => { if (!node.data.group) selectNode(node.id); }} onPaneClick={() => selectNode(null)} onNodesDelete={(deleted) => { const ids = new Set(deleted.map((node) => node.id)); setEdges((current) => current.filter((edge) => !ids.has(edge.source) && !ids.has(edge.target))); if (selectedNodeId && ids.has(selectedNodeId)) selectNode(null); }} fitView deleteKeyCode={["Backspace", "Delete"]} colorMode={theme}>
           <Background color={palette.grid} gap={22} size={1} /><Controls /><MiniMap nodeColor={palette.accent} maskColor={palette.mask} />
         </ReactFlow>
       </section>

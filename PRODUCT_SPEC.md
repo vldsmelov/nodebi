@@ -20,6 +20,11 @@ Authors can arrange the graph by dependencies and undo/redo graph edits within t
 editor session. Undo saves through normal revision checks. A visualization used on a dashboard
 must be detached there before removing its graph node; graph undo cannot delete its widgets.
 
+Authors can organize nodes into named flat groups, collapse them while retaining boundary
+connections, and open members from a list. Group membership survives saves; dissolving a group
+preserves its nodes. Panel widths and collapse state restore on same-tab reload without graph
+revisions. Group nesting and moving groups as a unit are not part of this delivery.
+
 ## 1. Document Purpose
 
 This document defines the product requirements for the MVP of the node-based Business Intelligence platform.

@@ -10,11 +10,11 @@ Implementation authorized; stages below remain incomplete until their acceptance
 * [~] U0: Human baseline tasks and prototypes; collect time, errors and assistance needed.
   * [x] Define operator tasks, evidence collection and comparison protocol (docs/UX_OPERATOR_PROTOCOL.md).
   * [ ] Conduct baseline with actual operators; no measurements claimed yet.
-* [~] U1: Meaningful node cards, groups, dependency focus, layout, next-step insertion and undo/redo.
+* [x] U1: Meaningful node cards, groups, dependency focus, layout, next-step insertion and undo/redo.
   * [x] Presentation names, dependency view, connected next-step creation and atomic input replacement (40 frontend tests, 19 browser scenarios including restart).
   * [x] Dependency layout and bounded undo/redo through normal revision-aware autosave.
   * [x] Reject deletion of attached visualizations, including concurrent widget attachment (PostgreSQL race and browser recovery checked).
-  * [ ] Groups and configurable panels.
+  * [x] Persistent flat groups, collapse with boundary connections, member navigation and configurable panels; projection/revision/undo/output regression verified.
 * [ ] U2: Named formula tokens and batch preparation forms backed by ordinary explicit nodes.
   * [ ] P2: Replace raw validation strings for unconfigured nodes with localized actionable feedback (observed in Filter output panel).
 * [ ] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
