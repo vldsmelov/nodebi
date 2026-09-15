@@ -1,5 +1,18 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Presentation and Class checkpoint - 2026-09-15
+
+247 backend tests, PostgreSQL matrix, Ruff/mypy, 37 frontend tests, ESLint, TypeScript,
+OpenAPI drift and production builds pass. All 16 standard browser scenarios pass with
+application/database restart. Dynamic titles and selected IDs are authored through the UI;
+duplicate-label/zero-ID regression preserves comparison values and order.
+
+Private Class authoring passes in 45.5 seconds: 18 new nodes and nine widgets on the existing
+reference project, all four classes checked against the original, including every table row,
+chart value and ratio. Overview drill-through and URL reload pass; original nodes are unchanged.
+The oracle exporter now runs the pinned original route bodies for all six screen types without
+starting its authentication/server infrastructure. Its output and workbook remain ignored.
+
 ## Dashboard navigation checkpoint - 2026-09-15
 
 247 backend tests pass with PostgreSQL (three SQLite-only skips), Ruff lint/format,

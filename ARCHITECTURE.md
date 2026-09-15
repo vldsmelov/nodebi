@@ -31,6 +31,12 @@ them. Dashboard parameter bindings/navigation are specified in ADR-066 above.
 
 ## Presentation extensions (ADR-064)
 
+ADR-067 adds opt-in `{parameter}` title templates and a stable-field/parameter highlight pair.
+Schema inference validates declared references and compatible identity types. Rendering adds
+resolved title/highlight metadata after ordinary node execution; it never filters or reorders
+the comparison population. Table hidden context can carry the highlighted identifier. Legacy
+literal titles remain literal. Selection uses the same URL/request context as dashboard filters.
+
 Workflow-owned VisualizationConfig includes vertical/horizontal Bar orientation and
 column-ID-keyed numeric formats. The typed rendering result carries these settings.
 KPI accepts a single numeric or string value; all other chart numeric checks remain.

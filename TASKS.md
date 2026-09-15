@@ -13,7 +13,11 @@
 * [x] Parameterized titles and stable-ID highlighting; preserve complete comparison data.
 * [~] Five detailed saved dashboards, following the verified overview.
   * [x] Class: editable branches, four-slice parity, overview actions, URL restoration.
-  * [ ] Service and three cost screens, shared article preparation and full navigation.
+  * [x] Service: shared strict article preparation, full 36-service parity, class navigation.
+  * [x] Cost-type overview: totals, leaders, services, classes and article charts; all three types match.
+  * [x] Class/Service layout authoring via drag/resize with preserved bindings/navigation.
+  * [~] Cost/class ranks, service shares and article detail.
+  * [ ] Cost/service screen, full six-screen navigation, display-format parity and acceptance.
 * [ ] Reference parity, UI construction/editing, restart and full quality checks.
 
 Specification and screen matrix: docs/OPOP_CONSTRUCTOR_PLAN.md.

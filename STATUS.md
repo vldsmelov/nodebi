@@ -39,7 +39,18 @@ Class screen delivered through UI: 18 additional nodes (47 total), nine widgets,
 overview drill-through and parent link. All four class slices match the original indicators,
 shares, chart series and service table rows; original 29 nodes are unchanged. Private browser
 authoring/parity scenario passes in 45.5 s; IDs: .backups/reference-class-project.json.
-Current task: service details and reusable article branches; then three cost dashboards
+Service screen delivered: 45 additional nodes (92 total), eight widgets and reusable article
+Unpivot/Union branches. All 36 services match original route outputs, including article rows,
+cost shares and complete peer comparison. Class drill-through and parent return/reload pass.
+The authoring test needed a scoped navigation selector; retained-project review repeated all
+numeric checks and completed navigation in 26.8 s. No graph/data rollback was needed.
+Private IDs: .backups/reference-service-project.json; details docs/REFERENCE_SERVICE.md.
+Cost-type overview delivered: 34 additional nodes (126 total), ten widgets, all three types
+match original totals, leaders, table rows and positive/top-limited chart series. Reviewed UI
+resume passed in 39.2 s; prior 92 nodes are unchanged. IDs .backups/reference-cost-project.json.
+Class/Service layouts authored through resize/drag and restored with bindings/actions unchanged;
+the layout acceptance passes in 23.8 s. Details docs/REFERENCE_COST.md.
+Current task: author cost/class ranks and article detail, then cost/service and full navigation
 and full six-screen parity acceptance. The overview project above remains available, but
 full transfer is NOT complete. No environment blocker is known. Current decisions ADR-063
 through ADR-067. Checkpoints: b70b457 overview, d1e495b workflow parameters, e128b0b navigation.
