@@ -1,5 +1,36 @@
 # DECISIONS.md
 
+# ADR-066 - Dashboard view state and explicit drill-through
+
+Date: 2026-09-15. Status: ACCEPTED.
+Context: reference slices must reuse ordinary workflow branches, retain their global
+denominators and restore selected views through browser history.
+Decision: migration 0006 stores DashboardConfiguration (typed parameters, workflow bindings,
+parent links) in the dashboard's revision-protected JSON. Widget config may hold a navigation
+action, whose target parameter values come from an explicit result field ID, current dashboard
+parameter or typed constant. Validate project ownership and declared parameter compatibility
+on save; reject invalid saves atomically. Omitted configuration preserves legacy state.
+URL query fields `dashboard` and JSON `parameters` own the current selection. Applying selections
+or navigating never saves workflow/dashboard revisions. Missing, malformed or incompatible
+values produce explicit feedback and suspend widget rendering; one widget execution error
+otherwise remains isolated. Browser back/forward restores view state.
+
+Visualization context_column_ids explicitly retain stable navigation IDs without aggregation;
+tables hide these context fields from display. ECharts dataIndex maps to the original result
+row, preserving repeated labels. Tables and KPI also support keyboard activation. No arbitrary
+URL destinations or executable interpolation is accepted. An optional choices source references
+an ordinary workflow node and field; the generic node-values endpoint returns distinct values
+with a bounded page, literal search and an explicit truncation flag. It uses ordinary execution
+and the same ownership/cache checks. This is selector support, never an analytical calculation.
+
+Alternatives rejected: implicit global filtering, selecting by display label, chart-side
+aggregation, storing browsing state as graph edits and silent truncation of choices.
+Consequences: source fields removed after configuration yield recoverable runtime errors;
+authors select choice nodes upstream of filters when all options must remain available.
+Client URL integer values must be safe JavaScript integers. Existing Float64 limits remain.
+Highlighting and dynamic titles, followed by the five detailed reference screens, remain pending.
+
+
 # ADR-065 - Workflow parameters are execution inputs
 
 Date: 2026-09-15. Status: ACCEPTED; workflow slice implemented, dashboard bindings pending.

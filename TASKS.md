@@ -9,7 +9,7 @@
 * [x] Horizontal Bar, text KPI and per-column table formats with persistence and regression checks.
 * [x] Typed workflow declarations/defaults, Filter references, execution values and cache isolation.
 * [x] Editor parameter forms, preview values, stale response protection and UI acceptance.
-* [ ] Dashboard parameter bindings, URL state, value selectors and navigation actions.
+* [x] Dashboard parameter bindings, URL state, value selectors and navigation actions; UI and restart regression pass.
 * [ ] Presentation extensions and all six saved dashboards.
 * [ ] Reference parity, UI construction/editing, restart and full quality checks.
 

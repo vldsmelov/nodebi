@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from app.domain.dashboards import DashboardConfiguration
 from app.domain.errors import ApplicationError
 from app.domain.visualizations import CHART_TYPES
 from app.models import Dashboard, DashboardWidget, Project, Visualization
@@ -13,6 +14,7 @@ from app.schemas.dashboards import (
     WidgetConfig,
     WidgetPayload,
 )
+from app.services.dashboard_configuration import validate_configuration
 
 
 class DashboardService:
@@ -42,6 +44,7 @@ class DashboardService:
             .order_by(DashboardWidget.id)
         )
         return DashboardRead(
+            configuration=DashboardConfiguration.model_validate(row.configuration),
             id=row.id,
             project_id=row.project_id,
             name=row.name,
@@ -76,6 +79,8 @@ class DashboardService:
             raise ApplicationError(
                 "DASHBOARD_CONFLICT", "Dashboard changed elsewhere. Reload before saving.", 409
             )
+        config = payload.configuration or DashboardConfiguration.model_validate(row.configuration)
+        validate_configuration(self.session, row, config, payload.widgets)
         ids = [w.id for w in payload.widgets]
         if len(set(ids)) != len(ids):
             raise ApplicationError("DUPLICATE_WIDGET_ID", "Widget IDs must be unique.")
@@ -102,7 +107,11 @@ class DashboardService:
         self.session.execute(
             update(Dashboard)
             .where(Dashboard.id == identity)
-            .values(name=payload.name, revision=Dashboard.revision + 1)
+            .values(
+                name=payload.name,
+                revision=Dashboard.revision + 1,
+                configuration=config.model_dump(mode="json"),
+            )
         )
         self.session.execute(
             delete(DashboardWidget).where(DashboardWidget.dashboard_id == identity)
@@ -118,7 +127,7 @@ class DashboardService:
                     width=w.width,
                     height=w.height,
                     title=w.title,
-                    config=w.config.model_dump(),
+                    config=w.config.model_dump(mode="json"),
                 )
                 for w in payload.widgets
             ]

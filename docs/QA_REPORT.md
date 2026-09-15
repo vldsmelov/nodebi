@@ -1,5 +1,24 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Dashboard navigation checkpoint - 2026-09-15
+
+247 backend tests pass with PostgreSQL (three SQLite-only skips), Ruff lint/format,
+mypy (66 application files), 36 frontend tests, ESLint, TypeScript and OpenAPI drift.
+Production Docker images build and run with migration 0006. All 16 standard browser
+scenarios pass in 1.3 min, including full application/database restart; the private-workbook
+scenario remains separately opted in. The new UI recipe builds two dashboards with a
+parameter binding, data-sourced choices, table-row action and parent link. It checks the
+selected URL slice, reload, history, unchanged dashboard revision and invalid-URL feedback.
+Backend checks cover cross-project rejection, atomic failures, legacy saves, stable extra
+KPI context fields and bounded/searchable distinct choices. Frontend checks cover typed
+URL values and passing stable IDs from rows with repeated labels.
+
+One initial browser failure was traced to the authoring test editing the old dashboard
+before New dashboard completed. The recipe now waits for the new context; editing controls
+also stay disabled while dashboard creation/deletion is pending. No persistence defect
+was found. Backup: .backups/before-dashboard-navigation-20260915.sql, excluded from Git.
+No data reset. Highlighting, dynamic titles and the five detailed reference screens remain.
+
 ## Workflow parameter checkpoint - 2026-09-15
 
 Typed Filter references are covered independently of the reference workbook: changing one

@@ -6,7 +6,7 @@ Workflow parameters can be declared in the editor and selected as Filter values.
 are saved with the graph; temporary preview values do not create a revision. Preview and
 POST visualization-result requests accept a typed `parameters` object. Existing GET results
 use defaults. Migration 0005 adds declarations while preserving existing graphs. Dashboard
-parameter controls and navigation are still in progress; see [status](STATUS.md).
+parameter controls, data choices and navigation are described in [dashboard navigation](docs/DASHBOARD_NAVIGATION.md).
 
 ## Constructor extensions for dashboard parity
 

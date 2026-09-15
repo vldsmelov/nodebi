@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.domain.parameters import ParameterDefinition, ParameterValues
+from app.domain.parameters import ParameterDefinition, ParameterValue, ParameterValues
 
 
 class PositionPayload(BaseModel):
@@ -72,6 +72,7 @@ class WorkflowRead(BaseModel):
 
 
 class WorkflowSummary(BaseModel):
+    parameters: list[ParameterDefinition] = Field(default_factory=list)
     revision: int
     id: uuid.UUID
     project_id: uuid.UUID
@@ -142,6 +143,19 @@ class WorkflowSchemaRead(BaseModel):
 class PreviewRequest(BaseModel):
     parameters: ParameterValues = Field(default_factory=dict)
     limit: int = Field(default=100, ge=1, le=10_000)
+
+
+class NodeValuesRequest(PreviewRequest):
+    column_id: str = Field(min_length=1, max_length=200)
+    search: str = Field(default="", max_length=200)
+    limit: int = Field(default=200, ge=1, le=1000)
+
+
+class NodeValuesRead(BaseModel):
+    revision: int
+    column: ResolvedColumnRead
+    values: list[ParameterValue]
+    truncated: bool
 
 
 class PreviewRead(BaseModel):

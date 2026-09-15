@@ -18,6 +18,8 @@ from app.schemas.workflows import (
     NodeCatalogRead,
     NodeDefinitionRead,
     NodeSchemaRead,
+    NodeValuesRead,
+    NodeValuesRequest,
     PortRead,
     PreviewRead,
     PreviewRequest,
@@ -36,6 +38,7 @@ from app.services.execution import (
     WorkflowExecutionService,
     get_execution_cache,
 )
+from app.services.node_values import node_values
 from app.services.workflow_validation import GraphIssue, WorkflowSchemaResolver
 from app.services.workflows import (
     domain_graph as _domain_graph,
@@ -63,6 +66,7 @@ def list_workflows(project_id: uuid.UUID, session: DatabaseSession) -> WorkflowL
     return WorkflowList(
         items=[
             WorkflowSummary(
+                parameters=item.parameters,
                 id=item.id,
                 project_id=item.project_id,
                 name=item.name,
@@ -203,6 +207,22 @@ def save_workflow(
 ) -> WorkflowRead:
     workflow = _workflow(session, workflow_id)
     return save_graph(session, workflow, payload, registry)
+
+
+@router.post(
+    "/api/v1/workflows/{workflow_id}/nodes/{node_id}/values", response_model=NodeValuesRead
+)
+def get_node_values(
+    workflow_id: uuid.UUID,
+    node_id: uuid.UUID,
+    payload: NodeValuesRequest,
+    session: DatabaseSession,
+    registry: Registry,
+    storage: Storage,
+    settings: AppSettings,
+    cache: ExecutionCache,
+) -> NodeValuesRead:
+    return node_values(session, workflow_id, node_id, payload, registry, storage, settings, cache)
 
 
 @router.delete("/api/v1/workflows/{workflow_id}", status_code=204)

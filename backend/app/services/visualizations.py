@@ -75,12 +75,18 @@ def render_visualization(
         and config.category_column_id != config.value_column_id
     ):
         fields.insert(0, result.schema.by_id(config.category_column_id))
+    included = {column.column_id for column in fields}
+    for identity in config.context_column_ids:
+        if identity not in included:
+            fields.append(result.schema.by_id(identity))
+            included.add(identity)
     page = result.output.frame.select([c.engine_name for c in fields])
     if node.type == "table":
         page = page.slice(offset, limit)
     else:
         offset, limit = 0, result.output.row_count
     return VisualizationResult(
+        context_column_ids=config.context_column_ids,
         column_formats=config.column_formats,
         orientation=config.orientation,
         visualization_id=visualization_id,

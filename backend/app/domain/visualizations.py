@@ -36,6 +36,7 @@ class VisualizationConfig(NumberFormatConfig):
     value_column_id: str | None = Field(default=None, min_length=1)
     category_column_id: str | None = Field(default=None, min_length=1)
     column_ids: list[str] | None = None
+    context_column_ids: list[str] = Field(default_factory=list, max_length=64)
     column_formats: dict[str, NumberFormatConfig] = Field(default_factory=dict, max_length=1024)
     orientation: Literal["vertical", "horizontal"] = "vertical"
     show_legend: bool = True

@@ -148,6 +148,9 @@ class Dashboard(TimestampMixin, Base):
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     revision: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    configuration: Mapped[dict[str, Any]] = mapped_column(
+        json_type, default=dict, server_default="{}", nullable=False
+    )
 
 
 class DashboardWidget(TimestampMixin, Base):

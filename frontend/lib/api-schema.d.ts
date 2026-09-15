@@ -209,6 +209,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflows/{workflow_id}/nodes/{node_id}/values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get Node Values */
+        post: operations["get_node_values_api_v1_workflows__workflow_id__nodes__node_id__values_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/node-catalog": {
         parameters: {
             query?: never;
@@ -322,15 +339,54 @@ export interface components {
             /** Nullable */
             nullable: boolean;
         };
+        /** DashboardConfiguration */
+        DashboardConfiguration: {
+            /** Parameters */
+            parameters?: components["schemas"]["DashboardParameter"][];
+            /** Bindings */
+            bindings?: components["schemas"]["ParameterBinding"][];
+            /** Links */
+            links?: components["schemas"]["DashboardLink"][];
+        };
+        /** DashboardLink */
+        DashboardLink: {
+            /** Label */
+            label: string;
+            action: components["schemas"]["NavigationAction"];
+        };
         /** DashboardList */
         DashboardList: {
             /** Items */
             items: components["schemas"]["DashboardRead"][];
         };
+        /** DashboardParameter */
+        DashboardParameter: {
+            /** Name */
+            name: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /**
+             * Logical Type
+             * @enum {string}
+             */
+            logical_type: "string" | "integer" | "float" | "boolean" | "date" | "datetime";
+            /** Default */
+            default?: string | number | boolean | null;
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            options?: components["schemas"]["ParameterOptions"] | null;
+        };
         /** DashboardRead */
         DashboardRead: {
             /** Name */
             name: string;
+            configuration?: components["schemas"]["DashboardConfiguration"];
             /**
              * Id
              * Format: uuid
@@ -350,6 +406,7 @@ export interface components {
         DashboardSave: {
             /** Name */
             name: string;
+            configuration?: components["schemas"]["DashboardConfiguration"] | null;
             /** Expected Revision */
             expected_revision: number;
             /** Widgets */
@@ -452,6 +509,33 @@ export interface components {
          * @enum {string}
          */
         LogicalType: "string" | "integer" | "float" | "boolean" | "date" | "datetime" | "unknown";
+        /** NavigationAction */
+        NavigationAction: {
+            /**
+             * Dashboard Id
+             * Format: uuid
+             */
+            dashboard_id: string;
+            /** Values */
+            values?: {
+                [key: string]: components["schemas"]["NavigationValue"];
+            };
+        };
+        /** NavigationValue */
+        NavigationValue: {
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "field" | "parameter" | "constant";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Value */
+            value?: string | number | boolean | null;
+        };
         /** NodeCatalogRead */
         NodeCatalogRead: {
             /** Items */
@@ -521,6 +605,35 @@ export interface components {
             /** Issues */
             issues: components["schemas"]["GraphIssueRead"][];
         };
+        /** NodeValuesRead */
+        NodeValuesRead: {
+            /** Revision */
+            revision: number;
+            column: components["schemas"]["ResolvedColumnRead"];
+            /** Values */
+            values: (string | number | boolean | null)[];
+            /** Truncated */
+            truncated: boolean;
+        };
+        /** NodeValuesRequest */
+        NodeValuesRequest: {
+            /** Parameters */
+            parameters?: {
+                [key: string]: string | number | boolean | null;
+            };
+            /**
+             * Limit
+             * @default 200
+             */
+            limit: number;
+            /** Column Id */
+            column_id: string;
+            /**
+             * Search
+             * @default
+             */
+            search: string;
+        };
         /** NumberFormatConfig */
         NumberFormatConfig: {
             /**
@@ -540,6 +653,18 @@ export interface components {
              */
             currency: string;
         };
+        /** ParameterBinding */
+        ParameterBinding: {
+            /**
+             * Workflow Id
+             * Format: uuid
+             */
+            workflow_id: string;
+            /** Workflow Parameter */
+            workflow_parameter: string;
+            /** Dashboard Parameter */
+            dashboard_parameter: string;
+        };
         /** ParameterDefinition */
         ParameterDefinition: {
             /** Name */
@@ -556,6 +681,21 @@ export interface components {
             logical_type: "string" | "integer" | "float" | "boolean" | "date" | "datetime";
             /** Default */
             default?: string | number | boolean | null;
+        };
+        /** ParameterOptions */
+        ParameterOptions: {
+            /**
+             * Workflow Id
+             * Format: uuid
+             */
+            workflow_id: string;
+            /**
+             * Node Id
+             * Format: uuid
+             */
+            node_id: string;
+            /** Column Id */
+            column_id: string;
         };
         /** PortRead */
         PortRead: {
@@ -751,6 +891,8 @@ export interface components {
         };
         /** VisualizationResult */
         VisualizationResult: {
+            /** Context Column Ids */
+            context_column_ids?: string[];
             /** Column Formats */
             column_formats?: {
                 [key: string]: components["schemas"]["NumberFormatConfig"];
@@ -814,6 +956,7 @@ export interface components {
              * @default true
              */
             show_title: boolean;
+            action?: components["schemas"]["NavigationAction"] | null;
         };
         /** WidgetPayload */
         WidgetPayload: {
@@ -915,6 +1058,8 @@ export interface components {
         };
         /** WorkflowSummary */
         WorkflowSummary: {
+            /** Parameters */
+            parameters?: components["schemas"]["ParameterDefinition"][];
             /** Revision */
             revision: number;
             /**
@@ -1503,6 +1648,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PreviewRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_node_values_api_v1_workflows__workflow_id__nodes__node_id__values_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NodeValuesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeValuesRead"];
                 };
             };
             /** @description Validation Error */

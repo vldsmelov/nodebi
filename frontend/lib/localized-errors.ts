@@ -18,6 +18,7 @@ export function localizeError(locale: Locale, error: unknown): string {
 }
 
 const messagePatterns: readonly [RegExp, string][] = [
+  [/^Dashboard parameter '(.+)' is required\.$/, "Dashboard parameter '{0}' is required."],
   [/^Parameter '(.+)' requires (.+)\.$/, "Parameter '{0}' requires {1}."],
   [/^Filter parameter '(.+)' is required\.$/, "Filter parameter '{0}' is required."],
   [/^Filter parameter '(.+)' is not declared\.$/, "Filter parameter '{0}' is not declared."],

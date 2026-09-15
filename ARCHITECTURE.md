@@ -1,5 +1,21 @@
 # ARCHITECTURE.md
 
+## Dashboard view state and navigation (ADR-066)
+
+DashboardConfiguration is a typed JSON value persisted with dashboard revision (migration 0006).
+It declares parameters, explicit workflow bindings, optional node/field choice sources and parent
+links. WidgetConfig owns navigation actions; workflow visualization config still owns data fields
+and presentation. context_column_ids adds stable row identities to visualization results and is
+hidden in rendered tables. Clicked row fields are addressed by column ID, not labels or row text.
+
+Dashboard page URL owns selected dashboard and typed values. Local layout/configuration drafts
+remain separate. Applying filters does not write persistence; values map to the appropriate
+workflow's parameter context. Result/query identity includes values so late slices cannot replace
+the current one. The generic node-values application service executes an ordinary node, extracts
+one distinct field, applies literal search and reports truncation. Schema/type and project checks
+remain in existing domain/application layers; there are no reference-specific runtime rules.
+
+
 ## Typed workflow parameters (ADR-065)
 
 Workflow JSON declarations are revision-protected; runtime values are separate typed inputs
@@ -10,7 +26,7 @@ keys include referenced values; downstream keys inherit the change. Unrelated va
 invalidate Excel materialization. UI exposes declaration/default and temporary preview inputs;
 parameter changes remount result panels, leaving the graph/autosave state intact.
 Migration 0005 adds an empty-default JSON column. Legacy saves omitting declarations preserve
-them. Dashboard parameter bindings/navigation are not yet implemented.
+them. Dashboard parameter bindings/navigation are specified in ADR-066 above.
 
 
 ## Presentation extensions (ADR-064)

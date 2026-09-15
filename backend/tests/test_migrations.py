@@ -32,7 +32,15 @@ def test_postgresql_migrations_preserve_old_counters_and_match_models(db_engine:
                 "'00000000-0000-0000-0000-000000000001', 'Old graph', 7)"
             )
         )
+        connection.execute(
+            text(
+                "INSERT INTO dashboards(id, project_id, name) VALUES "
+                "('00000000-0000-0000-0000-000000000003', "
+                "'00000000-0000-0000-0000-000000000001', 'Old dashboard')"
+            )
+        )
         command.upgrade(config, "head")
+        assert connection.execute(text("SELECT configuration FROM dashboards")).scalar_one() == {}
         assert connection.execute(text("SELECT parameters FROM workflows")).scalar_one() == []
         assert tuple(connection.execute(text("SELECT version, revision FROM workflows")).one()) == (
             1,

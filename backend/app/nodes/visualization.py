@@ -23,6 +23,8 @@ class VisualizationExecutor(UnaryExecutor):
         config = VisualizationConfig.model_validate(node.config)
         for column_id in config.column_formats:
             schema.by_id(column_id)
+        for column_id in config.context_column_ids:
+            schema.by_id(column_id)
         if node.type == "table":
             ids = (
                 config.column_ids
@@ -31,7 +33,12 @@ class VisualizationExecutor(UnaryExecutor):
             )
             if schema.columns and not ids:
                 raise ValueError("Select at least one table field.")
-            return DatasetSchema(tuple(schema.by_id(identity) for identity in ids))
+            return DatasetSchema(
+                tuple(
+                    schema.by_id(identity)
+                    for identity in dict.fromkeys([*ids, *config.context_column_ids])
+                )
+            )
         if not config.value_column_id:
             raise ValueError("Select a numeric value field.")
         value = schema.by_id(config.value_column_id)

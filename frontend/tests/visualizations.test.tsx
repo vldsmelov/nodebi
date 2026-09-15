@@ -18,6 +18,17 @@ const result: VisualizationResult = {
 };
 afterEach(() => vi.unstubAllGlobals());
 
+it("passes the selected row's stable IDs while keeping context fields out of the table", async () => {
+  const table = { ...result, type: "table", context_column_ids: ["identity"], columns: [...result.columns, { column_id: "identity", engine_name: "row_id", display_name: "Stable ID", logical_type: "integer", nullable: false, metadata: {} }], rows: [{ day: "Same label", total: 10, row_id: 1 }, { day: "Same label", total: 20, row_id: 2 }] };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(table))));
+  const selected = vi.fn();
+  render(<QueryClientProvider client={new QueryClient()}><VisualizationView id="navigation-table" onSelect={selected} /></QueryClientProvider>);
+  const labels = await screen.findAllByText("Same label");
+  expect(screen.queryByText("Stable ID")).toBeNull();
+  fireEvent.click(labels[1]);
+  expect(selected).toHaveBeenCalledWith({ date: "Same label", total: 20, identity: 2 });
+});
+
 it("formats table ratios independently and preserves text KPI values", () => {
   const settings = { ...result, column_formats: { ratio: { number_format: "percent" as const, decimals: 1, currency: "USD" } } };
   expect(format(0.125, settings, "en", "float", "ratio")).toBe("12.5%");

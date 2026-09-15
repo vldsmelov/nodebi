@@ -3,6 +3,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.domain.dashboards import DashboardConfiguration, NavigationAction
 from app.domain.parameters import ParameterValues
 from app.domain.visualizations import ChartType, NumberFormatConfig
 from app.schemas.workflows import ResolvedColumnRead, WorkflowCreate
@@ -27,6 +28,7 @@ class VisualizationList(BaseModel):
 
 
 class VisualizationResult(BaseModel):
+    context_column_ids: list[str] = Field(default_factory=list)
     column_formats: dict[str, NumberFormatConfig] = Field(default_factory=dict)
     orientation: Literal["vertical", "horizontal"] = "vertical"
     visualization_id: uuid.UUID
@@ -50,6 +52,7 @@ class VisualizationResult(BaseModel):
 
 class WidgetConfig(BaseModel):
     show_title: bool = True
+    action: NavigationAction | None = None
 
 
 class WidgetPayload(BaseModel):
@@ -70,11 +73,13 @@ class WidgetPayload(BaseModel):
 
 
 class DashboardSave(WorkflowCreate):
+    configuration: DashboardConfiguration | None = None
     expected_revision: int = Field(ge=1)
     widgets: list[WidgetPayload] = Field(max_length=100)
 
 
 class DashboardRead(WorkflowCreate):
+    configuration: DashboardConfiguration = Field(default_factory=DashboardConfiguration)
     id: uuid.UUID
     project_id: uuid.UUID
     revision: int
