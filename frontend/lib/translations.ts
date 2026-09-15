@@ -1,5 +1,14 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Operator": ["Оператор", "Оператор"],
+  "Source": ["Источник", "Чыганак"],
+  "Check this setting and choose a valid value.": ["Проверьте настройку и выберите допустимое значение.", "Көйләүне тикшерегез һәм дөрес кыйммәт сайлагыз."],
+  "Fill in this required setting.": ["Заполните обязательную настройку.", "Мәҗбүри көйләүне тутырыгыз."],
+  "Add the required items to this list.": ["Добавьте необходимые элементы в список.", "Исемлеккә кирәкле элементларны өстәгез."],
+  "Shorten this value or remove extra items.": ["Сократите значение или удалите лишние элементы.", "Кыйммәтне кыскартыгыз яки артык элементларны бетерегез."],
+  "Enter a whole number.": ["Введите целое число.", "Бөтен сан кертегез."],
+  "Enter a finite number.": ["Введите конечное число.", "Чикле сан кертегез."],
+
   "Group members": ["Узлы группы", "Төркем төеннәре"],
   "Node groups": ["Группы узлов", "Төен төркемнәре"],
   "Group name": ["Название группы", "Төркем исеме"],

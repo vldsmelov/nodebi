@@ -5,16 +5,22 @@ import { translations } from "./translations";
 export function localizeError(locale: Locale, error: unknown): string {
   const detail = typeof error === "object" && error !== null ? error as { message?: string; code?: string; field?: string; nodeId?: string; node_id?: string; correlationId?: string; issues?: unknown[] } : {};
   const message = typeof error === "string" ? error : detail.message ?? "The request could not be completed.";
-  if (locale === "en") return message;
+  if (locale === "en" && !detail.field && !detail.node_id && !detail.issues?.length) return message;
   const diagnostic = message.match(/ \(Diagnostic ID: (.+)\)$/);
   const raw = diagnostic ? message.slice(0, diagnostic.index) : message;
-  let result = translateKnownMessage(locale, raw) ?? translate(locale, detail.code && translations[detail.code] ? detail.code : "The request could not be completed.");
-  if (detail.field) result += ` ${translate(locale, "Field: {0}", { 0: detail.field })}`;
+  let result = translateKnownMessage(locale, raw) ?? (locale === "en" ? raw : translate(locale, detail.code && translations[detail.code] ? detail.code : "The request could not be completed."));
+  if (detail.field) result += ` ${translate(locale, "Field: {0}", { 0: configurationField(locale, detail.field) })}`;
   if (detail.nodeId || detail.node_id) result += ` ${translate(locale, "Node: {0}", { 0: detail.nodeId ?? detail.node_id! })}`;
   if (detail.code) result += ` [${detail.code}]`;
   if (diagnostic || detail.correlationId) result += ` (${translate(locale, "Diagnostic ID: {0}", { 0: diagnostic?.[1] ?? detail.correlationId! })})`;
   if (detail.issues?.length) result += " " + detail.issues.map(issue => localizeError(locale, issue)).join(" ");
   return result;
+}
+
+const configurationLabels: Record<string, string> = { conditions: "Filter", column_id: "Select field", operator: "Operator", value: "Value", expression: "Expression", name: "Output field name", limit: "Maximum rows", keys: "Sort", dimensions: "Group By", aggregations: "Aggregation", source_id: "Source", sheet_name: "Worksheet" };
+function configurationField(locale: Locale, path: string): string {
+  if (!path.startsWith("config.")) return path;
+  return path.slice(7).split(".").map(part => /^\d+$/.test(part) ? String(Number(part) + 1) : translate(locale, configurationLabels[part] ?? part)).join(" / ");
 }
 
 const messagePatterns: readonly [RegExp, string][] = [

@@ -1,5 +1,20 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Configuration feedback checkpoint - 2026-09-15
+
+249 backend tests pass with PostgreSQL (4 SQLite-only skips), Ruff lint/format (104 files),
+mypy (66 files), 47 frontend tests, TypeScript, ESLint, OpenAPI drift and production builds pass.
+Regression verifies exact nested config paths/node IDs and omission of invalid input values,
+Pydantic URLs and model dumps. Frontend tests verify translated field positions and retention
+of nested issues/codes/diagnostics in Russian, English and Tatar. The prior assertion expecting
+raw config.expression in UI now checks its translated label; the API path stays unchanged.
+Focused browser acceptance repairs an empty Filter, switches all three languages while an
+error is visible, saves a valid condition and successfully previews it. Initial test selector
+also matched Next.js's empty route announcer; scoped to the configuration sidebar.
+23 browser scenarios pass (10 opt-in skips), including six-screen result equality after
+application/PostgreSQL restart, both themes and three languages. Log .backups/ux-validation-e2e.log.
+Backend log .backups/ux-validation-backend.log. No project reset or hidden calculations.
+
 ## Group/panel checkpoint - 2026-09-15
 
 46 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.

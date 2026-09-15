@@ -15,8 +15,10 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [x] Dependency layout and bounded undo/redo through normal revision-aware autosave.
   * [x] Reject deletion of attached visualizations, including concurrent widget attachment (PostgreSQL race and browser recovery checked).
   * [x] Persistent flat groups, collapse with boundary connections, member navigation and configurable panels; projection/revision/undo/output regression verified.
-* [ ] U2: Named formula tokens and batch preparation forms backed by ordinary explicit nodes.
-  * [ ] P2: Replace raw validation strings for unconfigured nodes with localized actionable feedback (observed in Filter output panel).
+* [~] U2: Named formula tokens and batch preparation forms backed by ordinary explicit nodes.
+  * [x] P2: Field-specific configuration feedback replaces raw Pydantic dumps; nested errors retained in English/Russian/Tatar; empty Filter repair verified.
+  * [ ] Named formula tokens, cursor insertion and schema-aware field lookup.
+  * [ ] Batch preparation/calculated-field forms and grouped Unpivot authoring.
 * [ ] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
 * [ ] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
 * [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.

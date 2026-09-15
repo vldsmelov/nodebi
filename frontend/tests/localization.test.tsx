@@ -47,11 +47,12 @@ it("localizes structured errors without dropping fields, nodes, codes or diagnos
   ], "diagnostic-id");
   const ru = localizeError("ru", error);
   expect(ru).toContain("Схема изменена");
-  for (const text of ["WORKFLOW_CONFLICT", "node-id", "config.expression", "diagnostic-id", "Некорректное арифметическое выражение."]) expect(ru).toContain(text);
+  for (const text of ["WORKFLOW_CONFLICT", "node-id", "Выражение", "diagnostic-id", "Некорректное арифметическое выражение."]) expect(ru).toContain(text);
   expect(localizeError("tt", error)).toContain("Схема башка салынмада");
   expect(localizeError("ru", "Unknown field: Title. Use [column_id] for unusual names.")).toContain("Неизвестное поле: Title.");
   expect(localizeError("ru", new Error("Unexpected English"))).not.toContain("Unexpected English");
-  expect(localizeError("en", error)).toBe(error.message);
+  expect(localizeError("en", error)).toContain("Invalid arithmetic expression.");
+  expect(localizeError("en", error)).toContain("Field: Expression");
 });
 
 it("changes number and boolean presentation without translating string values", () => {
@@ -99,4 +100,19 @@ describe("catalog completeness", () => {
       expect(value.match(/\{\w+\}/g)?.sort() ?? [], key).toEqual(key.match(/\{\w+\}/g)?.sort() ?? []);
     }
   });
+});
+
+
+it("preserves actionable nested configuration issues in all three languages", () => {
+  const issue = { code: "INVALID_NODE_CONFIGURATION", message: "Fill in this required setting.", field: "config.conditions.0.column_id", node_id: "node-123" };
+  const error = new ApiError("Workflow validation failed before execution.", 422, "WORKFLOW_VALIDATION_FAILED", undefined, undefined, [issue], "diagnostic-123");
+  for (const locale of ["ru", "en", "tt"] as const) {
+    const text = localizeError(locale, error);
+    expect(text).toContain(translate(locale, issue.message));
+    expect(text).toContain("node-123");
+    expect(text).toContain("diagnostic-123");
+    expect(text).toContain("INVALID_NODE_CONFIGURATION");
+    expect(text).toContain(" / 1 / ");
+    expect(text).not.toContain("config.conditions");
+  }
 });

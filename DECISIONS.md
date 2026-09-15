@@ -1,5 +1,22 @@
 # DECISIONS.md
 
+# ADR-072 - Field-specific configuration feedback
+
+Date: 2026-09-15. Status: ACCEPTED; first U2 delivery.
+Context: empty Filter conditions exposed a Pydantic model dump, while English error rendering
+returned only the top-level message and lost nested issues.
+Decision: graph validation emits one INVALID_NODE_CONFIGURATION issue per invalid setting,
+with node identity and a precise config path (including zero-based nested list indices).
+Messages are a controlled actionable vocabulary for missing values, empty lists, excessive
+length and invalid numbers, with a safe general fallback. Inputs, validation-library URLs,
+model names and internal context are excluded. Frontend renders nested issues in all locales,
+using translated common setting labels and one-based row positions. API paths remain exact;
+unknown field segments remain visible. Execution IDs/codes and node identity remain available.
+Existing GraphIssue/API shapes are sufficient; no migration or new execution behavior.
+Alternative rejected: parsing Pydantic's formatted exception text in the browser is brittle
+and can expose input values. Domain/executor validation messages remain a separate existing
+path. Parameter and general HTTP request validation are not redefined in this change.
+
 # ADR-071 - Presentation groups and independent editor view preferences
 
 Date: 2026-09-15. Status: ACCEPTED.

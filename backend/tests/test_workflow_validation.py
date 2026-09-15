@@ -140,3 +140,30 @@ def test_unknown_until_execution_returns_warning(session: Session, tmp_path: Pat
     assert result.nodes[0].schema is None
     assert result.issues[0].code == "SCHEMA_UNKNOWN_UNTIL_EXECUTION"
     assert result.issues[0].severity == "warning"
+
+
+def test_invalid_config_reports_each_field_without_internal_dump() -> None:
+    from dataclasses import replace
+
+    from pydantic import Field
+
+    class Rule(BaseModel):
+        column_id: str = Field(min_length=1)
+
+    class Config(BaseModel):
+        conditions: list[Rule] = Field(min_length=1)
+        limit: int
+
+    catalog = NodeRegistry()
+    catalog.register(replace(definition("transform"), config_schema=Config))
+    invalid = replace(node(1, "transform"), config={"conditions": [], "limit": "private-value"})
+    issues = WorkflowGraphValidator(catalog).validate(graph((invalid,), ())).issues
+    errors = [issue for issue in issues if issue.code == "INVALID_NODE_CONFIGURATION"]
+    assert {issue.field for issue in errors} == {"config.conditions", "config.limit"}
+    assert all(issue.node_id == invalid.id for issue in errors)
+    assert errors[0].message == "Add the required items to this list."
+    assert "private-value" not in str(errors)
+    assert "pydantic" not in str(errors)
+    nested = replace(invalid, config={"conditions": [{"column_id": ""}], "limit": 1})
+    errors = WorkflowGraphValidator(catalog).validate(graph((nested,), ())).issues
+    assert any(issue.field == "config.conditions.0.column_id" for issue in errors)

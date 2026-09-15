@@ -5,25 +5,27 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: third U1 delivery implemented: named flat node groups, collapse with boundary
-connections, member navigation and adjustable library/configuration panels. Membership saves
-through graph history/revision checks. Collapse and widths restore on same-tab reload without
-saving graph revisions. Grouping does not change calculation results. ADR-071 and
-docs/GRAPH_AUTHORING.md describe controls and limits; no API/schema/dependency changes.
+Latest session: first U2 delivery implements field-specific configuration errors (ADR-072).
+Empty Filter conditions and other schema-invalid settings now produce controlled messages
+with exact node/config attribution, not Pydantic model/input dumps. The UI renders nested
+issues in all three languages and translates common setting labels/list positions.
+Browser repair scenario passes: open invalid Filter, switch languages, add condition, save,
+and preview successfully. Existing user project/data/layout remain untouched.
 
-Current milestone: U1 implementation complete; last completed task: group/panel acceptance.
-Next: U2 named formula tokens and preparation forms, starting with actionable validation errors.
+Current milestone: U2 in progress; last completed task: configuration feedback acceptance.
+Last completed: configuration error implementation and focused acceptance; U1 remains complete.
+Next: named formula tokens and cursor-aware field insertion, then batch preparation forms.
 U0 human baseline remains unmeasured; no operator speed improvement is claimed.
-Original reference project/data/layout preserved. Tests use isolated projects.
-Known P2: an unconfigured Filter can show a raw Pydantic validation string in the output panel;
-replace it with localized configuration feedback in U2. No known new P0/P1 or blocker.
+The recorded empty-Filter validation P2 is fixed. No known new P0/P1 or environment blocker.
+Unknown validation categories use general setting guidance; domain/executor messages and
+HTTP request validation remain separate existing paths.
 
-Current checks: 46 frontend tests, TypeScript, ESLint, OpenAPI drift and production Docker build
-pass; frontend deployed. Focused group browser test passes, including unchanged execution
-results, saved membership, rename undo and independent view preferences. All 22 browser scenarios pass (10 opt-in skips), including six-screen result equality after
-frontend/backend/PostgreSQL restart, three languages and both themes
-(.backups/ux-groups-e2e.log). Backend unchanged: previous verified baseline
-248 tests pass with PostgreSQL (4 SQLite-only skips), Ruff lint/format and mypy pass.
+Current checks: 249 backend tests pass with PostgreSQL (4 SQLite-only skips); Ruff lint/format
+(104 files), mypy (66 files), 47 frontend tests, TypeScript, ESLint and OpenAPI drift pass.
+Production backend/frontend builds pass and are deployed. All 23 browser scenarios pass
+(10 opt-in skips), including all six dashboards/results after application/PostgreSQL restart.
+Logs: .backups/ux-validation-backend.log, .backups/ux-validation-focused.log,
+.backups/ux-validation-e2e.log. No schema/API shape/dependency changes.
 
 Approved six-screen constructor extension: **COMPLETE** (2026-09-15).
 One retained editable workflow has 168 nodes, six dashboards and 55 widget placements.

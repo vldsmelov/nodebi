@@ -76,11 +76,29 @@ class WorkflowGraphValidator:
             try:
                 definition.config_schema.model_validate(node.config)
             except ValidationError as exc:
-                issues.append(
-                    GraphIssue(
-                        "INVALID_NODE_CONFIGURATION", str(exc), node_id=node.id, field="config"
+                for error in exc.errors(
+                    include_url=False, include_input=False, include_context=False
+                ):
+                    kind = error["type"]
+                    message = "Check this setting and choose a valid value."
+                    if kind in {"missing", "string_too_short"}:
+                        message = "Fill in this required setting."
+                    elif kind == "too_short":
+                        message = "Add the required items to this list."
+                    elif kind in {"too_long", "string_too_long"}:
+                        message = "Shorten this value or remove extra items."
+                    elif kind in {"int_parsing", "int_type", "int_from_float"}:
+                        message = "Enter a whole number."
+                    elif kind in {"float_parsing", "float_type", "finite_number"}:
+                        message = "Enter a finite number."
+                    issues.append(
+                        GraphIssue(
+                            "INVALID_NODE_CONFIGURATION",
+                            message,
+                            node_id=node.id,
+                            field=".".join(["config", *map(str, error["loc"])]),
+                        )
                     )
-                )
 
         incoming: dict[tuple[uuid.UUID, str], int] = defaultdict(int)
         outgoing: dict[tuple[uuid.UUID, str], int] = defaultdict(int)

@@ -1,5 +1,13 @@
 # ARCHITECTURE.md
 
+## Configuration feedback (ADR-072)
+
+WorkflowGraphValidator converts Pydantic structured errors to individual GraphIssue entries
+without input dumps, library URLs or internal contexts. Each issue retains its node and config
+path; schema and execution validation share this result. The frontend localizes controlled
+messages and common configuration path labels, displaying list positions from one. Nested
+issues and diagnostics survive English rendering too. No public shape or persistence change.
+
 ## Presentation groups and editor panels (ADR-071)
 
 Group membership persists in node.ui.group. graph-groups derives hidden members, synthetic

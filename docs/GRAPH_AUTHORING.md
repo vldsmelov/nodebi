@@ -68,3 +68,12 @@ Open **Editor panels** to adjust library/configuration widths or reset both. Wid
 by the available viewport; the desktop editor retains a minimum canvas width. Collapse and
 width preferences restore on reload in the same tab, independently of graph saves and undo.
 Authored group names remain user content; all controls support Russian, English and Tatar.
+
+## Configuration feedback (first U2 delivery)
+
+Incomplete nodes remain saveable drafts. The output panel identifies required settings instead
+of displaying validation-library internals. An empty Filter asks you to add list items; use
+**Add condition**, choose its field/operator/value, wait for saving and run **Preview output**.
+Nested errors identify their row starting from one. The same details remain available in
+Russian, English and Tatar, including execution diagnostics. Changing language preserves edits.
+This first U2 delivery does not yet change formula authoring or add batch preparation forms.
