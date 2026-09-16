@@ -1,7 +1,7 @@
 import type { Edge } from "@xyflow/react";
 import type { EditorNode } from "./WorkflowNodeCard";
 import type { NodeDefinition, ResolvedColumn } from "./types";
-import { canConnect } from "./graph-interaction";
+import { appendUnaryChain } from "./unary-chain";
 import { formulaParts } from "./formula-presentation";
 
 export type CalculatedRow = { id: string; name: string; expression: string };
@@ -36,17 +36,6 @@ export function calculatedChain(nodes: EditorNode[], edges: Edge[], start: strin
 }
 
 export function appendCalculatedChain(nodes: EditorNode[], edges: Edge[], sourceId: string, definition: NodeDefinition, rows: CalculatedRow[]) {
-  const source = nodes.find(node => node.id === sourceId);
-  if (!source || definition.type !== "calculated_column" || rows.some(row => nodes.some(node => node.id === row.id)) || new Set(rows.map(row => row.id)).size !== rows.length) return null;
-  const nextNodes = [...nodes], nextEdges = [...edges];
-  let previous = source;
-  for (const row of rows) {
-    const position = { x: previous.position.x + 360, y: previous.position.y };
-    while (nextNodes.some(node => Math.abs(node.position.x - position.x) < 300 && Math.abs(node.position.y - position.y) < 180)) position.y += 200;
-    const next: EditorNode = { id: row.id, type: "workflowNode", position, data: { definition, config: { name: normalizedName(row.name), expression: row.expression } } };
-    const connection = { source: previous.id, sourceHandle: "dataset", target: next.id, targetHandle: "input" };
-    if (!canConnect([...nextNodes, next], nextEdges, connection)) return null;
-    nextNodes.push(next); nextEdges.push({ ...connection, id: crypto.randomUUID(), animated: true }); previous = next;
-  }
-  return { nodes: nextNodes, edges: nextEdges };
+  if (definition.type !== "calculated_column") return null;
+  return appendUnaryChain(nodes, edges, sourceId, [definition], rows.map(row => ({ id: row.id, type: definition.type, config: { name: normalizedName(row.name), expression: row.expression } })));
 }

@@ -1,5 +1,34 @@
 # DECISIONS.md
 
+# ADR-075 - Preparation table compiles to standard graph operations
+
+Date: 2026-09-16. Status: ACCEPTED; fourth U2 delivery.
+Context: selection, rename, conversion and missing-value rules required separate manual setup.
+Decision: stage these rules against the saved output schema in a table and preview the ordered
+node list. Apply creates a new branch atomically through shared appendUnaryChain port/cycle
+checks; calculated-field batching now uses the same helper. Existing consumers stay connected
+to the original source until explicitly rewired. No recipe, special executor or financial logic.
+
+Order: Select, explicit Convert Types, optional Filter(is_not_null, AND), optional fill formulas,
+final Select, integer type restoration and Rename. Conversion errors stop execution by default;
+null-on-error is an explicit field choice, applied before missing-value policies. Policies are
+keep, drop-row, numeric zero or empty text for strings. Empty strings are not null. Filled fields
+are new calculated identities; selection/rename/type conversion retain existing field IDs.
+Final projection preserves source column order and removes helper columns. Temporary names
+avoid input/final-name collisions. Output names are normalized and unique. Up to 1024 retained
+fields and 20 fill calculations per batch; larger work can use successive ordinary steps.
+
+Existing numeric formula outputs are Float64. Integer null replacement therefore explicitly
+converts the integer field to decimal text, applies string coalesce with "0", and converts the
+new result back to integer. This avoids introducing Float64 rounding into integer preparation;
+regression checks exact backend output 9007199254740993 from text input. No global formula
+semantics were changed. Float arithmetic keeps its existing numerical behavior.
+After Apply edit generated nodes on the canvas; reopening this creation wizard uses the chosen
+current output, never overwrites a prior branch from stale metadata. Staged modal rules are
+transient until Apply, with cancel/unload warnings. Existing draft recovery handles applied edits.
+Alternatives rejected: hidden bulk transforms or a second persisted copy of preparation rules.
+No API/schema/dependency change; backend validation/execution remain authoritative.
+
 # ADR-074 - Tabular editing of ordinary calculated-node chains
 
 Date: 2026-09-16. Status: ACCEPTED; third U2 delivery.

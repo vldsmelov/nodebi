@@ -5,26 +5,26 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: third U2 delivery adds the calculated-field table (ADR-074). Up to 20 rows
-become ordinary dependent Calculated Column nodes in a new branch. Stable prior-row references,
-ordering, atomic graph application, undo/redo and graph-derived existing-chain editing work.
-Existing chain editing preserves IDs/edges/positions. Formula semantics/types remain backend
-responsibility; staged prior results are explicitly unknown. Modal changes are transient until
-Apply; cancel confirms discard and unload warns. No recipe or special calculation runtime.
+Latest session: fourth U2 delivery adds the preparation table (ADR-075): select/rename,
+explicit conversion and error policy, keep/drop/fill nulls, and an ordered preview of generated
+ordinary nodes. Apply adds one branch without rewiring existing consumers. Fill columns receive
+new calculated IDs; integer fill preserves precision via explicit string/coalesce/integer steps.
+Shared appendUnaryChain also serves calculated-field batching. No special execution logic.
 
-Current milestone: U2 in progress; last completed task: calculated-field table acceptance.
-Last completed: create/undo/redo/reload/edit acceptance with dependent results 128 and 256.
-Next: batch preparation (select/rename/convert/null policies), grouped Unpivot authoring,
-then remaining provenance/inline diagnostics. U0 operator study remains unmeasured.
-No known new P0/P1 or blocker. Original reference project/data/layout remain intact.
-Docker Desktop was stopped at session start; started it and restored the existing Compose stack.
+Current milestone: U2 in progress; last completed task: preparation-table acceptance.
+Last completed: synthetic inventory acceptance: strict error on invalid Amount, explicit switch
+to null in the generated Convert node, correct drop/fill/projection, exact large integer in
+backend response, atomic undo/redo and reload. Existing project/data remain unchanged.
+Next: grouped Unpivot authoring, richer provenance labels and inline expression diagnostics.
+U0 human operator study remains unmeasured. No known new P0/P1 or environment blocker.
+Docker build first hit a registry TLS timeout; retry completed without changing dependencies.
 
-Checks: 52 frontend tests, TypeScript, ESLint, OpenAPI drift and production frontend build pass.
-25 browser scenarios pass (10 opt-in skips), including six-screen restart/result equality.
-Final modal presentation adjustment is built and checked with the focused scenario.
-Logs .backups/ux-calculated-table-focused.log and .backups/ux-calculated-table-e2e.log.
-Backend unchanged: previous verified baseline 249 tests with PostgreSQL (4 SQLite-only skips),
-Ruff lint/format and mypy pass. No API/schema/dependency changes. Frontend deployed locally.
+Checks: 55 frontend tests, TypeScript, ESLint, OpenAPI drift and production build pass.
+Frontend deployed; 26 browser scenarios pass (10 opt-in skips), including six-screen
+result/configuration equality after application/PostgreSQL restart, both themes and three languages.
+Logs .backups/ux-preparation-table-focused.log and .backups/ux-preparation-table-e2e.log.
+Screenshot .backups/ux-preparation-table.png visually reviewed. Backend unchanged: prior baseline
+249 tests with PostgreSQL (4 SQLite-only skips), Ruff/mypy pass. No API/schema changes.
 
 Approved six-screen constructor extension: **COMPLETE** (2026-09-15).
 One retained editable workflow has 168 nodes, six dashboards and 55 widget placements.

@@ -1,5 +1,22 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Preparation table checkpoint - 2026-09-16
+
+55 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.
+Focused browser acceptance uses synthetic inventory data, independent of the financial example.
+It creates the preparation branch through UI, verifies one save revision, the strict conversion
+error with field ID/row, then edits the ordinary Convert Types node to explicitly allow null.
+Expected final columns/order, filtered rows, zero/empty fills and integer schema match. The raw
+backend response preserves 9007199254740993 exactly (asserted before JavaScript number parsing).
+Atomic branch undo/redo and reload pass. Initial assertion expected a display label in the
+conversion error; corrected to the existing stable field ID plus exact row/type contract.
+Pure tests cover generated node ordering/configs, backward-compatible calculated batching,
+unique normalized names, empty selections, incompatible policies and integer fill conversion.
+Screenshot .backups/ux-preparation-table.png visually reviewed. 26 browser scenarios pass in
+2.8 min (10 opt-in skips), including six-screen equality after application/PostgreSQL restart,
+both themes and three languages; log .backups/ux-preparation-table-e2e.log. Docker registry TLS timeout resolved on retry.
+Backend unchanged; previous PostgreSQL/backend baseline applies. No user data reset.
+
 ## Calculated-field table checkpoint - 2026-09-16
 
 52 frontend tests, TypeScript, ESLint, OpenAPI drift and production build pass.

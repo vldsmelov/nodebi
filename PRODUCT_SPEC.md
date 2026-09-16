@@ -33,6 +33,10 @@ Authors can stage up to 20 dependent calculated fields in a table and apply them
 ordinary node-chain edit. Existing chain tables read the graph itself and preserve connections;
 no independent calculation engine or duplicate persisted recipe is introduced.
 
+A preparation table stages field selection, names, target types, conversion-error policy and
+missing-value handling. Before Apply it lists the ordinary nodes to create. Strict conversion
+is the default. Filling creates new calculated fields; existing downstream edges are preserved.
+
 ## 1. Document Purpose
 
 This document defines the product requirements for the MVP of the node-based Business Intelligence platform.

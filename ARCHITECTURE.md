@@ -1,5 +1,15 @@
 # ARCHITECTURE.md
 
+## Preparation compiler (ADR-075)
+
+preparation-plan maps a saved schema and transient rows to PlannedStep records with actual node
+IDs. PreparationDialog previews these steps and submits the same plan to WorkflowEditor.
+appendUnaryChain builds a complete proposed graph before state changes; both preparation and
+calculated-field tables use it. Normal serialization, autosave, conflicts and history apply.
+The plan contains only registered standard node types. Null-filling creates new calculated IDs;
+final Select/Rename removes helpers and names the result. Integer fills use string coalesce and
+explicit integer conversion to preserve precision without changing the formula engine.
+
 ## Calculated-field table (ADR-074)
 
 calculated-chain constructs ordinary nodes/edges and reconstructs actual unbranched chains.

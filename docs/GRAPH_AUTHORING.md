@@ -115,3 +115,25 @@ Reopening the table reflects those real graph edits instead of regenerating an o
 The table is a transient staging form: Apply before leaving to retain work. Cancel/Escape asks
 before discarding changed rows, and browser unload warns. Closing it without Apply leaves the
 graph untouched. Applied work restores normally after reload.
+
+## Preparation table (fourth U2 delivery)
+
+Select a saved node with an available schema and choose **Prepare data table**. Keep the needed
+columns, set unique output names, choose target types and conversion-error policies. Strict
+conversion is the default: invalid text stops execution. Opt into **Invalid value to null** only
+when intended. Missing-value handling runs after conversion: retain nulls, drop affected rows,
+fill numeric nulls with zero or string nulls with empty text. Empty text itself is not null.
+Rules are per field; multiple drop conditions combine with AND. Kept fields retain source order.
+
+Review **Nodes to create**, then **Apply preparation**. The wizard adds one ordinary branch;
+existing downstream edges stay unchanged. Connect consumers to the prepared output explicitly.
+Undo/redo handles the entire addition; graph edits restore through existing autosave/recovery.
+Edit any generated Select, Convert, Filter, Calculated Column or Rename node normally afterward.
+Reopening the wizard starts from the current selected output, not a stored copy of earlier rules.
+
+Filled columns receive new IDs, and temporary columns are removed from the final output.
+Integer fill uses text/coalesce/integer steps to retain exact integers in backend execution.
+The previewed extra conversions are intentional. Limits: 1024 retained fields, 20 fills per
+batch. Duplicate output names or incompatible policies disable Apply. Schema/runtime errors
+still come from the backend after applying. Unapplied table changes are transient: Cancel or
+Escape confirms discarding modifications and browser unload warns. Apply before leaving.
