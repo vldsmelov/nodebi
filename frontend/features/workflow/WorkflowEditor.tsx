@@ -32,6 +32,9 @@ import { WorkflowNodeCard, type EditorNode } from "./WorkflowNodeCard";
 import { useWorkflowUi } from "./store";
 import type { NodeDefinition, Workflow, WorkflowEdge, WorkflowNode, WorkflowSchemaResult } from "./types";
 
+import { CalculatedFieldsDialog } from "./CalculatedFieldsDialog";
+import { appendCalculatedChain, calculatedChain, normalizedName, type CalculatedRow } from "./calculated-chain";
+import type { ResolvedColumn } from "./types";
 import { GroupPanel } from "./GroupPanel";
 import { EditorPanels, useEditorView } from "./EditorPanels";
 import { groupName, groupProxyId, projectGroups } from "./graph-groups";
@@ -236,6 +239,32 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   // choices. Output/preview still require an exact acknowledged revision.
   const selectedInputColumns = resolvedSchema?.nodes.find((item) => item.node_id === selectedInputEdge?.source)?.columns ?? null;
 
+  const [batch, setBatch] = useState<{ initial: CalculatedRow[]; columns: ResolvedColumn[]; editing: boolean; source: string; snapshot: string } | null>(null);
+  const openBatch = (editing: boolean) => {
+    if (!selectedNode || dirty) return;
+    const columns = editing ? currentSchema?.nodes.find(item => item.node_id === selectedInputEdge?.source)?.columns : selectedSchema?.columns;
+    if (!columns) return;
+    const initial = editing ? calculatedChain(nodes, edges, selectedNode.id).map(node => ({ id: node.id, name: String(node.data.config.name ?? ""), expression: String(node.data.config.expression ?? "") })) : [{ id: crypto.randomUUID(), name: "", expression: "" }];
+    if (initial.length) setBatch({ initial, columns, editing, source: selectedNode.id, snapshot: JSON.stringify(graph) });
+  };
+  const applyBatch = (rows: CalculatedRow[]) => {
+    if (!batch || batch.snapshot !== JSON.stringify(graph)) return false;
+    const definition = catalog.find(item => item.type === "calculated_column" && item.version === 1);
+    if (!definition) return false;
+    editGroup.current = null;
+    if (batch.editing) {
+      const configs = new Map(rows.map(row => [row.id, row]));
+      setNodes(current => current.map(node => { const row = configs.get(node.id); return row ? { ...node, data: { ...node.data, config: { ...node.data.config, name: normalizedName(row.name), expression: row.expression } } } : node; }));
+    } else {
+      const next = appendCalculatedChain(nodes, edges, batch.source, definition, rows);
+      if (!next) return false;
+      const last = rows[rows.length - 1].id;
+      setNodes(next.nodes.map(node => ({ ...node, selected: node.id === last }))); setEdges(next.edges); selectNode(last);
+      requestAnimationFrame(() => focusNodes([last]));
+    }
+    return true;
+  };
+
   return (
     <div onFocusCapture={event => { editGroup.current = (event.target as HTMLElement).matches("input, textarea") ? crypto.randomUUID() : null; }} onPointerDownCapture={event => { if (!(event.target as HTMLElement).closest("input, textarea")) editGroup.current = null; }} onKeyDown={event => {
       if ((event.target as HTMLElement).closest("input, textarea, select, [contenteditable=true]")) return;
@@ -314,6 +343,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
             }
           }}><option value="">{t("Disconnected")}</option>{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
+        {selectedNode && <div className="mt-4 flex flex-wrap gap-2 text-xs"><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "calculated_column")} onClick={() => openBatch(false)}>{t("Add calculated fields")}</button>{selectedNode.data.definition.type === "calculated_column" && <button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !currentSchema?.nodes.find(item => item.node_id === selectedInputEdge?.source)?.columns} onClick={() => openBatch(true)}>{t("Edit calculated chain")}</button>}</div>}
         {selectedNode ? <NodeConfiguration parameters={parameters} type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} inputColumns={Object.fromEntries((selectedNode.data.definition.input_ports ?? []).map(port => {
           const edge = edges.find(e => e.target === selectedNode.id && e.targetHandle === port.id);
           return [port.id, resolvedSchema?.nodes.find(n => n.node_id === edge?.source)?.columns ?? null];
@@ -324,6 +354,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
           revision={saveState.revision} dirty={dirty} schema={selectedSchema} issues={selectedIssues} />}
         {saveError ? <p className="mt-5 rounded-xl bg-danger-surface p-3 text-xs text-danger">{errorText(saveError)}</p> : null}
       </aside>
+      {batch && <CalculatedFieldsDialog initial={batch.initial} columns={batch.columns} editing={batch.editing} apply={applyBatch} close={() => setBatch(null)} />}
     </div>
   );
 }

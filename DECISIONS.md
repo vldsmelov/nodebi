@@ -1,5 +1,30 @@
 # DECISIONS.md
 
+# ADR-074 - Tabular editing of ordinary calculated-node chains
+
+Date: 2026-09-16. Status: ACCEPTED; third U2 delivery.
+Context: creating several dependent fields required repeating node creation, connection and
+configuration. A separate formula table persisted beside the graph would become inconsistent.
+Decision: a modal table stages up to 20 rows. Each new row receives its actual future node UUID;
+stable output references use the existing calc_<UUID hex> contract. Previous row outputs are
+selectable with unknown types until the backend checks the saved chain. The frontend checks
+nonempty/unique normalized names and backward reference availability, never evaluates formulas
+or duplicates backend type inference. Applying creates a new ordinary branch after the selected
+node through the shared port/cycle checks. Existing consumers are not automatically rewired.
+All nodes/edges enter graph state in one update cycle and one normal revision-checked save;
+graph undo treats the action as one change. Incomplete semantic expressions remain normal
+drafts and receive authoritative backend schema/preview errors after applying.
+
+Existing chain editing is reconstructed from real consecutive Calculated Column v1 nodes,
+starting at the selection, stopping at branching, non-calculated nodes or 20 rows. It edits
+configuration only, preserving IDs, positions, metadata and all connections. Change structure
+on the canvas; no stale recipe/hidden JSON is used to regenerate manually edited graphs.
+Unapplied modal changes are transient. Cancel/Escape confirms discarding edits; browser unload
+warns. Apply rejects a changed graph snapshot. After Apply, ordinary autosave/draft recovery
+and conflict handling apply. No API, migration, dependency or special executor is introduced.
+Alternative rejected: a multi-column runtime node would duplicate existing execution contracts;
+implicit downstream rewiring/deletion could alter unrelated dashboard calculations.
+
 # ADR-073 - Named formula presentation over canonical expressions
 
 Date: 2026-09-15. Status: ACCEPTED; second U2 delivery.

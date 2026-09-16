@@ -29,6 +29,10 @@ Calculated formulas provide a readable field-token view beside the canonical tex
 Users can search fields by name, insert at the cursor and replace a selected token. Stable
 references retain identity after upstream renaming; backend validation remains authoritative.
 
+Authors can stage up to 20 dependent calculated fields in a table and apply them as one
+ordinary node-chain edit. Existing chain tables read the graph itself and preserve connections;
+no independent calculation engine or duplicate persisted recipe is introduced.
+
 ## 1. Document Purpose
 
 This document defines the product requirements for the MVP of the node-based Business Intelligence platform.

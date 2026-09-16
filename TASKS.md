@@ -19,7 +19,8 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [x] P2: Field-specific configuration feedback replaces raw Pydantic dumps; nested errors retained in English/Russian/Tatar; empty Filter repair verified.
   * [x] Named formula token view, cursor/selection insertion, schema-aware field lookup and signature hints; canonical text editing retained (ADR-073).
   * [ ] Rich source labels and expression diagnostics adjacent to the formula; current duplicate labels use engine names/IDs.
-  * [ ] Batch preparation/calculated-field forms and grouped Unpivot authoring.
+  * [x] Calculated-field table: dependent rows, atomic creation, undo/redo, graph-derived existing-chain editing and reload acceptance (ADR-074).
+  * [ ] Batch preparation forms and grouped Unpivot authoring.
 * [ ] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
 * [ ] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
 * [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.

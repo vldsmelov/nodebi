@@ -1,5 +1,21 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Calculated-field table checkpoint - 2026-09-16
+
+52 frontend tests, TypeScript, ESLint, OpenAPI drift and production build pass.
+25 browser scenarios pass in 2.6 min (10 opt-in skips), including six dashboards/results after
+frontend/backend/PostgreSQL restart, three languages and both themes. A final presentation
+adjustment centers the modal and keeps Apply/Cancel visible; focused acceptance passes after
+that build. The final screenshot was visually reviewed. Backend unchanged; previous PostgreSQL/backend baseline applies.
+New tests cover backward-only stable references, normalized name collisions, branch boundaries,
+no input mutation and ordinary node construction. Browser creates two dependent fields through
+the table, verifies one save revision, output 128, atomic undo/redo and restored IDs/edges.
+Editing the first formula yields 256 downstream. Cancelling changes leaves the graph identical;
+a manual canvas-form edit is reflected when reopening the table. No hidden recipe is used.
+Logs: .backups/ux-calculated-table-e2e.log and .backups/ux-calculated-table-focused.log.
+Screenshot .backups/ux-calculated-table.png. No original project/data reset or schema change.
+Unapplied table rows are transient; backend validates formula semantics after Apply.
+
 ## Formula presentation checkpoint - 2026-09-15
 
 50 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.

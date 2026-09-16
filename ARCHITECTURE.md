@@ -1,5 +1,13 @@
 # ARCHITECTURE.md
 
+## Calculated-field table (ADR-074)
+
+calculated-chain constructs ordinary nodes/edges and reconstructs actual unbranched chains.
+CalculatedFieldsDialog stages rows and uses FormulaEditor with the source schema plus stable
+IDs of prior rows. Their types are explicitly unknown until backend inference. WorkflowEditor
+applies a snapshot-checked batch through its existing history/autosave path. No separate recipe
+is persisted. Editing existing chains changes config only; canvas edits remain authoritative.
+
 ## Named formula presentation (ADR-073)
 
 FormulaEditor owns cursor/search interaction; formula-presentation recognizes canonical bracket

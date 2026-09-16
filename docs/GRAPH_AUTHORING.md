@@ -93,3 +93,25 @@ show engine names/IDs; the token tooltip exposes those identifiers too. Missing 
 marked explicitly and must be repaired before execution. Quoted text is not rendered as a
 reference. Backend validation and preview remain the authority for type/operation correctness.
 The named view supplements the text editor; it is not a rich text replacement in this delivery.
+
+## Calculated-field table (third U2 delivery)
+
+Select a saved node with an available output schema and choose **Add calculated fields**.
+Enter a name/formula for each row; add rows with **Add calculated field**. Field choices include
+source columns and previous row results. Select those results to insert stable references;
+reordering a row ahead of its referenced predecessor disables Apply until repaired. Names must
+be unique, including against input engine names. The table is limited to 20 rows at a time.
+
+**Apply calculated fields** creates a new branch of ordinary Calculated Column nodes in row
+order. Existing outgoing connections are preserved; connect the new final node to downstream
+consumers explicitly. The action saves once and can be undone/redone as a whole. Verify schema
+and preview afterward: formula semantics and types are checked by the backend, and staged
+results are marked unknown until then. Normal autosave errors/conflicts retain the graph draft.
+
+Select an existing Calculated Column and choose **Edit calculated chain** to edit its actual
+consecutive chain, up to a branch/non-calculated node or 20 rows. Names/formulas change together;
+IDs, layout and connections stay intact. Reorder/delete/connect existing nodes on the canvas.
+Reopening the table reflects those real graph edits instead of regenerating an old template.
+The table is a transient staging form: Apply before leaving to retain work. Cancel/Escape asks
+before discarding changed rows, and browser unload warns. Closing it without Apply leaves the
+graph untouched. Applied work restores normally after reload.

@@ -1,31 +1,30 @@
 # Node BI Development Status
 
-Last updated: 2026-09-15
+Last updated: 2026-09-16
 Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: second U2 delivery adds FormulaEditor named reference tokens, cursor/selection
-insertion, searchable schema-aware field choices, types and function signature hints (ADR-073).
-Click a token to select its canonical span, then choose a replacement field. Upstream renames
-refresh labels without changing stored IDs. Quoted strings remain literal; missing references
-are marked. Canonical text editing remains visible. No new evaluator or persisted expression.
+Latest session: third U2 delivery adds the calculated-field table (ADR-074). Up to 20 rows
+become ordinary dependent Calculated Column nodes in a new branch. Stable prior-row references,
+ordering, atomic graph application, undo/redo and graph-derived existing-chain editing work.
+Existing chain editing preserves IDs/edges/positions. Formula semantics/types remain backend
+responsibility; staged prior results are explicitly unknown. Modal changes are transient until
+Apply; cancel confirms discard and unload warns. No recipe or special calculation runtime.
 
-Current milestone: U2 in progress; last completed task: formula helper acceptance.
-Last completed: named token insertion/replacement and upstream rename acceptance; U1 complete.
-Next: batch calculated-field/preparation forms and grouped Unpivot authoring. Rich provenance
-labels and diagnostics beside the expression remain unfinished U2 details. Duplicate names
-currently include engine name/ID, and errors still use the existing output panel.
-U0 operator measurements remain pending. Original reference project/data are unchanged.
-No known new P0/P1 or blocker. Empty-Filter raw validation P2 remains fixed.
+Current milestone: U2 in progress; last completed task: calculated-field table acceptance.
+Last completed: create/undo/redo/reload/edit acceptance with dependent results 128 and 256.
+Next: batch preparation (select/rename/convert/null policies), grouped Unpivot authoring,
+then remaining provenance/inline diagnostics. U0 operator study remains unmeasured.
+No known new P0/P1 or blocker. Original reference project/data/layout remain intact.
+Docker Desktop was stopped at session start; started it and restored the existing Compose stack.
 
-Checks: 50 frontend tests, TypeScript, ESLint, OpenAPI drift and production frontend build pass.
-Focused browser formula replacement/rename/reload test passes with computed output 9.
-All 24 browser scenarios pass (10 opt-in skips), including six-screen result equality after
-application/PostgreSQL restart, both themes and three languages (.backups/ux-formula-e2e.log).
-Frontend deployed.
-Backend unchanged; previous baseline: 249 tests with PostgreSQL, 4 SQLite-only skips,
-Ruff lint/format and mypy pass. No API/schema/dependency changes.
+Checks: 52 frontend tests, TypeScript, ESLint, OpenAPI drift and production frontend build pass.
+25 browser scenarios pass (10 opt-in skips), including six-screen restart/result equality.
+Final modal presentation adjustment is built and checked with the focused scenario.
+Logs .backups/ux-calculated-table-focused.log and .backups/ux-calculated-table-e2e.log.
+Backend unchanged: previous verified baseline 249 tests with PostgreSQL (4 SQLite-only skips),
+Ruff lint/format and mypy pass. No API/schema/dependency changes. Frontend deployed locally.
 
 Approved six-screen constructor extension: **COMPLETE** (2026-09-15).
 One retained editable workflow has 168 nodes, six dashboards and 55 widget placements.
