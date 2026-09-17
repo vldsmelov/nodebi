@@ -507,3 +507,20 @@ ux-parameter-labels-frontend-build.log, ux-parameter-labels-focused.log, ux-para
 Full browser/restart result: 32 passed, 10 opt-in skips (3.3 minutes). Six-dashboard restoration
 after application/PostgreSQL restart, three languages and both themes pass. Original project/data
 unchanged; no required check remains failing.
+
+
+## Guided widget navigation, first delivery (2026-09-17, ADR-084)
+
+77 frontend tests pass; TypeScript/ESLint and production build pass. Navigation planning tests
+cover unique typed suggestions, ambiguity, preserving explicit assignments, missing/removed
+references and incompatible/required destination values. No backend/API/persistence changes;
+previous backend baseline is 254 passed, 4 SQLite-only skips with PostgreSQL (not rerun here).
+Browser acceptance configures a transition at its widget, blocks incomplete required mappings,
+filters incompatible fields, suggests a field, previews the actual first-row value, cancels without
+losing title edits, reapplies into a draft and saves through existing CAS. It verifies no workflow
+revision changes and follows the saved transition after reload. Screenshot visually reviewed.
+Evidence: .backups/ux-guided-navigation-build.log, ux-guided-navigation-focused.log,
+ux-guided-navigation-e2e.log and ux-guided-navigation.png. Full browser/restart result: 33 passed,
+10 opt-in skips (3.3 minutes). Six-dashboard restoration after application/PostgreSQL restart,
+three languages and both themes pass; no required check remains failing.
+Original project/data unchanged. Automatic missing-context-field addition remains unfinished U4.

@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# ADR-084 - Staged widget navigation with typed suggestions and sample preview
+
+Date: 2026-09-17. Status: ACCEPTED; first guided-navigation U4 delivery.
+Context: the global widget selector forces operators to leave a widget to configure its action;
+raw mappings do not expose required destination inputs or demonstrate the values being passed.
+Decision: each widget opens a staged navigation dialog using the existing NavigationAction
+contract. Destination inputs show types/required markers; only compatible fields/parameters
+are offered. Explicit suggestions fill only uniquely matching names/types and preserve current
+mappings. Missing, removed or incompatible references are visible and block application.
+A sample uses the first returned row plus current dashboard values through the same
+navigationValues function as actual navigation. It is an example, not validation of every row.
+Apply changes only the widget action in the current recoverable dashboard draft. Cancel/Escape
+confirm discarding a changed modal; unrelated title/layout edits remain intact. Dashboard save
+continues to own CAS/persistence. This feature does not modify workflows or visualization config.
+Alternatives: immediate saves could conflict with unrelated dashboard drafts; automatic fuzzy
+matching could silently pass the wrong identity. Existing global forms remain available.
+Consequences: no API/migration change. Only existing visualization result/context fields can be
+mapped here. Proposing and atomically adding missing context fields across graph/dashboard
+revisions remains an explicit unfinished U4 task; the dialog explains the current manual route.
+
 # ADR-083 - Typed parameter values with separate display labels
 
 Date: 2026-09-17. Status: ACCEPTED; fourth U4 delivery.

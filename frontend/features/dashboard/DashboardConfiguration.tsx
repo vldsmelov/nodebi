@@ -8,12 +8,14 @@ import { useState } from "react";
 import { ParameterOptionsConfiguration, ParameterChoices } from "./ParameterOptions";
 import { emptyConfiguration, workflowValues } from "./view-state";
 
+import { compatibleNavigationType, type NavigationField } from "./navigation-plan";
+
 const control = "rounded-lg border border-outline bg-control px-2 py-2 text-xs";
 
-export function NavigationConfiguration({ action, onChange, dashboards, parameters, fields = [] }: {
+export function NavigationConfiguration({ action, onChange, dashboards, parameters, fields = [], typed = false }: {
   action?: NavigationAction | null; onChange: (action: NavigationAction | null) => void;
   dashboards: Dashboard[]; parameters: DashboardParameter[];
-  fields?: { column_id: string; display_name: string }[];
+  fields?: NavigationField[]; typed?: boolean;
 }) {
   const { t } = useI18n();
   const target = dashboards.find(item => item.id === action?.dashboard_id);
@@ -21,12 +23,16 @@ export function NavigationConfiguration({ action, onChange, dashboards, paramete
     <option value="">{t("No navigation")}</option>{dashboards.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
   </select>{(target?.configuration?.parameters ?? []).map(definition => {
     const value = action?.values?.[definition.name];
+    const eligibleParameters = parameters.filter(item => !typed || compatibleNavigationType(item.logical_type, definition.logical_type));
+    const eligibleFields = fields.filter(item => !typed || compatibleNavigationType(item.logical_type, definition.logical_type));
+    const unavailable = value?.source === "field" ? !eligibleFields.some(item => item.column_id === value.name) : value?.source === "parameter" ? !eligibleParameters.some(item => item.name === value.name) : false;
     const update = (next: NonNullable<NavigationAction["values"]>[string] | null) => { const values = { ...action!.values }; if (next) values[definition.name] = next; else delete values[definition.name]; onChange({ ...action!, values }); };
-    return <div key={definition.name} className="flex flex-wrap items-center gap-2 text-xs"><span>{definition.label || definition.name}</span>
+    return <div key={definition.name} className="flex flex-wrap items-center gap-2 text-xs"><span>{definition.label || definition.name}{typed ? ` (${t(definition.logical_type)})${definition.required ? " *" : ""}` : ""}</span>
       <select aria-label={t("Navigation value for {0}", { 0: definition.name })} className={control} value={!value ? "default" : value.source === "constant" ? "constant" : `${value.source}:${value.name}`} onChange={e => { const selected = e.target.value; if (selected === "default") update(null); else if (selected === "constant") update({ source: "constant", name: "", value: definition.default ?? null }); else { const separator = selected.indexOf(":"); update({ source: selected.slice(0, separator) as "parameter" | "field", name: selected.slice(separator + 1) }); } }}>
+        {unavailable && value ? <option value={`${value.source}:${value.name}`} disabled>{t("Unavailable mapping")}: {value.name}</option> : null}
         <option value="default">{t("Use default value")}</option><option value="constant">{t("Constant")}</option>
-        {parameters.map(item => <option key={`p:${item.name}`} value={`parameter:${item.name}`}>{t("Parameter")}: {item.label || item.name}</option>)}
-        {fields.map(item => <option key={`f:${item.column_id}`} value={`field:${item.column_id}`}>{t("Field")}: {item.display_name}</option>)}
+        {eligibleParameters.map(item => <option key={`p:${item.name}`} value={`parameter:${item.name}`}>{t("Parameter")}: {item.label || item.name}</option>)}
+        {eligibleFields.map(item => <option key={`f:${item.column_id}`} value={`field:${item.column_id}`}>{t("Field")}: {item.display_name}</option>)}
       </select>{value?.source === "constant" ? <ParameterInput label={t("Navigation constant for {0}", { 0: definition.name })} definition={definition} value={value.value} onChange={next => update({ source: "constant", name: "", value: next })} /> : null}
     </div>;
   })}</div>;

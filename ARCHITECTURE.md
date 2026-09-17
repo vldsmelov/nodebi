@@ -1,5 +1,13 @@
 # ARCHITECTURE.md
 
+## Guided widget navigation (ADR-084)
+
+WidgetNavigationDialog stages an ordinary NavigationAction. The pure navigation-plan helper
+offers unique type-compatible name matches and reports structural mapping issues. Sample preview
+and actual clicks share navigationValues, using field IDs rather than display text. Apply merges
+the action into the dashboard's existing local draft; ordinary dashboard CAS persists it. No
+workflow mutation is performed. Missing context-field authoring remains a separate U4 task.
+
 ## Parameter ID/label selectors (ADR-083)
 
 ParameterOptions optionally references a label field alongside the typed value field. NodeValues

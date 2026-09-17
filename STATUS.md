@@ -5,7 +5,19 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: fourth U4 delivery separates parameter choice IDs from display labels (ADR-083).
+Latest session: fifth U4 delivery adds staged per-widget navigation with typed suggestions and
+sample preview (ADR-084). Required/missing/incompatible mappings are explicit; apply preserves
+other dashboard drafts, cancel discards only modal changes. Existing global forms remain available.
+77 frontend tests, TypeScript/ESLint and production build pass; frontend deployed. Focused browser
+acceptance passes. Full browser/restart regression: 33 passed, 10 opt-in skips (3.3 minutes),
+including six-dashboard restoration after application/PostgreSQL restart, three languages and
+both themes. Evidence: .backups/ux-guided-navigation-e2e.log and docs/QA_REPORT.md.
+Backend/API/persistence unchanged.
+Next: propose/add missing visualization context fields with an atomic graph/dashboard revision
+contract and review; then U4 view mode/grid templates. Guided navigation is still IN PROGRESS.
+No new known defects or blockers; original project/data untouched. No human speed claim.
+
+Previous session: fourth U4 delivery separates parameter choice IDs from display labels (ADR-083).
 Search covers values and labels; selected labels survive search limits; repeated names retain
 distinct IDs. Conflicting labels for one ID produce an explicit error. Old selectors remain valid.
 254 backend tests pass with PostgreSQL (4 SQLite-only skips); Ruff lint/format (107 files),

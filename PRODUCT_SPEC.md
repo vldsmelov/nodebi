@@ -2,6 +2,11 @@
 
 ## Approved extension: constructor dashboard parity (2026-09-14)
 
+Authors can configure a transition directly at its widget, inspect required destination inputs,
+request unambiguous typed mapping suggestions and preview values from an example result row.
+Applying merges into the current dashboard draft; cancellation preserves unrelated edits.
+Missing visualization context fields currently require the existing visualization settings form.
+
 Dashboard choice sources may use separate value and display-label fields. Filters and URL state
 retain typed values; identical names with distinct IDs remain selectable. Search covers both
 fields, and selected labels remain visible outside a limited search page. Conflicting labels for

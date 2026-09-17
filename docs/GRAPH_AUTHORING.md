@@ -1,5 +1,17 @@
 # Graph authoring usability: first U1 delivery
 
+## Guided widget transitions (U4, ADR-084)
+
+Choose **Configure navigation** on a widget, then choose its destination dashboard. Each target
+parameter shows its type and whether it is required. Choose a compatible result field, current
+parameter, constant or destination default. **Suggest matching values** fills unambiguous name
+and type matches without replacing existing mappings. Review the mapping before applying.
+**Preview transition** displays destination values for the first result row and current selections;
+other rows may contain nulls. It does not navigate or save. **Apply navigation changes** merges
+the action into your current dashboard draft; use **Save dashboard** to persist. Cancel preserves
+unrelated title/layout edits. Missing context fields must currently be added through visualization
+settings first. Automatic addition of those fields is a separate unfinished U4 step.
+
 ## Named parameter choices (U4, ADR-083)
 
 In **Dashboard settings**, add a parameter and choose its type, workflow, dataset node and
