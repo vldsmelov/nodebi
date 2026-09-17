@@ -1,5 +1,12 @@
 # ARCHITECTURE.md
 
+## Exact calculation navigation (ADR-082)
+
+Dashboard widget links use workflow/node URL parameters. WorkflowPage verifies project
+membership before resolving a requested graph; WorkflowEditor selects the requested node,
+expands its group and highlights ancestors without changing graph persistence. Missing targets
+are visible errors. Browser history and session drafts retain the existing dashboard state.
+
 ## Atomic visualization authoring (ADR-081)
 
 dashboard_authoring composes graph/index and dashboard persistence in one transaction, with

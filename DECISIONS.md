@@ -1,5 +1,22 @@
 # DECISIONS.md
 
+# ADR-082 - Widget links to exact workflow calculations
+
+Date: 2026-09-17. Status: ACCEPTED; third U4 delivery.
+Context: multiple workflows and collapsed node groups make finding a widget calculation slow.
+Decision: widget links carry workflow and visualization-node IDs in URL query parameters.
+The workflow page validates the requested workflow against the current project list before
+fetching it. Missing targets show an explicit message without falling back to another graph.
+The editor expands the selected node's group, opens its configuration, focuses the node and
+highlights ancestors through the existing dependency view. Selection is view state and does
+not write a workflow revision. Reload restores the URL target; browser Back restores dashboard
+URL state and its existing session draft. Dirty dashboard navigation requires acknowledgement.
+Alternatives: a workflow-only link does not locate the calculation; storing navigation state in
+the graph creates unnecessary revisions. URL parameters reuse the existing browser history.
+Consequences: no API or persistence changes. This opens the calculation definition; dashboard
+parameter values are not copied into editor execution parameters. Existing editor parameter
+controls remain explicit. ID/label selectors and guided dashboard navigation remain pending.
+
 # ADR-081 - Atomic dashboard visualization creation and independent copies
 
 Date: 2026-09-17. Status: ACCEPTED; second U4 delivery.

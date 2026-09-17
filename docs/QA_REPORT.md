@@ -469,3 +469,19 @@ remaining U4 selectors/navigation/view modes are still pending.
 Full browser regression: 30 passed, 10 opt-in skips (3.3 minutes), including six-dashboard
 recovery after application/PostgreSQL restart, three languages and both themes. Backend and
 frontend production builds are deployed locally. No failures in required checks.
+
+
+## Exact calculation navigation (2026-09-17, ADR-082)
+
+Frontend 73 tests, TypeScript and ESLint pass. Frontend production build passes and is deployed.
+Focused browser acceptance creates two workflows and a grouped visualization, opens the exact
+node from its widget, expands the collapsed group, highlights ancestors and preserves the graph
+revision across selection/reload. Cancelled navigation leaves dashboard edits intact; confirmed
+navigation and browser Back recover them. Missing node/workflow URLs display explicit errors.
+The screenshot .backups/ux-calculation-navigation.png was visually reviewed.
+Evidence: .backups/ux-calculation-navigation-build.log and ux-calculation-navigation-focused.log.
+Full browser/restart regression: 31 passed, 10 opt-in skips (3.4 minutes), recorded in
+.backups/ux-calculation-navigation-e2e.log. Six-dashboard restoration after application/PostgreSQL
+restart, three languages and both themes pass. No required check failed.
+No backend/API/persistence changes. Prior backend baseline remains 252 passed with 4 SQLite-only
+skips and PostgreSQL enabled; not rerun for this frontend-only change. Original project untouched.

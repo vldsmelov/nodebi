@@ -4,20 +4,25 @@ import { useI18n } from "@/lib/i18n";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useCallback } from "react";
 
 import { listSources } from "@/features/data-sources/api";
 import { WorkflowEditor } from "@/features/workflow/WorkflowEditor";
 import { createWorkflow, getNodeCatalog, getWorkflow, getWorkflowSchema, listWorkflows } from "@/features/workflow/api";
 
-export default function WorkflowPage() {
+function WorkflowPageContent() {
   const { t, errorText } = useI18n();
   const { projectId } = useParams<{ projectId: string }>();
   const client = useQueryClient();
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState("");
+  const search = useSearchParams();
+  const router = useRouter();
+  const selectedWorkflowId = search.get("workflow") ?? "";
+  const targetNodeId = search.get("node");
+  const setSelectedWorkflowId = (id: string) => router.push(`/projects/${projectId}/workflow?workflow=${encodeURIComponent(id)}`);
   const workflows = useQuery({ queryKey: ["workflows", projectId], queryFn: () => listWorkflows(projectId) });
-  const effectiveWorkflowId = selectedWorkflowId || workflows.data?.[0]?.id || "";
+  const invalidWorkflow = Boolean(selectedWorkflowId && workflows.data && !workflows.data.some(item => item.id === selectedWorkflowId));
+  const effectiveWorkflowId = selectedWorkflowId ? (workflows.data?.some(item => item.id === selectedWorkflowId) ? selectedWorkflowId : "") : workflows.data?.[0]?.id || "";
   const workflow = useQuery({ queryKey: ["workflow", effectiveWorkflowId], queryFn: () => getWorkflow(effectiveWorkflowId), enabled: Boolean(effectiveWorkflowId) });
   const resolvedSchema = useQuery({ queryKey: ["workflow-schema", effectiveWorkflowId], queryFn: () => getWorkflowSchema(effectiveWorkflowId), enabled: Boolean(effectiveWorkflowId) });
   const catalog = useQuery({ queryKey: ["node-catalog"], queryFn: getNodeCatalog });
@@ -52,10 +57,13 @@ export default function WorkflowPage() {
           <button onClick={() => create.mutate()} disabled={create.isPending} className="rounded-full border border-outline px-4 py-2 text-sm hover:border-accent/50 disabled:opacity-50">{create.isPending ? t("Creating…") : t("New workflow")}</button>
         </div>
       </header>
+      {invalidWorkflow ? <p role="alert" className="mx-6 text-danger">{t("The linked workflow is unavailable in this project.")}</p> : null}
       {error ? <div className="mx-6 rounded-xl bg-danger-surface p-4 text-sm text-danger">{errorText(error)}</div> : null}
       {loading ? <div className="grid h-[calc(100vh-7.75rem)] place-items-center text-muted">{t("Loading workflow…")}</div> : null}
       {!loading && workflows.data?.length === 0 ? <div className="grid h-[calc(100vh-5rem)] place-items-center"><div className="text-center"><h2 className="text-2xl">{t("Start with an empty workflow")}</h2><p className="mt-2 text-sm text-muted">{t("Create a canvas, then add an Excel source from the node library.")}</p><button onClick={() => create.mutate()} className="mt-6 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-on-primary">{t("Create workflow")}</button></div></div> : null}
-      {workflow.data && catalog.data && sources.data ? <WorkflowEditor key={workflow.data.id} workflow={workflow.data} catalog={catalog.data} sources={sources.data} resolvedSchema={resolvedSchema.data} onSaved={refreshSchema} /> : null}
+      {workflow.data && catalog.data && sources.data ? <WorkflowEditor key={`${workflow.data.id}:${targetNodeId ?? ""}`} targetNodeId={targetNodeId} workflow={workflow.data} catalog={catalog.data} sources={sources.data} resolvedSchema={resolvedSchema.data} onSaved={refreshSchema} /> : null}
     </main>
   );
 }
+
+export default function WorkflowPage() { return <Suspense><WorkflowPageContent /></Suspense>; }

@@ -5,7 +5,18 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: second U4 delivery creates ordinary visualization nodes/widgets and independent
+Latest session: third U4 delivery links dashboard widgets to their exact workflow/node (ADR-082).
+The editor reveals collapsed targets and highlights ancestors without saving a revision. Missing
+targets show explicit messages; dashboard drafts survive cancelled/confirmed navigation and Back.
+73 frontend tests, TypeScript/ESLint and production build pass. Focused browser acceptance passes.
+Full browser/restart regression: 31 passed, 10 opt-in skips (3.4 minutes), including six-dashboard
+restoration after application/PostgreSQL restart, three languages and both themes.
+Evidence: .backups/ux-calculation-navigation-e2e.log and docs/QA_REPORT.md. Frontend deployed.
+Backend/API/schema unchanged; no migration required.
+Next: ID/label parameter selectors, guided navigation and view mode/grid templates in U4.
+No new known defects or blockers; original project/data untouched. Human study remains unmeasured.
+
+Previous session: second U4 delivery creates ordinary visualization nodes/widgets and independent
 copies in one transaction (ADR-081). Both revisions and project/input ownership are checked;
 late errors roll back graph/index/widget. Copy rebinds only the chosen widget, preserving its
 layout/action and all original visualization uses. Dirty dashboard drafts must be saved first.
@@ -15,8 +26,8 @@ TypeScript/ESLint and OpenAPI drift pass. Production builds pass and are deploye
 Full browser regression: 30 passed, 10 opt-in skips (3.3 minutes), including six-dashboard
 recovery after application/PostgreSQL restart, three languages and both themes.
 Evidence: .backups/ux-widget-authoring-full-e2e.log and docs/QA_REPORT.md.
-Next: exact calculation-branch navigation, then ID/label selectors, guided navigation and view
-mode in U4. Human study remains U0/unmeasured. No data reset; original project/data untouched.
+Remaining U4: ID/label selectors, guided navigation and view mode. Human study remains U0/unmeasured.
+No data reset; original project/data untouched.
 Retry uses the same IDs/revisions; if a response is lost after commit, reload reveals the result.
 Clean local recovery snapshots are cleared after atomic success to prevent stale restoration.
 

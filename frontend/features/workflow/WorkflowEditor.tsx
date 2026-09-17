@@ -82,9 +82,9 @@ export function serializeEdges(edges: Edge[]): WorkflowEdge[] {
   return edges.map((edge) => ({ id: edge.id, source_node_id: edge.source, source_port: edge.sourceHandle ?? "output", target_node_id: edge.target, target_port: edge.targetHandle ?? "input" }));
 }
 
-type Props = { workflow: Workflow; catalog: NodeDefinition[]; sources: DataSource[]; resolvedSchema?: WorkflowSchemaResult; onSaved?: () => void };
+type Props = { targetNodeId?: string | null; workflow: Workflow; catalog: NodeDefinition[]; sources: DataSource[]; resolvedSchema?: WorkflowSchemaResult; onSaved?: () => void };
 
-export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onSaved }: Props) {
+export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resolvedSchema, onSaved }: Props) {
   const { t, errorText, nodeName } = useI18n();
   const { theme, palette } = useTheme();
   const [saveState, setSaveState] = useState<SaveState>({ status: "saved", revision: workflow.revision, error: null });
@@ -320,6 +320,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
         {layoutError ? <p role="alert" className="mb-3 text-xs text-danger">{t("Fix cycles or missing connections before arranging the graph.")}</p> : null}
         <EditorPanels left={view.left} right={view.right} change={(left, right) => setView(current => ({ ...current, left, right }))} />
         <GroupPanel groups={groups} selectedCount={selectedIds.size} collapsed={view.collapsed} assign={assignGroup} rename={changeGroup} dissolve={name => changeGroup(name, "")} toggle={toggleGroup} openNode={openNode} />
+        {targetNodeId && !nodes.some(node => node.id === targetNodeId) ? <p role="alert" className="mb-3 text-xs text-danger">{t("The linked node is unavailable. It may have been deleted.")}</p> : null}
         <NodeFinder nodes={nodes.map(node => ({ id: node.id, label: `${nodeLabel(node.data, nodeName(node.data.definition.type))} · ${nodeName(node.data.definition.type)}` }))} selected={selectedNodeId} onSelect={openNode} />
         <label className="mb-4 block text-xs">{t("Show dependencies")}
           <select aria-label={t("Show dependencies")} className="mt-2 w-full rounded-lg border border-outline bg-control p-2" value={dependencyView} onChange={event => {
@@ -342,7 +343,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
       <section className="relative bg-page">
         <div className="absolute right-4 top-4 z-10 rounded-full border border-outline bg-surface/90 px-3 py-1.5 text-xs text-muted backdrop-blur">{saveStatus === "saving" ? t("Saving…") : saveStatus === "saved" ? t("Saved") : saveStatus === "error" ? t("Save failed") : t("Ready")}</div>
         {saveStatus === "error" ? <div className="absolute left-4 top-4 z-10 max-w-sm rounded-xl bg-danger-surface p-3 text-xs text-danger" role="alert">{errorText(saveError)}<div className="mt-2 flex gap-3"><button onClick={() => void writer.flush()}>{t("Retry save")}</button><button onClick={() => { if (window.confirm(t("Discard this local draft and load the saved workflow?"))) { sessionStorage.removeItem(writer.key); window.location.reload(); } }}>{t("Discard draft and reload")}</button></div></div> : null}
-        <ReactFlow<EditorNode, Edge> multiSelectionKeyCode="Shift" onInit={instance => { flow.current = instance; }} nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} ariaLabelConfig={{
+        <ReactFlow<EditorNode, Edge> multiSelectionKeyCode="Shift" onInit={instance => { flow.current = instance; if (targetNodeId && nodes.some(node => node.id === targetNodeId)) { openNode(targetNodeId); setDependencyView("ancestors"); } else { selectNode(null); } }} nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} ariaLabelConfig={{
           'controls.ariaLabel': t('Canvas controls'),
           'controls.zoomIn.ariaLabel': t('Zoom in'), 'controls.zoomOut.ariaLabel': t('Zoom out'),
           'controls.fitView.ariaLabel': t('Fit view'), 'controls.interactive.ariaLabel': t('Toggle interactivity'),

@@ -1,5 +1,8 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Open calculation": ["Открыть расчёт", "Исәпләүне ачарга"],
+  "The linked workflow is unavailable in this project.": ["Указанный граф недоступен в этом проекте.", "Күрсәтелгән граф бу проектта мөмкин түгел."],
+  "The linked node is unavailable. It may have been deleted.": ["Указанный узел недоступен. Возможно, он удалён.", "Күрсәтелгән төен мөмкин түгел. Ул бетерелгән булырга мөмкин."],
   "Grouped Unpivot": ["Разворот групп столбцов", "Баганалар төркемнәрен җәю"],
   "Unpivot label {0}": ["Подпись Unpivot для {0}", "{0} өчен Unpivot язуы"],
   "Labels may repeat; original field IDs remain distinct. Leave a label empty to use the source name.": ["Подписи могут совпадать: исходные ID полей сохраняются. Пустая подпись использует исходное название.", "Язулар кабатлана ала: чыганак кыр ID-лары саклана. Буш язу чыганак исемен куллана."],

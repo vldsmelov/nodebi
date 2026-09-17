@@ -1,5 +1,16 @@
 # Graph authoring usability: first U1 delivery
 
+## Open a widget calculation (U4, ADR-082)
+
+Choose **Open calculation** in a dashboard widget. The editor opens that visualization's
+workflow and selects its node, reveals a collapsed group and highlights upstream dependencies.
+The configuration panel is ready for editing. Choose **Entire workflow** to remove highlighting.
+The URL retains the workflow/node choice on reload. Browser Back restores the dashboard and
+its URL slice; unsaved dashboard edits remain recoverable locally, with confirmation before
+leaving. Opening a calculation alone does not save a graph revision. An unavailable workflow
+or node produces an explicit message. Dashboard slice values are not transferred into editor
+execution parameters; use the editor's parameter controls when inspecting a specific slice.
+
 The editor now uses meaningful titles on existing graphs without converting their data.
 Cards and node search use the visualization title, calculated output name or source sheet.
 Set **Node label** to name an otherwise generic step, such as a Filter or Group By. This
