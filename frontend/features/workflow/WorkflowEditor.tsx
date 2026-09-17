@@ -32,6 +32,8 @@ import { WorkflowNodeCard, type EditorNode } from "./WorkflowNodeCard";
 import { useWorkflowUi } from "./store";
 import type { NodeDefinition, Workflow, WorkflowEdge, WorkflowNode, WorkflowSchemaResult } from "./types";
 
+import { GroupedUnpivotDialog } from "./GroupedUnpivotDialog";
+import { appendGroupedUnpivot, type GroupedUnpivotPlan } from "./grouped-unpivot";
 import { PreparationDialog } from "./PreparationDialog";
 import { appendUnaryChain, type PlannedStep } from "./unary-chain";
 import { CalculatedFieldsDialog } from "./CalculatedFieldsDialog";
@@ -241,6 +243,14 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   // choices. Output/preview still require an exact acknowledged revision.
   const selectedInputColumns = resolvedSchema?.nodes.find((item) => item.node_id === selectedInputEdge?.source)?.columns ?? null;
 
+  const [unpivot, setUnpivot] = useState<{ columns: ResolvedColumn[]; source: string; snapshot: string } | null>(null);
+  const applyUnpivot = (plan: GroupedUnpivotPlan) => {
+    if (!unpivot || unpivot.snapshot !== JSON.stringify(graph)) return false;
+    const next = appendGroupedUnpivot(nodes, edges, unpivot.source, catalog, plan); if (!next) return false;
+    editGroup.current = null;
+    setNodes(next.nodes.map(node => ({ ...node, selected: node.id === next.last }))); setEdges(next.edges); selectNode(next.last);
+    requestAnimationFrame(() => focusNodes([next.last])); return true;
+  };
   const [preparation, setPreparation] = useState<{ columns: ResolvedColumn[]; source: string; snapshot: string } | null>(null);
   const applyPreparation = (steps: PlannedStep[]) => {
     if (!preparation || preparation.snapshot !== JSON.stringify(graph)) return false;
@@ -354,7 +364,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
             }
           }}><option value="">{t("Disconnected")}</option>{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
-        {selectedNode && <div className="mt-4 flex flex-wrap gap-2 text-xs"><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "select_columns")} onClick={() => { if (selectedSchema?.columns) setPreparation({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Prepare data table")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "calculated_column")} onClick={() => openBatch(false)}>{t("Add calculated fields")}</button>{selectedNode.data.definition.type === "calculated_column" && <button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !currentSchema?.nodes.find(item => item.node_id === selectedInputEdge?.source)?.columns} onClick={() => openBatch(true)}>{t("Edit calculated chain")}</button>}</div>}
+        {selectedNode && <div className="mt-4 flex flex-wrap gap-2 text-xs"><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "unpivot")} onClick={() => { if (selectedSchema?.columns) setUnpivot({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Grouped Unpivot")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "select_columns")} onClick={() => { if (selectedSchema?.columns) setPreparation({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Prepare data table")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "calculated_column")} onClick={() => openBatch(false)}>{t("Add calculated fields")}</button>{selectedNode.data.definition.type === "calculated_column" && <button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !currentSchema?.nodes.find(item => item.node_id === selectedInputEdge?.source)?.columns} onClick={() => openBatch(true)}>{t("Edit calculated chain")}</button>}</div>}
         {selectedNode ? <NodeConfiguration parameters={parameters} type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} inputColumns={Object.fromEntries((selectedNode.data.definition.input_ports ?? []).map(port => {
           const edge = edges.find(e => e.target === selectedNode.id && e.targetHandle === port.id);
           return [port.id, resolvedSchema?.nodes.find(n => n.node_id === edge?.source)?.columns ?? null];
@@ -365,6 +375,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
           revision={saveState.revision} dirty={dirty} schema={selectedSchema} issues={selectedIssues} />}
         {saveError ? <p className="mt-5 rounded-xl bg-danger-surface p-3 text-xs text-danger">{errorText(saveError)}</p> : null}
       </aside>
+      {unpivot && <GroupedUnpivotDialog columns={unpivot.columns} apply={applyUnpivot} close={() => setUnpivot(null)} />}
       {preparation && <PreparationDialog columns={preparation.columns} apply={applyPreparation} close={() => setPreparation(null)} />}
       {batch && <CalculatedFieldsDialog initial={batch.initial} columns={batch.columns} editing={batch.editing} apply={applyBatch} close={() => setBatch(null)} />}
     </div>

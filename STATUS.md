@@ -1,30 +1,32 @@
 # Node BI Development Status
 
-Last updated: 2026-09-16
+Last updated: 2026-09-17
 Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: fourth U2 delivery adds the preparation table (ADR-075): select/rename,
-explicit conversion and error policy, keep/drop/fill nulls, and an ordered preview of generated
-ordinary nodes. Apply adds one branch without rewiring existing consumers. Fill columns receive
-new calculated IDs; integer fill preserves precision via explicit string/coalesce/integer steps.
-Shared appendUnaryChain also serves calculated-field batching. No special execution logic.
+Latest session: fifth U2 delivery implements grouped Unpivot authoring (ADR-076). A staged
+table assigns values to 1-10 groups and creates ordinary Unpivot/Calculated Column branches
+plus Union. New optional Unpivot labels affect field_name only; duplicate labels retain field
+IDs and records. Ordinary node forms edit labels afterward. Existing configs remain compatible.
+Apply uses normal snapshot/port/cycle checks, revision-aware autosave and atomic undo/redo.
 
-Current milestone: U2 in progress; last completed task: preparation-table acceptance.
-Last completed: synthetic inventory acceptance: strict error on invalid Amount, explicit switch
-to null in the generated Convert node, correct drop/fill/projection, exact large integer in
-backend response, atomic undo/redo and reload. Existing project/data remain unchanged.
-Next: grouped Unpivot authoring, richer provenance labels and inline expression diagnostics.
-U0 human operator study remains unmeasured. No known new P0/P1 or environment blocker.
-Docker build first hit a registry TLS timeout; retry completed without changing dependencies.
+Current milestone: U2 in progress; last completed task: grouped Unpivot acceptance.
+Last completed: grouped inventory acceptance: six distinct records with repeated labels,
+manual label edit affecting only its field, single revision creation, undo/redo and reload.
+Next: finish richer provenance labels and expression diagnostics beside the formula. Then U3
+share/rank helpers. U0 human operator study remains unmeasured. Original project/data intact.
+No known new P0/P1 or environment blocker. Wizard requires same known value type and reserves
+standard output names; upstream conversions remain explicit. Unapplied choices are transient.
 
-Checks: 55 frontend tests, TypeScript, ESLint, OpenAPI drift and production build pass.
-Frontend deployed; 26 browser scenarios pass (10 opt-in skips), including six-screen
-result/configuration equality after application/PostgreSQL restart, both themes and three languages.
-Logs .backups/ux-preparation-table-focused.log and .backups/ux-preparation-table-e2e.log.
-Screenshot .backups/ux-preparation-table.png visually reviewed. Backend unchanged: prior baseline
-249 tests with PostgreSQL (4 SQLite-only skips), Ruff/mypy pass. No API/schema changes.
+Checks: 250 backend tests pass with PostgreSQL (4 SQLite-only skips), Ruff lint/format (104 files),
+mypy (66 files), 57 frontend tests, TypeScript, ESLint and OpenAPI drift pass. Production builds
+pass and backend/frontend are deployed. All 27 browser scenarios pass (10 opt-in skips),
+including six-dashboard results/configurations after application/PostgreSQL restart, three
+languages and both themes.
+Logs .backups/ux-grouped-unpivot-backend.log, .backups/ux-grouped-unpivot-focused.log and
+.backups/ux-grouped-unpivot-e2e.log. Screenshot .backups/ux-grouped-unpivot.png visually reviewed.
+No migration or new dependency. Node configuration extension defaults to empty labels.
 
 Approved six-screen constructor extension: **COMPLETE** (2026-09-15).
 One retained editable workflow has 168 nodes, six dashboards and 55 widget placements.

@@ -1,0 +1,48 @@
+import { expect, test } from "@playwright/test";
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
+const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
+test("author grouped Unpivot and edit repeated labels through ordinary node settings", async ({ page, request }) => {
+  test.setTimeout(90000);
+  const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Grouped inventory" } })).json();
+  try {
+    const workbook = execFileSync(resolve("../backend/.venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python"), ["-c", "import sys; from io import BytesIO; from openpyxl import Workbook; w=Workbook(); s=w.active; s.append(['Item','PartA','PartB','PartC']); s.append(['Repeated',1,3,5]); s.append(['Repeated',2,4,6]); b=BytesIO(); w.save(b); sys.stdout.buffer.write(b.getvalue())"]);
+    const source = await (await request.post(`${api}/api/v1/projects/${project.id}/sources/excel`, { multipart: { file: { name: "parts.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: workbook } } })).json();
+    const workflow = await (await request.post(`${api}/api/v1/projects/${project.id}/workflows`, { data: { name: "Grouped parts" } })).json();
+    const sourceId = crypto.randomUUID();
+    expect((await request.put(`${api}/api/v1/workflows/${workflow.id}`, { data: { name: workflow.name, expected_revision: workflow.revision, nodes: [{ id: sourceId, type: "excel_source", version: 1, position: { x: 0, y: 0 }, ui: {}, config: { source_id: source.id, sheet_name: source.workbook.sheets[0].name } }], edges: [], parameters: [] } })).ok()).toBe(true);
+    const read = async () => (await request.get(`${api}/api/v1/workflows/${workflow.id}`)).json();
+    await page.goto(`/projects/${project.id}/workflow`); await page.getByLabel("Edit workflow node").selectOption(sourceId);
+    await page.getByRole("button", { name: "Grouped Unpivot", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Grouped Unpivot" });
+    await dialog.getByLabel("Group output field").fill("kind");
+    await dialog.getByLabel("Unpivot group 1").fill("Inputs");
+    await dialog.getByRole("button", { name: "Add Unpivot group" }).click();
+    await dialog.getByLabel("Unpivot group 2").fill("Overhead");
+    await dialog.getByLabel("Unpivot identifier 1").check();
+    await dialog.getByLabel("Field group 2").selectOption({ label: "Inputs" });
+    await dialog.getByLabel("Field group 3").selectOption({ label: "Inputs" });
+    await dialog.getByLabel("Field group 4").selectOption({ label: "Overhead" });
+    for (const index of [2, 3, 4]) await dialog.getByLabel(`Article label ${index}`, { exact: true }).fill("Shared");
+    await page.screenshot({ path: "../.backups/ux-grouped-unpivot.png" });
+    const before = await read(); expect(before.nodes).toHaveLength(1);
+    await dialog.getByRole("button", { name: "Apply grouped Unpivot" }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const created = await read(); expect(created.nodes).toHaveLength(6); expect(created.edges).toHaveLength(6); expect(created.revision).toBe(before.revision + 1);
+    const union = created.nodes.find((node: { type: string }) => node.type === "union");
+    const preview = async () => { const result = await request.post(`${api}/api/v1/workflows/${workflow.id}/nodes/${union.id}/preview`, { data: { limit: 100 } }); expect(result.ok(), await result.text()).toBe(true); return result.json(); };
+    const data = await preview(); expect(data.total_rows).toBe(6);
+    expect(data.rows.map((row: { field_name: string }) => row.field_name)).toEqual(Array(6).fill("Shared"));
+    expect(data.rows.map((row: { value: number }) => row.value)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(data.rows.map((row: { field_id: string }) => row.field_id)).toEqual(["col_2", "col_2", "col_3", "col_3", "col_4", "col_4"]);
+    expect(data.rows.map((row: { kind: string }) => row.kind)).toEqual(["Inputs", "Inputs", "Inputs", "Inputs", "Overhead", "Overhead"]);
+    await page.getByRole("button", { name: "Undo graph change", exact: true }).click(); await expect(page.getByText("Saved", { exact: true })).toBeVisible(); expect((await read()).nodes).toHaveLength(1);
+    await page.getByRole("button", { name: "Redo graph change", exact: true }).click(); await expect(page.getByText("Saved", { exact: true })).toBeVisible(); await page.reload();
+    const branch = created.nodes.find((node: { type: string; config: { columns?: string[] } }) => node.type === "unpivot" && node.config.columns?.includes("col_3"));
+    await page.getByLabel("Edit workflow node").selectOption(branch.id);
+    await page.getByLabel("Unpivot label col_3").fill("Updated"); await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const edited = await preview(); expect(edited.rows.map((row: { field_name: string }) => row.field_name)).toEqual(["Shared", "Shared", "Updated", "Updated", "Shared", "Shared"]);
+    expect(edited.rows.map((row: { value: number }) => row.value)).toEqual([1, 2, 3, 4, 5, 6]);
+    await page.reload(); await page.getByLabel("Edit workflow node").selectOption(branch.id); await expect(page.getByLabel("Unpivot label col_3")).toHaveValue("Updated");
+  } finally { await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
+});

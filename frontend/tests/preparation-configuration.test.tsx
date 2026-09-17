@@ -30,6 +30,11 @@ describe("preparation forms", () => {
     expect(screen.getAllByLabelText("Team")).toHaveLength(1);
     fireEvent.click(screen.getAllByLabelText("Amount")[1]);
     expect(config().columns).toEqual(["amount"]);
+    fireEvent.change(screen.getByLabelText("Unpivot label amount"), { target: { value: "Shared" } });
+    expect(config().labels).toEqual({ amount: "Shared" });
+    fireEvent.click(screen.getAllByLabelText("Amount")[0]);
+    expect(config().columns).toEqual([]);
+    expect(config().labels).toEqual({});
   });
   it("exposes the row-number sort order", () => {
     render(<Form kind="window" />);

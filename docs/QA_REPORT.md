@@ -1,5 +1,22 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## Grouped Unpivot checkpoint - 2026-09-17
+
+250 backend tests pass with PostgreSQL (4 SQLite-only skips), Ruff lint/format (104 files), mypy
+(66 files), 57 frontend tests, TypeScript, ESLint, OpenAPI drift and production builds pass.
+New backend cases verify repeated labels preserve every row, source ID/value/provenance and
+reject blank/oversized/foreign labels. Frontend tests cover type/name/group validation, quoted
+group constants, repeated label configuration and label cleanup when changing field roles.
+Browser creates two groups from a synthetic parts workbook entirely through the wizard. Six
+records with repeated labels remain distinct with values 1-6 and original col_2/col_3/col_4 IDs.
+The whole five-node extension saves one revision and supports atomic undo/redo. A label edited
+in the ordinary Unpivot form changes only its two rows; data and reload remain correct.
+Screenshot .backups/ux-grouped-unpivot.png visually reviewed. 27 browser scenarios pass in
+2.8 min (10 opt-in skips), including six-screen result equality after application/PostgreSQL
+restart, three languages and both themes;
+log .backups/ux-grouped-unpivot-e2e.log. Backend log .backups/ux-grouped-unpivot-backend.log.
+No original-project mutations or new infrastructure. Human usability measurements remain pending.
+
 ## Preparation table checkpoint - 2026-09-16
 
 55 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.

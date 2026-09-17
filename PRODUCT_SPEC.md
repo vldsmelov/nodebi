@@ -37,6 +37,10 @@ A preparation table stages field selection, names, target types, conversion-erro
 missing-value handling. Before Apply it lists the ordinary nodes to create. Strict conversion
 is the default. Filling creates new calculated fields; existing downstream edges are preserved.
 
+Grouped Unpivot authoring assigns fields to named groups and independently labels articles,
+including repeated labels. The result is an editable graph of ordinary Unpivot, Calculated
+Column and Union nodes. Source field identities and individual records are preserved.
+
 ## 1. Document Purpose
 
 This document defines the product requirements for the MVP of the node-based Business Intelligence platform.

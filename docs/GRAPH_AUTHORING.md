@@ -137,3 +137,23 @@ The previewed extra conversions are intentional. Limits: 1024 retained fields, 2
 batch. Duplicate output names or incompatible policies disable Apply. Schema/runtime errors
 still come from the backend after applying. Unapplied table changes are transient: Cancel or
 Escape confirms discarding modifications and browser unload warns. Apply before leaving.
+
+## Grouped Unpivot (fifth U2 delivery)
+
+Select a saved dataset output and choose **Grouped Unpivot**. Name up to ten nonempty groups,
+choose a name for the group output field, mark shared identifiers and assign value columns to
+groups. A value field can belong to only one group. Unassigned fields are omitted; identifiers
+repeat for each result row. Assign custom article labels as needed: matching labels do not
+combine records. Original source IDs remain in field_id.
+
+Value columns must share a known logical type. Use Convert Types/preparation beforehand for
+mixed or unknown types. Identifier names must not conflict with field_id, field_name, value
+or the group field. Preview the generated nodes and apply once: each group gets Unpivot and
+a Calculated Column containing its name; Union joins branches in group order. Existing source
+connections stay unchanged. Node execution resource limits still apply to the expanded result.
+
+Use Undo/Redo for the complete addition. Afterward edit group constants in Calculated Column,
+field membership/labels in Unpivot, and connections on the canvas. The ordinary Unpivot form
+now offers an optional label for each selected value field. Clearing it restores the current
+source name; duplicate labels are valid. There is no separate persisted wizard recipe.
+Unapplied choices are transient; Cancel/Escape asks before discarding edits and unload warns.

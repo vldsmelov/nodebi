@@ -1,5 +1,14 @@
 # ARCHITECTURE.md
 
+## Grouped Unpivot authoring (ADR-076)
+
+UnpivotConfig.labels is an optional source-ID-to-label map, validated as a subset of selected
+value fields. Execution applies it only to field_name; stable field_id/provenance are unchanged.
+GroupedUnpivotDialog stages identifiers, membership and labels. grouped-unpivot creates ordinary
+unary branches through appendUnaryChain, then adds explicit Union left/right connections using
+shared graph checks. WorkflowEditor applies the complete graph atomically through history and
+revision-aware autosave. No recipe is persisted; node forms edit the generated graph directly.
+
 ## Preparation compiler (ADR-075)
 
 preparation-plan maps a saved schema and transient rows to PlannedStep records with actual node

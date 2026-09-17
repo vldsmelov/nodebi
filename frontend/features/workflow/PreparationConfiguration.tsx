@@ -27,7 +27,10 @@ export function ConvertTypesConfiguration({ config, columns, onChange }: Props) 
 
 export function UnpivotConfiguration({ config, columns, onChange }: Props) {
   const { t } = useI18n();
-  return <div className="mt-6"><h2>{t("Unpivot")}</h2><Fields label="Identifier fields" columns={columns ?? []} selected={strings(config.identifiers)} onChange={identifiers => onChange({ ...config, identifiers, columns: strings(config.columns).filter(key => !identifiers.includes(key)) })} /><Fields label="Fields to turn into rows" columns={(columns ?? []).filter(column => !strings(config.identifiers).includes(column.column_id))} selected={strings(config.columns)} onChange={fields => onChange({ ...config, columns: fields })} /></div>;
+  return <div className="mt-6"><h2>{t("Unpivot")}</h2><Fields label="Identifier fields" columns={columns ?? []} selected={strings(config.identifiers)} onChange={identifiers => onChange({ ...config, identifiers, columns: strings(config.columns).filter(key => !identifiers.includes(key)), labels: Object.fromEntries(Object.entries((config.labels ?? {}) as Record<string, string>).filter(([id]) => !identifiers.includes(id))) })} /><Fields label="Fields to turn into rows" columns={(columns ?? []).filter(column => !strings(config.identifiers).includes(column.column_id))} selected={strings(config.columns)} onChange={fields => onChange({ ...config, columns: fields, labels: Object.fromEntries(Object.entries((config.labels ?? {}) as Record<string, string>).filter(([id]) => fields.includes(id))) })} />
+    {strings(config.columns).map(id => { const field = columns?.find(column => column.column_id === id); const labels = (config.labels ?? {}) as Record<string, string>; return <label key={id} className="mt-3 block text-xs">{field?.display_name ?? id}<input aria-label={t("Unpivot label {0}", { 0: id })} className={control} placeholder={field?.display_name} value={labels[id] ?? ""} onChange={event => { const next = { ...labels }; if (event.target.value) next[id] = event.target.value; else delete next[id]; onChange({ ...config, labels: next }); }} /></label>; })}
+    <p className="mt-2 text-xs text-muted">{t("Labels may repeat; original field IDs remain distinct. Leave a label empty to use the source name.")}</p>
+  </div>;
 }
 
 export function WindowConfiguration({ config, columns, onChange }: Props) {

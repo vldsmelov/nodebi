@@ -1,5 +1,36 @@
 # DECISIONS.md
 
+# ADR-076 - Grouped Unpivot authoring and independent article labels
+
+Date: 2026-09-17. Status: ACCEPTED; fifth U2 delivery.
+Context: operators need to classify source columns into groups and label repeated articles
+without merging distinct original fields or creating special financial transformations.
+Decision: Unpivot v1 adds optional labels keyed by selected source field ID. Missing labels
+retain source display names; supplied labels normalize whitespace and contain 1-255 characters.
+Duplicate labels are allowed, but keys outside selected value fields are rejected. This changes
+only field_name values; field_id, values, row count and source provenance remain unchanged.
+The ordinary Unpivot form can edit/clear labels and removes stale labels when deselecting a
+value field or making it an identifier. Existing configs default to an empty map.
+
+Grouped authoring stages 1-10 uniquely named, nonempty groups. Each source value field belongs
+to at most one group; common identifier fields are separate. The table previews standard
+Unpivot -> Calculated Column branches and the Union nodes joining them in group order.
+Group names are string constants in ordinary formulas. Unpivot already projects the requested
+columns, so redundant Select/Rename steps are unnecessary. Labels do not require upstream
+renaming, allowing identical article names within one group while retaining distinct IDs.
+
+Wizard value fields must share one known logical type; explicit upstream Convert Types is
+required otherwise. This conservative constraint avoids hidden Union type coercion. Existing
+standalone Unpivot retains its previous numeric compatibility behavior. Identifier engine names
+must not collide with field_id, field_name, value or the configurable group output name.
+Whole graph construction is staged with normal port/cycle checks and snapshot-checked Apply;
+autosave/history see one change. Existing consumers are not rewired. Generated nodes are the
+only persisted truth and remain manually editable; no stored recipe overwrites graph edits.
+Unapplied modal choices are transient with cancel/unload warnings. Resource checks remain in
+ordinary executors. No schema migration, dependency or financial-specific runtime was added.
+Alternative rejected: renaming columns before Unpivot cannot represent repeated labels within
+a group because engine names must remain unique. A special grouped executor is unnecessary.
+
 # ADR-075 - Preparation table compiles to standard graph operations
 
 Date: 2026-09-16. Status: ACCEPTED; fourth U2 delivery.

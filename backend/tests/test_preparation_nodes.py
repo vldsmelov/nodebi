@@ -63,6 +63,24 @@ def test_unpivot_preserves_identity_and_full_values() -> None:
     assert result.frame["field_id"].to_list() == ["amount"] * 3 + ["order"] * 3
 
 
+def test_unpivot_labels_do_not_merge_fields_or_change_identity() -> None:
+    result = run(
+        "unpivot",
+        {
+            "identifiers": ["team"],
+            "columns": ["amount", "order"],
+            "labels": {"amount": "Same label", "order": "Same label"},
+        },
+    )
+    assert result.row_count == 6
+    assert result.frame["field_name"].to_list() == ["Same label"] * 6
+    assert result.frame["field_id"].to_list() == ["amount"] * 3 + ["order"] * 3
+    assert result.schema.columns[-1].metadata["source_columns"] == ["amount", "order"]
+    for labels in [{"missing": "Label"}, {"amount": "   "}, {"amount": "x" * 256}]:
+        with pytest.raises(ValueError):
+            run("unpivot", {"columns": ["amount"], "labels": labels})
+
+
 def test_window_totals_and_rank_are_partitioned() -> None:
     result = run(
         "window",

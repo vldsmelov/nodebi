@@ -21,7 +21,7 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [ ] Rich source labels and expression diagnostics adjacent to the formula; current duplicate labels use engine names/IDs.
   * [x] Calculated-field table: dependent rows, atomic creation, undo/redo, graph-derived existing-chain editing and reload acceptance (ADR-074).
   * [x] Preparation table: selection, rename, explicit type/error/null policies, node preview, exact integer fill and atomic ordinary branch creation (ADR-075).
-  * [ ] Grouped Unpivot authoring.
+  * [x] Grouped Unpivot authoring: ordinary branches/Union, independent duplicate labels, stable field IDs, manual edits, atomic undo/reload acceptance (ADR-076).
 * [ ] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
 * [ ] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
 * [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.

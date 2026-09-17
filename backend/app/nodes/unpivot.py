@@ -1,5 +1,5 @@
 import polars as pl
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema, LogicalType, logical_to_polars
 from app.domain.nodes import ExecutionContext, NodeDefinition
@@ -11,6 +11,21 @@ from app.nodes.common import UnaryExecutor, input_schema, unary_definition
 class UnpivotConfig(BaseModel):
     identifiers: list[str] = Field(default_factory=list)
     columns: list[str] = Field(min_length=1, max_length=1024)
+    labels: dict[str, str] = Field(default_factory=dict, max_length=1024)
+
+    @field_validator("labels")
+    @classmethod
+    def normalize_labels(cls, labels: dict[str, str]) -> dict[str, str]:
+        result = {key: " ".join(value.split()) for key, value in labels.items()}
+        if any(not value or len(value) > 255 for value in result.values()):
+            raise ValueError("Unpivot labels must contain 1 to 255 characters.")
+        return result
+
+    @model_validator(mode="after")
+    def labels_reference_values(self) -> "UnpivotConfig":
+        if not self.labels.keys() <= set(self.columns):
+            raise ValueError("Unpivot labels must reference selected value fields.")
+        return self
 
 
 class UnpivotExecutor(UnaryExecutor):
@@ -63,7 +78,7 @@ class UnpivotExecutor(UnaryExecutor):
                 source.frame.select(
                     *[pl.col(name) for name in identifiers],
                     pl.lit(key).alias("field_id"),
-                    pl.lit(column.display_name).alias("field_name"),
+                    pl.lit(config.labels.get(key, column.display_name)).alias("field_name"),
                     pl.col(column.engine_name)
                     .cast(logical_to_polars(schema.columns[-1].logical_type))
                     .alias("value"),
