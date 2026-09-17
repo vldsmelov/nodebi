@@ -5,15 +5,20 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: U2 source labels complete (ADR-077). The single-node formula editor displays
-workbook, sheet, original Excel column and header levels for referenced fields. Search includes
-origins; Join/Union use graph-scoped resolution and same-named workbooks remain distinct.
-Only exact-current saved schema origins are shown. Staged batch dialogs do not claim validated
-provenance; inspect applied ordinary nodes. These are value origins, not all row dependencies.
-Frontend: 63 tests, TypeScript and ESLint pass. Production Docker build and focused formula
-browser acceptance pass; final deployment validation is recorded in docs/QA_REPORT.md.
-Next: U3 share/rank helpers. U0 human measurements remain pending. Original data/project intact.
-No known new P0/P1 or environment blocker. Backend unchanged; previous full matrix is historical.
+Latest session: first U3 delivery adds Share and rank authoring (ADR-078). A single dialog
+creates ordinary Window/Calculated Column branches with an optional trailing parameter Filter.
+Input/group scope, zero/missing denominator policy, rank direction and tie-break are explicit.
+Upstream filters are listed; all rows means the selected input, including existing filters.
+Generated graph is editable through normal forms and saved/undone atomically. No special backend.
+67 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.
+Focused browser acceptance passes: group denominator survives item selection, global total keeps
+all rows, zero denominator, stable ties, undo/redo and reload. Full browser run: 28 passed,
+10 opt-in skips, including six-dashboard recovery after frontend/backend/PostgreSQL restart,
+three languages and both themes. Logs: .backups/ux-analytics-full-e2e.log and ux-analytics-build.log.
+Frontend is deployed locally; generated formula edits and upstream parameter disclosure also pass.
+Next: U3 denominator path highlighting and parameter application points for existing graphs;
+verify explicit pre-selection output reuse. U0 human measurements remain pending. Original
+project/data intact. No known new P0/P1 or blocker. Backend code/contracts unchanged.
 
 Previous session: fifth U2 delivery implements grouped Unpivot authoring (ADR-076). A staged
 table assigns values to 1-10 groups and creates ordinary Unpivot/Calculated Column branches
@@ -21,12 +26,7 @@ plus Union. New optional Unpivot labels affect field_name only; duplicate labels
 IDs and records. Ordinary node forms edit labels afterward. Existing configs remain compatible.
 Apply uses normal snapshot/port/cycle checks, revision-aware autosave and atomic undo/redo.
 
-Current milestone: U3 next; last completed task: U2 formula source labels.
-Last completed: grouped inventory acceptance: six distinct records with repeated labels,
-manual label edit affecting only its field, single revision creation, undo/redo and reload.
-Next: U3 share/rank helpers. U0 human operator study remains unmeasured. Original project/data intact.
-No known new P0/P1 or environment blocker. Wizard requires same known value type and reserves
-standard output names; upstream conversions remain explicit. Unapplied choices are transient.
+Historical U2 grouped-Unpivot verification (not rerun as a backend matrix in this session):
 
 Checks: 250 backend tests pass with PostgreSQL (4 SQLite-only skips), Ruff lint/format (104 files),
 mypy (66 files), 57 frontend tests, TypeScript, ESLint and OpenAPI drift pass. Production builds

@@ -1,5 +1,14 @@
 # ARCHITECTURE.md
 
+## Analytical authoring (ADR-078)
+
+AnalyticsDialog stages share/rank configuration over an exact saved input schema. analytics-plan
+produces PlannedStep records with stable UUID references; appendUnaryChain checks the proposed
+branch before one graph update. Share uses Window + Calculated Column, rank uses Window, and
+optional parameter selection uses a trailing Filter. The existing backend registry remains the
+only execution model. Upstream filter explanations traverse actual input edges with cycle guards.
+
+
 ## Formula source presentation (ADR-077)
 
 field-provenance resolves value origins by node and field identity from saved graph schemas.

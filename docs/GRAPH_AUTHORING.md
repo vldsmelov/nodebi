@@ -178,3 +178,24 @@ column denotes an imported source row number. Missing metadata is explicitly una
 constant/count/rank fields may have no source value fields. These labels describe value origins,
 not every filtering/grouping dependency. Edits hide origins until the saved schema is current.
 Staged batch rows are inspected through their ordinary nodes after Apply.
+
+
+### Share and rank helper
+
+Select a saved dataset node and open Share and rank. Select a numeric value and name the
+result. For Share, name the denominator and select group fields, or leave groups empty to sum
+all rows of this input. Choose null (default) or zero for a zero/missing denominator. The sum
+ignores nulls and an all-null group has no denominator. Negative amounts remain arithmetic
+values. Shares are ratios; choose percent formatting in the visualization.
+
+For Row rank, choose direction and a separate ascending tie-break field, preferably a unique
+source row ID. Rank means row position, not dense rank. Remaining ties retain input order.
+Optional Selection field + Parameter adds a Filter after totals/ranks. Leave both empty to
+keep all comparison rows. Prior upstream filters still affect scope and are listed in the dialog.
+Use an earlier dataset node when a denominator must precede an existing selection.
+
+Review Nodes to create and Apply. The new branch contains only ordinary nodes; it does not
+rewire existing consumers. Edit generated Window/Calculated Column/Filter forms afterward.
+The whole insertion supports Undo/Redo. Unapplied settings are transient and discarded only
+with confirmation; concurrent graph changes reject Apply. Reuse a pre-selection output by
+connecting another branch explicitly. No private financial engine or persisted recipe exists.

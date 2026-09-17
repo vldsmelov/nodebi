@@ -1,5 +1,31 @@
 # DECISIONS.md
 
+# ADR-078 - Share and rank authoring through ordinary nodes
+
+Date: 2026-09-17. Status: ACCEPTED; first U3 delivery.
+Context: operators must choose denominator scope and stable row ordering without manually
+writing helper references, and parameter selection must not shrink totals unintentionally.
+Decision: AnalyticsDialog stages a selected input, numeric value, partition fields, output
+names, zero/missing denominator policy, or rank direction and tie-break field. analytics-plan
+creates Window(sum) -> Calculated Column(safe_divide), or Window(row_number). An optional
+compatible parameter Filter is always last. The denominator remains a named output column;
+ratios are not multiplied by 100. Null fallback uses existing nullif(0, 0), zero fallback uses 0.
+A missing numerator retains existing formula null semantics. Window sums ignore null values;
+an all-null group has a null denominator. Negative values use ordinary arithmetic.
+All rows explicitly means the selected input, not the entire workbook. Upstream Filter nodes
+and their literal/parameter references are listed conservatively, including both Join inputs.
+This is an explanation of existing graph dependencies, not an automatic business-scope guess.
+Ranks are row positions, with primary direction and ascending tie-break; nulls sort last.
+Authors must select a row identifier for deterministic ties; residual ties retain input order.
+Apply uses snapshot comparison, appendUnaryChain, ordinary autosave/revisions and atomic undo.
+No recipes or special backend calculations are persisted. Subsequent edits use ordinary node
+forms. Comparison branches can reuse the pre-selection output by explicit graph connections.
+Alternative: a special measure endpoint or invisible global filter override would break the
+constructor requirement. A persisted second recipe would diverge from manual node edits.
+Consequences: no API/DB changes. Denominator path highlighting and richer parameter inspection
+for existing saved graphs remain U3 follow-up; operator timing remains unmeasured.
+
+
 # ADR-077 - Saved-graph field provenance in formula authoring
 
 Date: 2026-09-17. Status: ACCEPTED.

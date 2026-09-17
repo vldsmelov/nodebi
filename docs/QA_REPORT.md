@@ -381,3 +381,23 @@ Evidence: .backups/ux-provenance-build.log and .backups/ux-provenance-e2e.log.
 No backend/API/persistence changes. The full PostgreSQL/restart matrix was not rerun for this
 presentation change. U0 human study remains pending. Staged batch rows show provenance only
 once applied and opened as saved ordinary nodes; row-selection dependencies are not value origins.
+
+
+## Share/rank authoring (2026-09-17, ADR-078)
+
+67 frontend tests pass; TypeScript, ESLint, OpenAPI drift and Docker production build pass.
+Compiler cases protect partition/global scope, stable denominator ID, null/zero fallback,
+parameter type compatibility, post-calculation filtering, explicit rank tie-break and upstream
+traversal. Browser acceptance authors grouped share, global share and rank entirely in the UI
+on a synthetic inventory workbook. Group total remains 60 across selected items; input total
+is 100 and comparison retains all six rows. Zero denominator returns null; a normal formula
+edit changes fallback to zero. Tied ranks follow Item ID despite reversed input order.
+One revision per insertion, undo/redo, reload and upstream parameter disclosure are checked.
+Screenshot .backups/ux-analytics-helper.png visually reviewed. No original project changes.
+Evidence: .backups/ux-analytics-build.log, ux-analytics-e2e.log, ux-analytics-full-e2e.log.
+Backend source/contracts unchanged; dedicated backend unit/PostgreSQL matrix was not rerun.
+U3 path highlighting/existing-graph parameter inspection and U0 human measurements remain open.
+
+Final full browser run: 28 passed, 10 opt-in skips (3.2 minutes). Includes retained six-dashboard
+results/configuration after frontend/backend/PostgreSQL restart, three languages and both themes.
+Frontend deployed locally. All original reference configurations remain intact.

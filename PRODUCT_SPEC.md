@@ -19,6 +19,9 @@ redesign follows docs/CONSTRUCTOR_UX_REVIEW.md; its stages are tracked separatel
 Saved formula fields expose their original workbook, sheet and header where lineage is available;
 source search and details preserve rename and multi-input identity. This is value provenance,
 not a claim to enumerate every row-filtering dependency.
+Authors can add share/rank chains from a saved dataset using explicit input/group scope,
+zero-denominator policy, ordering and optional post-calculation parameter selection. Generated
+nodes remain individually editable; existing upstream filters are disclosed as affecting scope.
 Authors can arrange the graph by dependencies and undo/redo graph edits within the current
 editor session. Undo saves through normal revision checks. A visualization used on a dashboard
 must be detached there before removing its graph node; graph undo cannot delete its widgets.
