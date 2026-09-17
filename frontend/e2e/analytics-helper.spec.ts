@@ -56,6 +56,36 @@ test("author grouped/global shares and stable ranks before parameter selection w
     dialog = page.getByRole("dialog", { name: "Share and rank" });
     await expect(dialog).toContainText("Upstream filters affect this calculation:"); await expect(dialog).toContainText("(item)");
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-    expect((await read()).nodes.every((node: { type: string }) => ["excel_source", "window", "calculated_column", "filter"].includes(node.type))).toBe(true);
+    await page.getByLabel("Edit workflow node").selectOption(filter.id);
+    const scope = page.getByLabel("Calculation scope", { exact: true });
+    await scope.locator("summary").click();
+    const total = grouped.nodes.find((node: { type: string }) => node.type === "window");
+    await scope.getByLabel("Calculation to inspect").selectOption(total.id);
+    await expect(scope).toContainText("After calculation: filters computed rows");
+    await expect(scope).toContainText("Item: Selected item [item]");
+    const inspected = await read();
+    await scope.getByRole("button", { name: "Highlight calculation inputs" }).click();
+    await expect(page.locator(`.react-flow__node[data-id="${filter.id}"]`)).toHaveCSS("opacity", "0.2");
+    await expect(page.locator(`.react-flow__node[data-id="${sourceId}"]`)).toHaveCSS("opacity", "1");
+    await scope.getByRole("button", { name: "Highlight path to selected node" }).click();
+    await expect(page.locator(`.react-flow__node[data-id="${sourceId}"]`)).toHaveCSS("opacity", "0.2");
+    await expect(page.locator(`.react-flow__node[data-id="${filter.id}"]`)).toHaveCSS("opacity", "1");
+    await page.screenshot({ path: "../.backups/ux-calculation-scope.png" });
+    await page.getByLabel("Show dependencies", { exact: true }).selectOption("all");
+    await expect(page.locator(`.react-flow__node[data-id="${sourceId}"]`)).toHaveCSS("opacity", "1");
+    await scope.getByRole("button", { name: "Open calculation node" }).click();
+    await expect(page.getByLabel("Edit workflow node")).toHaveValue(total.id);
+    expect((await read()).revision).toBe(inspected.revision);
+    // Reuse the output before selection through an ordinary connected node.
+    await page.getByLabel("Add next step", { exact: true }).selectOption("limit");
+    await page.getByLabel("Maximum rows", { exact: true }).fill("100");
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const reused = await read(); const comparison = reused.nodes.find((node: { type: string }) => node.type === "limit");
+    expect(reused.edges.find((edge: { target_node_id: string }) => edge.target_node_id === comparison.id).source_node_id).toBe(total.id);
+    expect((await preview(comparison.id, 1)).rows).toHaveLength(6);
+    expect((await preview(comparison.id, 2)).rows).toHaveLength(6);
+    expect((await preview(filter.id, 2)).rows).toHaveLength(1);
+    await page.reload(); expect((await preview(comparison.id, 2)).rows).toHaveLength(6);
+    expect((await read()).nodes.every((node: { type: string }) => ["excel_source", "window", "calculated_column", "filter", "limit"].includes(node.type))).toBe(true);
   } finally { await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
 });

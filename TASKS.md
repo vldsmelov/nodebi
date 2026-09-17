@@ -23,9 +23,9 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [x] Calculated-field table: dependent rows, atomic creation, undo/redo, graph-derived existing-chain editing and reload acceptance (ADR-074).
   * [x] Preparation table: selection, rename, explicit type/error/null policies, node preview, exact integer fill and atomic ordinary branch creation (ADR-075).
   * [x] Grouped Unpivot authoring: ordinary branches/Union, independent duplicate labels, stable field IDs, manual edits, atomic undo/reload acceptance (ADR-076).
-* [~] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
+* [x] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
   * [x] Share/rank dialog creates ordinary Window/Calculated Column/trailing Filter, shows selected input scope and upstream filters; atomic undo/reload and result invariance acceptance (ADR-078).
-  * [ ] Highlight denominator paths and inspect parameter application points in existing saved graphs; verify explicit reuse of pre-selection outputs through the UI.
+  * [x] Explicitly chosen Window/Group By scope: input/subsequent path highlights, before/after/other-branch filters and parameter locations; pre-selection output reused through UI with invariant comparison rows (ADR-079). Human usability evaluation remains U0.
 * [ ] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
 * [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.
 

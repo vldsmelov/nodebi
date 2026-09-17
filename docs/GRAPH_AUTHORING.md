@@ -199,3 +199,21 @@ rewire existing consumers. Edit generated Window/Calculated Column/Filter forms 
 The whole insertion supports Undo/Redo. Unapplied settings are transient and discarded only
 with confirmation; concurrent graph changes reject Apply. Reuse a pre-selection output by
 connecting another branch explicitly. No private financial engine or persisted recipe exists.
+
+
+### Inspect a saved total or rank
+
+Select a saved node and expand Calculation scope. Choose an upstream Window or Group By
+calculation explicitly. Grouping shows its input fields; the panel does not infer denominator
+meaning from a formula. Filters before the chosen calculation affect its totals/ranks. Filters
+on subsequent paths select already-computed rows. Other Join/Union input branches are listed
+separately. Each entry shows field and parameter labels (or literal value) and opens that node.
+
+Highlight calculation inputs traces the selected calculation back to its sources. Highlight
+path to selected node shows its downstream route to the current selection. Other nodes dim;
+collapsed groups keep their boundary projection. Clear highlight or Show dependencies resets
+the view. None of these actions saves a workflow revision; edits hide stale inspection.
+
+Open calculation node, then Add next step to reuse the full pre-selection output in another
+branch. Existing consumers remain connected. This is an explicit shared graph output, with
+normal save/reload and no hidden measure or automatic rewriting of formula semantics.

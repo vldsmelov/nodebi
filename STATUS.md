@@ -5,20 +5,20 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: first U3 delivery adds Share and rank authoring (ADR-078). A single dialog
-creates ordinary Window/Calculated Column branches with an optional trailing parameter Filter.
-Input/group scope, zero/missing denominator policy, rank direction and tie-break are explicit.
-Upstream filters are listed; all rows means the selected input, including existing filters.
-Generated graph is editable through normal forms and saved/undone atomically. No special backend.
-67 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.
-Focused browser acceptance passes: group denominator survives item selection, global total keeps
-all rows, zero denominator, stable ties, undo/redo and reload. Full browser run: 28 passed,
-10 opt-in skips, including six-dashboard recovery after frontend/backend/PostgreSQL restart,
-three languages and both themes. Logs: .backups/ux-analytics-full-e2e.log and ux-analytics-build.log.
-Frontend is deployed locally; generated formula edits and upstream parameter disclosure also pass.
-Next: U3 denominator path highlighting and parameter application points for existing graphs;
-verify explicit pre-selection output reuse. U0 human measurements remain pending. Original
-project/data intact. No known new P0/P1 or blocker. Backend code/contracts unchanged.
+Latest session: second U3 delivery adds saved Calculation scope inspection (ADR-079).
+Authors choose a Window/Group By node and see grouping, before/after/other-input filters,
+field/parameter labels, input/path highlights and links to actual node configuration.
+Inspection does not infer denominator semantics. Highlights are view-only and expire on graph
+changes. Explicit pre-selection output reuse through Add next step preserves comparison rows.
+71 frontend tests, TypeScript, ESLint and Docker production build pass. Focused browser
+acceptance passes: no revision on inspection, correct highlights, all six comparison rows for
+multiple item parameters, selected branch unchanged, reload persistence. Full browser regression:
+28 passed, 10 opt-in skips (3.3 minutes), including six-dashboard restoration after application/
+PostgreSQL restart, three languages and both themes. Frontend deployed locally.
+Evidence: .backups/ux-scope-build.log, ux-scope-focused.log and ux-scope-full-e2e.log.
+Current milestone: U3 engineering complete; next: U4 dashboard-centered widget creation/editing,
+then named selectors, navigation and view mode. Human operator study remains U0 and unmeasured.
+No new P0/P1 or blocker. Original project/data intact; backend contracts/source unchanged.
 
 Previous session: fifth U2 delivery implements grouped Unpivot authoring (ADR-076). A staged
 table assigns values to 1-10 groups and creates ordinary Unpivot/Calculated Column branches

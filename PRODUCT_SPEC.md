@@ -22,6 +22,9 @@ not a claim to enumerate every row-filtering dependency.
 Authors can add share/rank chains from a saved dataset using explicit input/group scope,
 zero-denominator policy, ordering and optional post-calculation parameter selection. Generated
 nodes remain individually editable; existing upstream filters are disclosed as affecting scope.
+Authors can inspect a chosen saved total/rank node, see filter and parameter application points,
+highlight its input path or subsequent path, and reuse its output through ordinary graph controls.
+This inspector describes connections; it does not infer denominator meaning from arbitrary formulas.
 Authors can arrange the graph by dependencies and undo/redo graph edits within the current
 editor session. Undo saves through normal revision checks. A visualization used on a dashboard
 must be detached there before removing its graph node; graph undo cannot delete its widgets.

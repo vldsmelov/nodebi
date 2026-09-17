@@ -37,6 +37,7 @@ import { GroupedUnpivotDialog } from "./GroupedUnpivotDialog";
 import { appendGroupedUnpivot, type GroupedUnpivotPlan } from "./grouped-unpivot";
 import { PreparationDialog } from "./PreparationDialog";
 import { appendUnaryChain, type PlannedStep } from "./unary-chain";
+import { CalculationScopePanel } from "./CalculationScopePanel";
 import { AnalyticsDialog } from "./AnalyticsDialog";
 import { upstreamFilters } from "./analytics-plan";
 import { CalculatedFieldsDialog } from "./CalculatedFieldsDialog";
@@ -111,7 +112,9 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   const selectNode = useWorkflowUi((state) => state.selectNode);
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
   const visibleDefinitions = catalog.filter((definition) => `${nodeName(definition.type)} ${t(definition.description)} ${definition.display_name}`.toLowerCase().includes(search.toLowerCase()));
-  const highlighted = selectedNodeId && dependencyView !== "all" ? dependencyIds(edges, selectedNodeId, dependencyView) : null;
+  const [scopeHighlight, setScopeHighlight] = useState<{ ids: Set<string>; nodes: EditorNode[]; edges: Edge[]; selected: string | null } | null>(null);
+  const currentHighlight = scopeHighlight?.nodes === nodes && scopeHighlight.edges === edges && scopeHighlight.selected === selectedNodeId ? scopeHighlight.ids : null;
+  const highlighted = currentHighlight ?? (selectedNodeId && dependencyView !== "all" ? dependencyIds(edges, selectedNodeId, dependencyView) : null);
   const selectedIds = new Set(nodes.filter(node => node.selected || node.id === selectedNodeId).map(node => node.id));
   const groupNames = [...new Set(nodes.map(groupName).filter(Boolean))].sort();
   const groups = groupNames.map(name => { const members = nodes.filter(node => groupName(node) === name); return { name, count: members.length, members: members.map(node => ({ id: node.id, label: nodeLabel(node.data, nodeName(node.data.definition.type)) })) }; });
@@ -320,7 +323,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
         <NodeFinder nodes={nodes.map(node => ({ id: node.id, label: `${nodeLabel(node.data, nodeName(node.data.definition.type))} · ${nodeName(node.data.definition.type)}` }))} selected={selectedNodeId} onSelect={openNode} />
         <label className="mb-4 block text-xs">{t("Show dependencies")}
           <select aria-label={t("Show dependencies")} className="mt-2 w-full rounded-lg border border-outline bg-control p-2" value={dependencyView} onChange={event => {
-            const value = event.target.value as DependencyView; setDependencyView(value);
+            const value = event.target.value as DependencyView; setScopeHighlight(null); setDependencyView(value);
             if (selectedNodeId && value !== "all") focusNodes([...dependencyIds(edges, selectedNodeId, value)]);
           }}>
             <option value="all">{t("Entire workflow")}</option><option value="ancestors">{t("Sources of selected node")}</option><option value="descendants">{t("Affected downstream nodes")}</option>
@@ -380,6 +383,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
           }}><option value="">{t("Disconnected")}</option>{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
         {selectedNode && <div className="mt-4 flex flex-wrap gap-2 text-xs"><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !["window", "calculated_column", "filter"].every(type => catalog.some(item => item.type === type && item.version === 1))} onClick={() => { if (selectedSchema?.columns) setAnalytics({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Share and rank")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "unpivot")} onClick={() => { if (selectedSchema?.columns) setUnpivot({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Grouped Unpivot")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "select_columns")} onClick={() => { if (selectedSchema?.columns) setPreparation({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Prepare data table")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "calculated_column")} onClick={() => openBatch(false)}>{t("Add calculated fields")}</button>{selectedNode.data.definition.type === "calculated_column" && <button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !currentSchema?.nodes.find(item => item.node_id === selectedInputEdge?.source)?.columns} onClick={() => openBatch(true)}>{t("Edit calculated chain")}</button>}</div>}
+        {selectedNode && currentSchema && <CalculationScopePanel key={selectedNode.id} nodes={graph.nodes} edges={graph.edges} selected={selectedNode.id} schema={currentSchema} parameters={parameters} openNode={openNode} highlight={ids => { setDependencyView("all"); setScopeHighlight(ids ? { ids: new Set(ids), nodes, edges, selected: selectedNodeId } : null); if (ids) focusNodes(ids); }} />}
         {selectedNode ? <NodeConfiguration provenance={selectedProvenance} issues={selectedIssues} validationPending={!currentSchema} parameters={parameters} type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} inputColumns={Object.fromEntries((selectedNode.data.definition.input_ports ?? []).map(port => {
           const edge = edges.find(e => e.target === selectedNode.id && e.targetHandle === port.id);
           return [port.id, resolvedSchema?.nodes.find(n => n.node_id === edge?.source)?.columns ?? null];

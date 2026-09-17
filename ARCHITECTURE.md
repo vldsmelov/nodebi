@@ -1,5 +1,14 @@
 # ARCHITECTURE.md
 
+## Saved calculation scope (ADR-079)
+
+CalculationScopePanel uses calculation-scope to inspect saved Window/Group By ancestors and
+Filter application points. Reachability is cycle guarded; after-calculation paths are the
+intersection of calculation descendants and selected-node ancestors, keeping other Join inputs
+separate. WorkflowEditor uses transient node/edge/selection snapshots for highlights and the
+existing group projection/viewport functions. No view action is serialized into workflow state.
+
+
 ## Analytical authoring (ADR-078)
 
 AnalyticsDialog stages share/rank configuration over an exact saved input schema. analytics-plan

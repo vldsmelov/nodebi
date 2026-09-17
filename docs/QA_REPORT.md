@@ -401,3 +401,25 @@ U3 path highlighting/existing-graph parameter inspection and U0 human measuremen
 Final full browser run: 28 passed, 10 opt-in skips (3.2 minutes). Includes retained six-dashboard
 results/configuration after frontend/backend/PostgreSQL restart, three languages and both themes.
 Frontend deployed locally. All original reference configurations remain intact.
+
+
+## Saved calculation scope (2026-09-17, ADR-079)
+
+71 frontend tests pass; TypeScript, ESLint, OpenAPI drift and Docker production build pass.
+New regressions classify filters before/after an explicitly selected calculation and on other
+Join inputs, exclude unrelated calculations, terminate cycles, retain repeated parameter
+application points and tolerate malformed conditions. Component acceptance checks field/parameter
+labels, explicit selection, highlight callbacks and navigation without modifying graph inputs.
+
+Focused browser acceptance passes on the synthetic inventory graph: input/path highlighting
+has correct node opacity, normal dependency controls clear custom highlights, inspection does
+not save a revision, and opening the calculation permits an ordinary Limit branch before the
+selection Filter. Comparison keeps six rows across item changes while the selected branch keeps
+one; both restore after reload. Screenshot .backups/ux-calculation-scope.png visually reviewed.
+Evidence: .backups/ux-scope-build.log, ux-scope-focused.log and ux-scope-full-e2e.log.
+Backend/API/DB unchanged; the separate backend unit/PostgreSQL matrix was not rerun.
+No claim of automated formula-denominator inference or measured human speed improvements.
+
+Final full browser regression: 28 passed, 10 opt-in skips (3.3 minutes), including six-dashboard
+recovery after frontend/backend/PostgreSQL restart, three languages and both themes. Frontend
+deployed locally; original project configurations/data intact.

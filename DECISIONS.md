@@ -1,5 +1,28 @@
 # DECISIONS.md
 
+# ADR-079 - Inspect calculation scope without guessing formula semantics
+
+Date: 2026-09-17. Status: ACCEPTED; second U3 delivery.
+Context: the helper creates explicit nodes, but authors must inspect actual saved graphs,
+including manually edited formulas and multi-input branches, to understand filtering scope.
+Decision: CalculationScopePanel is available on an exact-current saved schema. Authors choose
+an upstream Window or Group By node explicitly. calculation-scope walks actual edges and
+classifies Filter nodes as upstream of that calculation, downstream on paths to the selected
+node, or on other input branches. It displays actual field and parameter labels/identities and
+opens the corresponding configuration. It does not parse formulas or guess a denominator.
+Two transient highlights show calculation inputs or paths to the selected node; existing group
+projection handles collapsed members. Highlights and navigation do not save revisions, and
+highlight snapshots expire on graph/selection changes. Normal dependency selection clears them.
+Open calculation node supports explicit reuse through existing Add next step/input controls.
+No persisted semantic measure, recipe, new API, database migration or execution rule is added.
+Alternative: automatically detecting denominator meaning from arbitrary arithmetic would be
+incomplete and misleading. This inspector deliberately describes structural execution scope.
+Consequences: arbitrary formula division is inspected by choosing its known calculation node;
+Window/Group By scope is supported, and value lineage remains a separate feature. Engineering
+acceptance covers scope classification, no-save highlights and full comparison branch reuse.
+Human ability to explain scope and time savings still require the U0 operator study.
+
+
 # ADR-078 - Share and rank authoring through ordinary nodes
 
 Date: 2026-09-17. Status: ACCEPTED; first U3 delivery.
