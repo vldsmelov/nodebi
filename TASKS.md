@@ -15,11 +15,11 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [x] Dependency layout and bounded undo/redo through normal revision-aware autosave.
   * [x] Reject deletion of attached visualizations, including concurrent widget attachment (PostgreSQL race and browser recovery checked).
   * [x] Persistent flat groups, collapse with boundary connections, member navigation and configurable panels; projection/revision/undo/output regression verified.
-* [~] U2: Named formula tokens and batch preparation forms backed by ordinary explicit nodes.
+* [x] U2: Named formula tokens and batch preparation forms backed by ordinary explicit nodes.
   * [x] P2: Field-specific configuration feedback replaces raw Pydantic dumps; nested errors retained in English/Russian/Tatar; empty Filter repair verified.
   * [x] Named formula token view, cursor/selection insertion, schema-aware field lookup and signature hints; canonical text editing retained (ADR-073).
   * [x] Revision-aware server diagnostics adjacent to the expression; hide stale errors during edits and schema refresh.
-  * [ ] Rich source labels; current duplicate labels use engine names/IDs.
+  * [x] Saved-graph value origins in the single-node formula editor: workbook/sheet/header/column, searchable labels, graph-scoped Join/Union and explicit missing metadata (ADR-077).
   * [x] Calculated-field table: dependent rows, atomic creation, undo/redo, graph-derived existing-chain editing and reload acceptance (ADR-074).
   * [x] Preparation table: selection, rename, explicit type/error/null policies, node preview, exact integer fill and atomic ordinary branch creation (ADR-075).
   * [x] Grouped Unpivot authoring: ordinary branches/Union, independent duplicate labels, stable field IDs, manual edits, atomic undo/reload acceptance (ADR-076).

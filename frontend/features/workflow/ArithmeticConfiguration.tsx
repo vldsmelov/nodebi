@@ -1,5 +1,6 @@
 "use client";
 
+import type { ProvenanceMap } from "./field-provenance";
 import { useI18n } from "@/lib/i18n";
 
 import { FormulaEditor } from "./FormulaEditor";
@@ -7,6 +8,7 @@ import { FormulaEditor } from "./FormulaEditor";
 import type { GraphIssue, ResolvedColumn } from "./types";
 
 type Props = {
+  provenance?: ProvenanceMap;
   issues?: GraphIssue[];
   validationPending?: boolean;
   config: Record<string, unknown>;
@@ -37,12 +39,12 @@ export function LimitConfiguration({ config, onChange }: Props) {
   return <div className="mt-6"><h2>{t("Limit")}</h2><label className="mt-3 block text-xs">{t("Maximum rows")}<input aria-label={t("Maximum rows")} className={control} type="number" min={1} step={1} value={typeof config.limit === "number" ? config.limit : ""} onChange={e => onChange({ limit: e.target.value === "" ? null : Number(e.target.value) })} /></label></div>;
 }
 
-export function CalculatedColumnConfiguration({ config, columns, onChange, issues, validationPending }: Props) {
+export function CalculatedColumnConfiguration({ config, columns, onChange, issues, validationPending, provenance }: Props) {
   const { t } = useI18n();
   const expression = typeof config.expression === "string" ? config.expression : "";
   return <div className="mt-6"><h2>{t("Calculated Column")}</h2>
     <label className="mt-3 block text-xs">{t("Output field name")}<input aria-label={t("Output field name")} className={control} value={String(config.name ?? "")} onChange={e => onChange({ ...config, name: e.target.value })} /></label>
-    <FormulaEditor issues={issues} validationPending={validationPending} expression={expression} columns={columns} onChange={expression => onChange({ ...config, expression })} />
+    <FormulaEditor provenance={provenance} issues={issues} validationPending={validationPending} expression={expression} columns={columns} onChange={expression => onChange({ ...config, expression })} />
     <p className="mt-3 text-xs leading-5 text-muted">{t("Formula functions: trim, lower, coalesce, safe_divide. Field references survive renaming.")}</p>
   </div>;
 }

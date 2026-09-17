@@ -166,3 +166,15 @@ its expression. Messages retain node and configuration-path context and use the 
 language. Editing or awaiting the saved revision's schema hides old diagnostics. No message is
 not proof of validity: runtime data errors still appear in output preview. Staged batch formulas
 are validated by the server after Apply, when ordinary graph nodes have been saved.
+
+
+### Field sources
+
+The saved single-node formula editor shows a Field sources section for referenced fields.
+It lists workbook, sheet, original Excel column (A, B, ... AA) and header levels, even after
+renaming. Search also matches these labels. Join keeps its input origins separate; Union and
+calculated fields can list multiple origins. Duplicate filenames include source IDs. The #
+column denotes an imported source row number. Missing metadata is explicitly unavailable;
+constant/count/rank fields may have no source value fields. These labels describe value origins,
+not every filtering/grouping dependency. Edits hide origins until the saved schema is current.
+Staged batch rows are inspected through their ordinary nodes after Apply.

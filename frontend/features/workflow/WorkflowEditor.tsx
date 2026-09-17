@@ -27,6 +27,7 @@ import { NodeFinder } from "./NodeFinder";
 import type { ParameterValues } from "./types";
 import { NodeOutputPanel } from "./NodeOutputPanel";
 import { WorkflowAutosave, type SaveState } from "./autosave";
+import { fieldProvenance } from "./field-provenance";
 import { NodeConfiguration } from "./NodeConfiguration";
 import { WorkflowNodeCard, type EditorNode } from "./WorkflowNodeCard";
 import { useWorkflowUi } from "./store";
@@ -243,6 +244,10 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
   // choices. Output/preview still require an exact acknowledged revision.
   const selectedInputColumns = resolvedSchema?.nodes.find((item) => item.node_id === selectedInputEdge?.source)?.columns ?? null;
 
+  const selectedProvenance = useMemo(() => currentSchema && selectedInputEdge
+    ? fieldProvenance(graph.nodes, graph.edges, currentSchema, sources, selectedInputEdge.source) : undefined,
+  [currentSchema, selectedInputEdge, graph.nodes, graph.edges, sources]);
+
   const [unpivot, setUnpivot] = useState<{ columns: ResolvedColumn[]; source: string; snapshot: string } | null>(null);
   const applyUnpivot = (plan: GroupedUnpivotPlan) => {
     if (!unpivot || unpivot.snapshot !== JSON.stringify(graph)) return false;
@@ -365,7 +370,7 @@ export function WorkflowEditor({ workflow, catalog, sources, resolvedSchema, onS
           }}><option value="">{t("Disconnected")}</option>{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
         {selectedNode && <div className="mt-4 flex flex-wrap gap-2 text-xs"><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "unpivot")} onClick={() => { if (selectedSchema?.columns) setUnpivot({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Grouped Unpivot")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "select_columns")} onClick={() => { if (selectedSchema?.columns) setPreparation({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Prepare data table")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "calculated_column")} onClick={() => openBatch(false)}>{t("Add calculated fields")}</button>{selectedNode.data.definition.type === "calculated_column" && <button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !currentSchema?.nodes.find(item => item.node_id === selectedInputEdge?.source)?.columns} onClick={() => openBatch(true)}>{t("Edit calculated chain")}</button>}</div>}
-        {selectedNode ? <NodeConfiguration issues={selectedIssues} validationPending={!currentSchema} parameters={parameters} type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} inputColumns={Object.fromEntries((selectedNode.data.definition.input_ports ?? []).map(port => {
+        {selectedNode ? <NodeConfiguration provenance={selectedProvenance} issues={selectedIssues} validationPending={!currentSchema} parameters={parameters} type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} inputColumns={Object.fromEntries((selectedNode.data.definition.input_ports ?? []).map(port => {
           const edge = edges.find(e => e.target === selectedNode.id && e.targetHandle === port.id);
           return [port.id, resolvedSchema?.nodes.find(n => n.node_id === edge?.source)?.columns ?? null];
         }))} onChange={updateSelectedConfig} /> : null}

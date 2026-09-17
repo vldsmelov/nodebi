@@ -56,3 +56,16 @@ it("shows server diagnostics beside the expression and hides them while validati
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(description).toBeEmptyDOMElement();
 });
+
+
+it("searches original source labels after renaming and clears provenance when its snapshot is unavailable", () => {
+  const props = { type: "calculated_column", config: { name: "Total", expression: "[q] * 2" }, columns, sources: [], onChange: () => {} };
+  const provenance = { q: { complete: true, origins: [{ source: "Inventory.xlsx", sheet: "Orders", column: "F", headers: ["Original quantity"] }] } };
+  const view = render(<NodeConfiguration {...props} provenance={provenance} />);
+  expect(screen.getByText("Inventory.xlsx / Orders / F / Original quantity")).toBeVisible();
+  fireEvent.change(screen.getByLabelText("Find formula field"), { target: { value: "Original quantity" } });
+  expect(screen.getByRole("option", { name: /Quantity.*Inventory/ })).toBeInTheDocument();
+  expect(screen.queryByRole("option", { name: /Category/ })).not.toBeInTheDocument();
+  view.rerender(<NodeConfiguration {...props} validationPending />);
+  expect(screen.queryByText("Field sources")).not.toBeInTheDocument();
+});

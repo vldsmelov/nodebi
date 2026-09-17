@@ -16,6 +16,9 @@ Nodes may have separate presentation labels, without renaming output fields. Aut
 highlight a node's sources/dependents, append a compatible next step with its connection and
 replace an input without persisting a disconnected intermediate state. The approved usability
 redesign follows docs/CONSTRUCTOR_UX_REVIEW.md; its stages are tracked separately from parity.
+Saved formula fields expose their original workbook, sheet and header where lineage is available;
+source search and details preserve rename and multi-input identity. This is value provenance,
+not a claim to enumerate every row-filtering dependency.
 Authors can arrange the graph by dependencies and undo/redo graph edits within the current
 editor session. Undo saves through normal revision checks. A visualization used on a dashboard
 must be detached there before removing its graph node; graph undo cannot delete its widgets.

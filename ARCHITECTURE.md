@@ -1,5 +1,13 @@
 # ARCHITECTURE.md
 
+## Formula source presentation (ADR-077)
+
+field-provenance resolves value origins by node and field identity from saved graph schemas.
+Join ports and Union name alignment are explicit. It never parses expressions or executes data.
+WorkflowEditor supplies origins only for its exact-current schema; FormulaEditor adds searchable
+source labels and readable details. Missing metadata is disclosed, not inferred from global IDs.
+
+
 ## Grouped Unpivot authoring (ADR-076)
 
 UnpivotConfig.labels is an optional source-ID-to-label map, validated as a subset of selected

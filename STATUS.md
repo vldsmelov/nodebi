@@ -5,14 +5,15 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: formula diagnostics are displayed beneath the expression through the existing
-localized error formatter. Only exact-current saved graph issues are passed down; pending
-validation hides previous errors. Batch dialogs remain unvalidated until their graph is applied.
-Frontend: 58 tests, TypeScript, ESLint and production build pass. Focused formula browser acceptance passes after Docker frontend rebuild/deployment
-(.backups/ux-formula-diagnostics-e2e.log). Backend unchanged; previous full-suite evidence remains
-historical, not rerun for this presentation-only change.
-Next: richer source/provenance labels with graph-scoped handling of repeated source column IDs;
-then U3. U2 remains in progress; no human speed measurements or new P0/P1 findings.
+Latest session: U2 source labels complete (ADR-077). The single-node formula editor displays
+workbook, sheet, original Excel column and header levels for referenced fields. Search includes
+origins; Join/Union use graph-scoped resolution and same-named workbooks remain distinct.
+Only exact-current saved schema origins are shown. Staged batch dialogs do not claim validated
+provenance; inspect applied ordinary nodes. These are value origins, not all row dependencies.
+Frontend: 63 tests, TypeScript and ESLint pass. Production Docker build and focused formula
+browser acceptance pass; final deployment validation is recorded in docs/QA_REPORT.md.
+Next: U3 share/rank helpers. U0 human measurements remain pending. Original data/project intact.
+No known new P0/P1 or environment blocker. Backend unchanged; previous full matrix is historical.
 
 Previous session: fifth U2 delivery implements grouped Unpivot authoring (ADR-076). A staged
 table assigns values to 1-10 groups and creates ordinary Unpivot/Calculated Column branches
@@ -20,11 +21,10 @@ plus Union. New optional Unpivot labels affect field_name only; duplicate labels
 IDs and records. Ordinary node forms edit labels afterward. Existing configs remain compatible.
 Apply uses normal snapshot/port/cycle checks, revision-aware autosave and atomic undo/redo.
 
-Current milestone: U2 in progress; last completed task: grouped Unpivot acceptance.
+Current milestone: U3 next; last completed task: U2 formula source labels.
 Last completed: grouped inventory acceptance: six distinct records with repeated labels,
 manual label edit affecting only its field, single revision creation, undo/redo and reload.
-Next: finish richer provenance labels. Then U3
-share/rank helpers. U0 human operator study remains unmeasured. Original project/data intact.
+Next: U3 share/rank helpers. U0 human operator study remains unmeasured. Original project/data intact.
 No known new P0/P1 or environment blocker. Wizard requires same known value type and reserves
 standard output names; upstream conversions remain explicit. Unapplied choices are transient.
 

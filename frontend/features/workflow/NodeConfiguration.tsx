@@ -1,5 +1,6 @@
 "use client";
 
+import type { ProvenanceMap } from "./field-provenance";
 import { useI18n } from "@/lib/i18n";
 
 import { Trash2 } from "lucide-react";
@@ -18,6 +19,7 @@ import type { DataSource } from "@/features/data-sources/api";
 import type { GraphIssue, ResolvedColumn, WorkflowParameter } from "./types";
 
 type Props = {
+  provenance?: ProvenanceMap;
   issues?: GraphIssue[];
   validationPending?: boolean;
   parameters?: WorkflowParameter[];

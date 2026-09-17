@@ -368,3 +368,16 @@ invalid syntax shown beside expression, correction and normal autosave.
 Evidence: .backups/ux-formula-diagnostics-build.log and ux-formula-diagnostics-e2e.log.
 Backend/full restart matrix was not rerun: this change only presents existing server issues.
 Richer source labels and U0 human measurements remain pending.
+
+
+## Formula value origins (2026-09-17, ADR-077)
+
+63 frontend tests pass. New cases cover Join with repeated column IDs, rename/calculation,
+Union name alignment, identical filenames, cycles/missing metadata and original-header search.
+TypeScript and ESLint pass; Docker production frontend build passes. Focused formula browser
+acceptance verifies original Excel header/column after rename, filename search, preview/reload
+and correction of invalid syntax. Screenshot .backups/ux-formula.png visually reviewed.
+Evidence: .backups/ux-provenance-build.log and .backups/ux-provenance-e2e.log.
+No backend/API/persistence changes. The full PostgreSQL/restart matrix was not rerun for this
+presentation change. U0 human study remains pending. Staged batch rows show provenance only
+once applied and opened as saved ordinary nodes; row-selection dependencies are not value origins.

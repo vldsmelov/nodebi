@@ -1,5 +1,26 @@
 # DECISIONS.md
 
+# ADR-077 - Saved-graph field provenance in formula authoring
+
+Date: 2026-09-17. Status: ACCEPTED.
+Context: source column IDs repeat across workbooks; renamed/derived fields need readable
+origin labels without inventing a second expression evaluator or persisting duplicate metadata.
+Decision: frontend field-provenance traces (node ID, column ID) against the exact-current
+saved schema. Pass-through IDs recurse on their input, Join resolves left/right separately,
+and Union aligns engine names on both inputs. New derived fields follow backend source_columns.
+Excel boundaries supply uploaded filename, worksheet, original column letter and header levels.
+Duplicate filenames retain source IDs. A memo and cycle/depth guards bound traversal; missing
+lineage is explicit. These are value origins, not exhaustive filter/grouping dependencies.
+The formula editor exposes origins in searchable options, token titles and an open details
+section. Existing canonical formulas and server execution remain unchanged. Unsaved graph
+origins are hidden; staged batch formulas continue to use their prior field controls and do not
+claim server-validated provenance until applied and opened as ordinary nodes.
+Alternative: a global field-ID map is incorrect for Join/Union. Adding persistent provenance
+copies is unnecessary because saved schemas and graph ports already identify value origins.
+Consequences: no API/migration change; new multi-input node types need explicit presentation
+rules. Tests cover repeated IDs, duplicate filenames, rename, derived fields, Union and cycles.
+
+
 # ADR-076 - Grouped Unpivot authoring and independent article labels
 
 Date: 2026-09-17. Status: ACCEPTED; fifth U2 delivery.
