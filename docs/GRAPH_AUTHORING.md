@@ -1,5 +1,16 @@
 # Graph authoring usability: first U1 delivery
 
+## Named parameter choices (U4, ADR-083)
+
+In **Dashboard settings**, add a parameter and choose its type, workflow, dataset node and
+value field under **Choices from data**. Choose a separate label field, such as a service name
+for a numeric service ID. Leave **Display the value itself** for the old single-field behavior.
+Save the dashboard. The list displays `Name (ID)` while **Apply selections** writes only the
+typed ID to the URL and workflow binding. Search matches names or IDs. Duplicate names remain
+separate records; a selected item outside the search page keeps its name. Missing selected values
+show a warning and are not silently replaced. One ID with conflicting labels requires fixing
+the mapping in the graph or choosing another label field. Null/empty labels display the ID.
+
 ## Open a widget calculation (U4, ADR-082)
 
 Choose **Open calculation** in a dashboard widget. The editor opens that visualization's

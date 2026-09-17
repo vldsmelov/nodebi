@@ -2,6 +2,11 @@
 
 ## Approved extension: constructor dashboard parity (2026-09-14)
 
+Dashboard choice sources may use separate value and display-label fields. Filters and URL state
+retain typed values; identical names with distinct IDs remain selectable. Search covers both
+fields, and selected labels remain visible outside a limited search page. Conflicting labels for
+one ID are reported explicitly; null labels fall back to the value. Existing selectors are compatible.
+
 Reproduce the six analytical screens in opop_bi v1.2 using ordinary editable Node BI
 graphs and dashboards. Financial mappings and formulas belong only to project
 configuration, never special application endpoints or executors. Extend general

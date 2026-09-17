@@ -485,3 +485,25 @@ Full browser/restart regression: 31 passed, 10 opt-in skips (3.4 minutes), recor
 restart, three languages and both themes pass. No required check failed.
 No backend/API/persistence changes. Prior backend baseline remains 252 passed with 4 SQLite-only
 skips and PostgreSQL enabled; not rerun for this frontend-only change. Original project untouched.
+
+
+## Parameter ID/label choices (2026-09-17, ADR-083)
+
+Backend matrix: 254 passed, 4 SQLite-only skips with PostgreSQL enabled. API regression uses
+an equipment workbook to test duplicate labels with distinct numeric IDs, repeated identical
+pairs, null IDs/labels, ambiguous mappings rejected before search, literal/case-insensitive
+search, limits, selected values outside the result page, boolean/datetime selected values,
+missing columns, typed-value validation, legacy scalar responses and saved label configuration.
+Ruff lint/format: 107 files; mypy: 67 source files; OpenAPI regenerated and drift check passes.
+Frontend: 75 tests pass. Component tests verify typed selection and late previous-slice response
+isolation, preserving unavailable selected IDs with a warning. TypeScript/ESLint pass.
+Backend/frontend production builds pass and are deployed. Two combined attempts were interrupted
+by Docker Hub metadata EOF; separate builds succeeded without changing dependencies or images.
+Browser acceptance configures value/label fields through UI, preserves separate same-name IDs,
+searches labels, keeps the selected label outside matching results and restores typed URL values
+on reload/history without dashboard revision changes. Screenshot ux-parameter-labels.png reviewed.
+Evidence under .backups/: ux-parameter-labels-backend.log, ux-parameter-labels-backend-build.log,
+ux-parameter-labels-frontend-build.log, ux-parameter-labels-focused.log, ux-parameter-labels-e2e.log.
+Full browser/restart result: 32 passed, 10 opt-in skips (3.3 minutes). Six-dashboard restoration
+after application/PostgreSQL restart, three languages and both themes pass. Original project/data
+unchanged; no required check remains failing.

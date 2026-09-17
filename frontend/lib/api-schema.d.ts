@@ -668,6 +668,13 @@ export interface components {
             /** Issues */
             issues: components["schemas"]["GraphIssueRead"][];
         };
+        /** NodeValueChoice */
+        NodeValueChoice: {
+            /** Value */
+            value: string | number | boolean | null;
+            /** Label */
+            label: string | number | boolean | null;
+        };
         /** NodeValuesRead */
         NodeValuesRead: {
             /** Revision */
@@ -675,6 +682,10 @@ export interface components {
             column: components["schemas"]["ResolvedColumnRead"];
             /** Values */
             values: (string | number | boolean | null)[];
+            /** Choices */
+            choices: components["schemas"]["NodeValueChoice"][];
+            selected?: components["schemas"]["NodeValueChoice"] | null;
+            label_column?: components["schemas"]["ResolvedColumnRead"] | null;
             /** Truncated */
             truncated: boolean;
         };
@@ -691,6 +702,10 @@ export interface components {
             limit: number;
             /** Column Id */
             column_id: string;
+            /** Label Column Id */
+            label_column_id?: string | null;
+            /** Selected Value */
+            selected_value?: string | number | boolean | null;
             /**
              * Search
              * @default
@@ -759,6 +774,8 @@ export interface components {
             node_id: string;
             /** Column Id */
             column_id: string;
+            /** Label Column Id */
+            label_column_id?: string | null;
         };
         /** PortRead */
         PortRead: {

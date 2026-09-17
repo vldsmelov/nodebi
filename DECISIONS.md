@@ -1,5 +1,27 @@
 # DECISIONS.md
 
+# ADR-083 - Typed parameter values with separate display labels
+
+Date: 2026-09-17. Status: ACCEPTED; fourth U4 delivery.
+Context: operators need readable choices while filters/navigation retain stable IDs. Different
+records may have identical names, and the selected record may be outside a limited search page.
+Decision: ParameterOptions adds optional label_column_id in the existing typed JSON configuration.
+The generic node-values service returns bounded value/label pairs and the explicitly requested
+selected pair, while keeping the legacy values array. IDs retain their original scalar types.
+Distinct identical pairs collapse; identical labels with different IDs remain separate. Null IDs
+are omitted; a null/empty label displays the ID. Multiple labels (including null versus non-null)
+for one ID reject the lookup before search/limit rather than choosing an arbitrary name.
+Search matches literal case-insensitive text in either field, with stable value ordering.
+UI labels include the ID for unambiguous duplicate names, including across limited pages.
+The selected label is resolved independently of search/limit; missing values remain visible with
+a warning rather than silently clearing a URL selection. Query identity includes options,
+parameters, search and selected value, so late responses cannot replace current choices.
+Alternatives: storing labels as filter values loses identity; choosing the first conflicting name
+hides a data-preparation problem; fetching entire datasets defeats the bounded preview contract.
+Consequences: OpenAPI is additive, no DB column/schema migration needed. Missing label_column_id
+defaults to null for existing JSON without rewriting user projects. No analytical calculations
+are introduced into dashboard presentation. Guided navigation/view mode remain U4 follow-up.
+
 # ADR-082 - Widget links to exact workflow calculations
 
 Date: 2026-09-17. Status: ACCEPTED; third U4 delivery.

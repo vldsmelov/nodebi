@@ -5,7 +5,19 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: third U4 delivery links dashboard widgets to their exact workflow/node (ADR-082).
+Latest session: fourth U4 delivery separates parameter choice IDs from display labels (ADR-083).
+Search covers values and labels; selected labels survive search limits; repeated names retain
+distinct IDs. Conflicting labels for one ID produce an explicit error. Old selectors remain valid.
+254 backend tests pass with PostgreSQL (4 SQLite-only skips); Ruff lint/format (107 files),
+mypy (67 files), 75 frontend tests, TypeScript/ESLint and OpenAPI drift pass. Production builds
+pass and backend/frontend are deployed. Full browser regression: 32 passed, 10 opt-in skips
+(3.3 minutes), including six-dashboard restoration after application/PostgreSQL restart,
+three languages and both themes. Evidence: .backups/ux-parameter-labels-e2e.log and QA_REPORT.md.
+Docker Hub metadata EOF interrupted two combined builds; separate rebuilds succeeded.
+Next: guided navigation and view mode/grid templates in U4. No new known defects or blockers.
+Original project/data untouched; no migration required for the optional JSON configuration key.
+
+Previous session: third U4 delivery links dashboard widgets to their exact workflow/node (ADR-082).
 The editor reveals collapsed targets and highlights ancestors without saving a revision. Missing
 targets show explicit messages; dashboard drafts survive cancelled/confirmed navigation and Back.
 73 frontend tests, TypeScript/ESLint and production build pass. Focused browser acceptance passes.
@@ -13,7 +25,7 @@ Full browser/restart regression: 31 passed, 10 opt-in skips (3.4 minutes), inclu
 restoration after application/PostgreSQL restart, three languages and both themes.
 Evidence: .backups/ux-calculation-navigation-e2e.log and docs/QA_REPORT.md. Frontend deployed.
 Backend/API/schema unchanged; no migration required.
-Next: ID/label parameter selectors, guided navigation and view mode/grid templates in U4.
+Remaining U4: guided navigation and view mode/grid templates.
 No new known defects or blockers; original project/data untouched. Human study remains unmeasured.
 
 Previous session: second U4 delivery creates ordinary visualization nodes/widgets and independent

@@ -10,6 +10,7 @@ class ParameterOptions(BaseModel):
     workflow_id: uuid.UUID
     node_id: uuid.UUID
     column_id: str = Field(min_length=1, max_length=200)
+    label_column_id: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class DashboardParameter(ParameterDefinition):

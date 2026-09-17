@@ -1,5 +1,13 @@
 # ARCHITECTURE.md
 
+## Parameter ID/label selectors (ADR-083)
+
+ParameterOptions optionally references a label field alongside the typed value field. NodeValues
+returns bounded distinct pairs, legacy scalar values, label schema and the selected pair outside
+the search page. Validation rejects ambiguous ID-to-label mappings before search/limit. Polars
+handles uniqueness/filtering; only bounded rows become Python objects. URL/workflow bindings
+carry IDs alone. Missing optional labels retain the old behavior without a DB migration.
+
 ## Exact calculation navigation (ADR-082)
 
 Dashboard widget links use workflow/node URL parameters. WorkflowPage verifies project
@@ -142,8 +150,9 @@ Dashboard page URL owns selected dashboard and typed values. Local layout/config
 remain separate. Applying filters does not write persistence; values map to the appropriate
 workflow's parameter context. Result/query identity includes values so late slices cannot replace
 the current one. The generic node-values application service executes an ordinary node, extracts
-one distinct field, applies literal search and reports truncation. Schema/type and project checks
-remain in existing domain/application layers; there are no reference-specific runtime rules.
+distinct values with optional labels (ADR-083), applies literal search and reports truncation.
+Schema/type and project checks remain in existing domain/application layers; there are no
+reference-specific runtime rules.
 
 
 ## Typed workflow parameters (ADR-065)

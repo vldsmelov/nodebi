@@ -30,7 +30,8 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [x] Edit existing visualization settings from widgets through the shared node form; saved-use disclosure/acknowledgement, CAS conflict recovery and dashboard draft preservation (ADR-080).
   * [x] Create/copy visualization + widget atomically with both revisions, stable retry IDs, rollback and independent settings (ADR-081).
   * [x] Exact calculation-branch navigation from dashboard widgets: URL targets, project membership, collapsed-group reveal, ancestor highlight, missing-target feedback and draft/reload/history acceptance (ADR-082).
-  * [ ] ID/label parameter selectors, guided navigation and view mode/grid templates.
+  * [x] ID/label parameter selectors: optional display field, typed URL/filter values, duplicate-name identity, bounded search, off-page selected labels and ambiguity feedback (ADR-083).
+  * [ ] Guided navigation and view mode/grid templates.
 * [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.
 
 ## Approved constructor/dashboard parity extension (2026-09-14)

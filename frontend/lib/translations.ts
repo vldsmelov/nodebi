@@ -1,5 +1,10 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Choices label field for {0}": ["Поле подписи вариантов для {0}", "{0} өчен вариантларның исем кыры"],
+  "Display the value itself": ["Показывать само значение", "Кыйммәтнең үзен күрсәтергә"],
+  "The value is used in filters; the label is shown in the list.": ["Значение используется в фильтрах; подпись отображается в списке.", "Кыйммәт фильтрларда кулланыла; исем исемлектә күрсәтелә."],
+  "The selected value is not in the available data. Choose another value or clear the selection.": ["Выбранного значения нет в доступных данных. Выберите другое или очистите выбор.", "Сайланган кыйммәт булган мәгълүматларда юк. Башкасын сайлагыз яки сайлауны чистартыгыз."],
+  "Each parameter value must have one label. Choose another label field or prepare a unique mapping.": ["Каждому значению параметра должна соответствовать одна подпись. Выберите другое поле подписи или подготовьте однозначное соответствие.", "Һәр параметр кыйммәтенә бер исем туры килергә тиеш. Башка исем кырын сайлагыз яки бермәгънәле бәйләнеш әзерләгез."],
   "Open calculation": ["Открыть расчёт", "Исәпләүне ачарга"],
   "The linked workflow is unavailable in this project.": ["Указанный граф недоступен в этом проекте.", "Күрсәтелгән граф бу проектта мөмкин түгел."],
   "The linked node is unavailable. It may have been deleted.": ["Указанный узел недоступен. Возможно, он удалён.", "Күрсәтелгән төен мөмкин түгел. Ул бетерелгән булырга мөмкин."],

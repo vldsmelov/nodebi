@@ -147,14 +147,24 @@ class PreviewRequest(BaseModel):
 
 class NodeValuesRequest(PreviewRequest):
     column_id: str = Field(min_length=1, max_length=200)
+    label_column_id: str | None = Field(default=None, min_length=1, max_length=200)
+    selected_value: ParameterValue = None
     search: str = Field(default="", max_length=200)
     limit: int = Field(default=200, ge=1, le=1000)
+
+
+class NodeValueChoice(BaseModel):
+    value: ParameterValue
+    label: ParameterValue
 
 
 class NodeValuesRead(BaseModel):
     revision: int
     column: ResolvedColumnRead
     values: list[ParameterValue]
+    choices: list[NodeValueChoice]
+    selected: NodeValueChoice | None = None
+    label_column: ResolvedColumnRead | None = None
     truncated: bool
 
 
