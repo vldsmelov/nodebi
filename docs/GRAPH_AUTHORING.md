@@ -235,3 +235,21 @@ requires explicitly discarding that draft before loading the new workflow revisi
 requests can be retried; the expected revision prevents overwriting other saves. Closing with
 changes asks for confirmation. The modal draft is in memory and does not survive a confirmed
 page reload. The underlying dashboard draft retains its existing session recovery behavior.
+
+
+### Create widgets and independent copies
+
+Save any dashboard draft, then choose Create visualization widget. Select a workflow and named
+dataset output, visualization type, fields and formats. Create widget saves the ordinary chart
+node, its input edge and dashboard placement together. Calculations remain in the shared graph.
+
+Independent copy on an existing widget opens a copy of its configuration. Saving creates a new
+visualization node on the same input and rebinds only this widget. Other dashboards keep the
+original chart; the copied widget retains its ID, layout, custom title and navigation action.
+Copies have independent visualization settings, not independent upstream data transformations.
+
+Both operations reject stale workflow/dashboard revisions. Errors leave the unapplied form
+available. IDs remain stable during retries. If a response is lost after a successful commit,
+a retry conflicts rather than duplicating objects; Reload dashboard reveals the saved result.
+Reload explicitly discards the unapplied form. After success, old local recovery snapshots are
+cleared. No partially created graph/widget state is committed and no data reset is needed.

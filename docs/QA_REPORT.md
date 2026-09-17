@@ -444,3 +444,28 @@ changes). New-node creation, independent copies and navigation remain next in U4
 Final browser regression: 29 passed, 10 opt-in skips (3.1 minutes), including six-dashboard
 recovery after application/PostgreSQL restart, three languages and both themes. Frontend deployed
 locally. Original project/data remain intact; no settings were copied into dashboard storage.
+
+
+## Atomic widget creation and independent copies (2026-09-17, ADR-081)
+
+Backend: 252 passed, 4 SQLite-only skips with PostgreSQL enabled. New API acceptance covers
+concurrent requests (one 201, one 409), workflow/dashboard CAS, valid rendered output, late
+widget-validation failure rolling back graph/index/revisions, copy-only rebinding, cross-project
+rejection and rejection of visualization output as a dataset input. Existing migration/locking
+regressions remain green. Ruff lint/format: 106 files; mypy: 67 source files. No DB migration needed.
+Frontend: 73 tests pass; TypeScript, ESLint, generated OpenAPI drift and production builds pass.
+
+Focused browser acceptance builds a Bar Chart from a named workflow output through dashboard UI,
+checks one revision per resource, copies one shared placement independently and preserves the
+original visualization on another dashboard. Dirty dashboard edits block creation/copy. A clean
+local recovery snapshot left by reverting edits is cleared on success. A route deliberately drops
+the response after a committed operation: retry conflicts without duplicates and explicit reload
+recovers both widgets. Screenshot .backups/ux-create-widget.png visually reviewed.
+Evidence: .backups/ux-widget-authoring-backend.log, ux-widget-authoring-build.log,
+ux-widget-authoring-frontend-build.log, ux-widget-authoring-focused.log and
+ux-widget-authoring-full-e2e.log. Original project/data unchanged. Exact-branch navigation and
+remaining U4 selectors/navigation/view modes are still pending.
+
+Full browser regression: 30 passed, 10 opt-in skips (3.3 minutes), including six-dashboard
+recovery after application/PostgreSQL restart, three languages and both themes. Backend and
+frontend production builds are deployed locally. No failures in required checks.

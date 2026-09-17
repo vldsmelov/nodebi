@@ -1,5 +1,33 @@
 # DECISIONS.md
 
+# ADR-081 - Atomic dashboard visualization creation and independent copies
+
+Date: 2026-09-17. Status: ACCEPTED; second U4 delivery.
+Context: separate node/widget saves can leave orphan nodes or overwrite concurrent dashboard
+edits. Independent copies must change only one placement while preserving existing uses.
+Decision: POST /api/v1/dashboards/{id}/visualizations takes both expected revisions, a dataset
+node in a project workflow, chart type/config, and stable client node/edge/widget IDs. It locks
+project then dashboard, reads the workflow, validates project ownership/input port/config and
+stages an ordinary node/edge via save_graph(commit=False). DashboardService.save(commit=False)
+adds a placement or changes one existing placement's visualization_id, preserving its layout,
+title and action. A single outer commit covers graph, visualization index, placement and both
+revisions; every exception rolls back. Existing save entrypoints retain commit=True behavior.
+The caller supplies stable IDs per modal session. Replays with old revisions return 409, never
+another node/widget. If a successful response is lost, explicit reload reveals the committed
+operation; this is conflict-based recovery, not an idempotent success-response API.
+CreateVisualizationDialog uses the existing chart form and saved schema. It selects a named
+workflow result/type for creation; copy keeps the same input/type and edits a new config. Dirty
+dashboards must be saved first, avoiding silent inclusion/discard of layout drafts. Atomic
+success installs the returned dashboard revision and clears any clean recovery snapshot.
+Failure retains the form; explicit reload discards it and loads authoritative saved state.
+Alternatives: compensating deletion after two requests races widget references; independently
+stored widget semantics violate the node-owned contract. A DB idempotency ledger is unnecessary
+for the current synchronous single-user MVP's explicit recovery flow.
+Consequences: additive OpenAPI contract, no persistent schema change/migration. Copies share
+upstream calculations but own separate visualization settings. Exact-branch links, named ID
+selectors, guided navigation and view mode remain U4 follow-up.
+
+
 # ADR-080 - Edit saved visualization nodes from dashboard widgets
 
 Date: 2026-09-17. Status: ACCEPTED; first U4 delivery.

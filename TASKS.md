@@ -28,7 +28,8 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [x] Explicitly chosen Window/Group By scope: input/subsequent path highlights, before/after/other-branch filters and parameter locations; pre-selection output reused through UI with invariant comparison rows (ADR-079). Human usability evaluation remains U0.
 * [~] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
   * [x] Edit existing visualization settings from widgets through the shared node form; saved-use disclosure/acknowledgement, CAS conflict recovery and dashboard draft preservation (ADR-080).
-  * [ ] Create/copy visualization + widget through atomic or recoverable saves; exact calculation-branch navigation.
+  * [x] Create/copy visualization + widget atomically with both revisions, stable retry IDs, rollback and independent settings (ADR-081).
+  * [ ] Exact calculation-branch navigation from dashboard widgets.
   * [ ] ID/label parameter selectors, guided navigation and view mode/grid templates.
 * [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.
 

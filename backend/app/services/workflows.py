@@ -75,7 +75,12 @@ def validate_draft(payload: WorkflowSave, registry: NodeRegistry) -> None:
 
 
 def save_graph(
-    session: Session, workflow: Workflow, payload: WorkflowSave, registry: NodeRegistry
+    session: Session,
+    workflow: Workflow,
+    payload: WorkflowSave,
+    registry: NodeRegistry,
+    *,
+    commit: bool = True,
 ) -> WorkflowRead:
     validate_draft(payload, registry)
     # Serialize reference changes with source/project deletion. JSON configuration
@@ -135,7 +140,8 @@ def save_graph(
         )
         synchronize_visualizations(session, workflow, payload)
         result = read_workflow(session, workflow)
-        session.commit()
+        if commit:
+            session.commit()
     except WorkflowConflictError as exc:
         session.rollback()
         raise ApplicationError("WORKFLOW_CONFLICT", str(exc), 409) from exc

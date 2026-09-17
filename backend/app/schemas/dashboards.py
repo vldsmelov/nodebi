@@ -90,3 +90,16 @@ class DashboardRead(WorkflowCreate):
 
 class DashboardList(BaseModel):
     items: list[DashboardRead]
+
+
+class DashboardVisualizationCreate(BaseModel):
+    workflow_id: uuid.UUID
+    expected_workflow_revision: int = Field(ge=1)
+    expected_dashboard_revision: int = Field(ge=1)
+    source_node_id: uuid.UUID
+    node_id: uuid.UUID
+    edge_id: uuid.UUID
+    widget_id: uuid.UUID
+    replace_existing: bool = False
+    type: ChartType
+    config: dict[str, Any] = Field(default_factory=dict)

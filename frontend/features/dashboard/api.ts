@@ -15,3 +15,6 @@ export const createDashboard = (project: string, name: string) => apiRequest<Das
 export const saveDashboard = (dashboard: Dashboard) => apiRequest<Dashboard>(`/api/v1/dashboards/${dashboard.id}`, { method: "PUT", body: JSON.stringify({ name: dashboard.name, expected_revision: dashboard.revision, widgets: dashboard.widgets, configuration: dashboard.configuration }) });
 export const getVisualizationResult = (identity: string, offset = 0, parameters?: import("@/features/workflow/types").ParameterValues) => parameters && Object.keys(parameters).length ? apiRequest<VisualizationResult>(`/api/v1/visualizations/${identity}/result`, { method: "POST", body: JSON.stringify({ parameters, offset, limit: 100 }) }) : apiRequest<VisualizationResult>(`/api/v1/visualizations/${identity}/result?offset=${offset}&limit=100`);
 export const deleteDashboard = (identity: string) => apiRequest<void>(`/api/v1/dashboards/${identity}`, { method: "DELETE" });
+
+export type DashboardVisualizationCreate = components["schemas"]["DashboardVisualizationCreate"];
+export const createDashboardVisualization = (dashboardId: string, payload: DashboardVisualizationCreate) => apiRequest<Dashboard>(`/api/v1/dashboards/${dashboardId}/visualizations`, { method: "POST", body: JSON.stringify(payload) });

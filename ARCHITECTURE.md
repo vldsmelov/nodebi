@@ -1,5 +1,15 @@
 # ARCHITECTURE.md
 
+## Atomic visualization authoring (ADR-081)
+
+dashboard_authoring composes graph/index and dashboard persistence in one transaction, with
+project -> dashboard -> workflow locking and both revision checks. save_graph and DashboardService
+save accept internal commit=False for this composition; their existing public paths still commit.
+The additive dashboard visualizations endpoint creates a normal node/edge and adds/rebinds one
+widget. CreateVisualizationDialog preserves stable IDs until success/explicit reload and reuses
+the common visualization form. No copy of semantic config is stored in dashboard widgets.
+
+
 ## Dashboard visualization editing (ADR-080)
 
 VisualizationSettingsDialog reuses the schema-aware workflow visualization form. It loads a

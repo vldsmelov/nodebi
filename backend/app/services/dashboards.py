@@ -73,7 +73,9 @@ class DashboardService:
         self.session.commit()
         return result
 
-    def save(self, identity: uuid.UUID, payload: DashboardSave) -> DashboardRead:
+    def save(
+        self, identity: uuid.UUID, payload: DashboardSave, *, commit: bool = True
+    ) -> DashboardRead:
         row = self.get(identity, lock=True)
         if row.revision != payload.expected_revision:
             raise ApplicationError(
@@ -134,7 +136,8 @@ class DashboardService:
         )
         self.session.flush()
         result = self.read(identity)
-        self.session.commit()
+        if commit:
+            self.session.commit()
         return result
 
     def delete(self, identity: uuid.UUID) -> None:

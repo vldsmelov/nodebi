@@ -315,6 +315,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboards/{dashboard_id}/visualizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Author Visualization */
+        post: operations["author_visualization_api_v1_dashboards__dashboard_id__visualizations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -411,6 +428,52 @@ export interface components {
             expected_revision: number;
             /** Widgets */
             widgets: components["schemas"]["WidgetPayload"][];
+        };
+        /** DashboardVisualizationCreate */
+        DashboardVisualizationCreate: {
+            /**
+             * Workflow Id
+             * Format: uuid
+             */
+            workflow_id: string;
+            /** Expected Workflow Revision */
+            expected_workflow_revision: number;
+            /** Expected Dashboard Revision */
+            expected_dashboard_revision: number;
+            /**
+             * Source Node Id
+             * Format: uuid
+             */
+            source_node_id: string;
+            /**
+             * Node Id
+             * Format: uuid
+             */
+            node_id: string;
+            /**
+             * Edge Id
+             * Format: uuid
+             */
+            edge_id: string;
+            /**
+             * Widget Id
+             * Format: uuid
+             */
+            widget_id: string;
+            /**
+             * Replace Existing
+             * @default false
+             */
+            replace_existing: boolean;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "bar_chart" | "kpi" | "table" | "line_chart" | "area_chart" | "pie_chart" | "donut_chart" | "scatter_chart";
+            /** Config */
+            config?: {
+                [key: string]: unknown;
+            };
         };
         /** DataSourceList */
         DataSourceList: {
@@ -1970,6 +2033,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    author_visualization_api_v1_dashboards__dashboard_id__visualizations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dashboard_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardVisualizationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardRead"];
+                };
             };
             /** @description Validation Error */
             422: {

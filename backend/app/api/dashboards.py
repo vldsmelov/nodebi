@@ -15,11 +15,13 @@ from app.schemas.dashboards import (
     DashboardList,
     DashboardRead,
     DashboardSave,
+    DashboardVisualizationCreate,
     VisualizationList,
     VisualizationRequest,
     VisualizationResult,
 )
 from app.schemas.workflows import WorkflowCreate
+from app.services.dashboard_authoring import create_visualization
 from app.services.dashboards import DashboardService
 from app.services.execution import (
     InMemoryExecutionCache,
@@ -110,3 +112,17 @@ def save_dashboard(
 def delete_dashboard(dashboard_id: uuid.UUID, session: Database) -> Response:
     DashboardService(session).delete(dashboard_id)
     return Response(status_code=204)
+
+
+@router.post(
+    "/api/v1/dashboards/{dashboard_id}/visualizations",
+    response_model=DashboardRead,
+    status_code=201,
+)
+def author_visualization(
+    dashboard_id: uuid.UUID,
+    payload: DashboardVisualizationCreate,
+    session: Database,
+    registry: Annotated[NodeRegistry, Depends(get_node_registry)],
+) -> DashboardRead:
+    return create_visualization(session, dashboard_id, payload, registry)
