@@ -423,3 +423,24 @@ No claim of automated formula-denominator inference or measured human speed impr
 Final full browser regression: 28 passed, 10 opt-in skips (3.3 minutes), including six-dashboard
 recovery after frontend/backend/PostgreSQL restart, three languages and both themes. Frontend
 deployed locally; original project configurations/data intact.
+
+
+## Edit visualization from dashboard (2026-09-17, ADR-080)
+
+73 frontend tests pass; TypeScript, ESLint, OpenAPI drift and Docker production build pass.
+Component regressions cover retained settings on failed save, expected-revision/selected-node
+payload and refusal to edit mismatched workflow/schema revisions. Browser acceptance uses a
+shared chart on two dashboards: explicit shared-edit acknowledgement, both views refreshed,
+unsaved dashboard name retained, source/edges and dashboard layout unchanged by chart save.
+A concurrent workflow update produces HTTP 409 / WORKFLOW_CONFLICT; the user sees its localized
+message, entered title remains intact, and explicit reload/reapply preserves the concurrent
+workflow name. Final reload restores the updated chart. The corrected test checks API codes
+in the HTTP response and human-readable prose in the English UI, matching the existing formatter.
+Screenshot .backups/ux-dashboard-settings-conflict.png visually reviewed.
+Evidence: .backups/ux-dashboard-settings-build.log, ux-dashboard-settings-focused.log,
+ux-dashboard-settings-full-e2e.log. Separate backend unit/PostgreSQL matrix not rerun (no backend
+changes). New-node creation, independent copies and navigation remain next in U4.
+
+Final browser regression: 29 passed, 10 opt-in skips (3.1 minutes), including six-dashboard
+recovery after application/PostgreSQL restart, three languages and both themes. Frontend deployed
+locally. Original project/data remain intact; no settings were copied into dashboard storage.

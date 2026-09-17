@@ -10,6 +10,7 @@ import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import { saveDashboard, type Dashboard, type Visualization } from "./api";
 import { DashboardSettings, DashboardValueForm } from "./DashboardConfiguration";
+import { VisualizationSettingsDialog } from "./VisualizationSettingsDialog";
 import { WidgetActions } from "./WidgetActions";
 import { emptyConfiguration, parseViewValues, resolveViewValues, workflowValues, navigationValues } from "./view-state";
 import type { NavigationAction } from "./api";
@@ -28,6 +29,7 @@ export function DashboardEditor({ initial, visualizations, dashboards = [], onSe
   });
   const [navigationError, setNavigationError] = useState<unknown>(null);
   const [saved, setSaved] = useState(initial);
+  const [editingVisualization, setEditingVisualization] = useState<Visualization | null>(null);
   const [selected, setSelected] = useState("");
   const [storageError, setStorageError] = useState("");
   const dirty = JSON.stringify(dashboard) !== JSON.stringify(saved);
@@ -68,6 +70,7 @@ export function DashboardEditor({ initial, visualizations, dashboards = [], onSe
     change(current => ({ ...current, widgets: [...current.widgets, { id: crypto.randomUUID(), visualization_id: selected, x: 0, y, width: 6, height: 8 }] }));
   };
   return <main className="min-h-[calc(100vh-2.75rem)] bg-page p-6 text-foreground">
+    {editingVisualization && <VisualizationSettingsDialog key={editingVisualization.id} visualization={editingVisualization} projectId={initial.project_id} close={() => setEditingVisualization(null)} />}
     <header className="flex flex-wrap items-center gap-4">
       <Link href={`/projects/${initial.project_id}/workflow`} onClick={event => { if (dirty && !window.confirm(t("Dashboard changes are not saved. Leave with a recoverable local draft?"))) event.preventDefault(); }} className="text-accent">{t("Workflow")}</Link>
       <input aria-label={t("Dashboard name")} value={dashboard.name} disabled={busy} onChange={e => change({ ...dashboard, name: e.target.value })} className="min-w-0 flex-1 bg-transparent text-2xl" />
@@ -95,7 +98,7 @@ export function DashboardEditor({ initial, visualizations, dashboards = [], onSe
     <div ref={containerRef}>{mounted ? <GridLayout width={width} gridConfig={{ cols: 12, rowHeight: 30, margin: [12, 12] }} dragConfig={{ enabled: !busy, handle: ".widget-handle" }} resizeConfig={{ enabled: !busy }} layout={dashboard.widgets.map(w => ({ i: w.id, x: w.x, y: w.y, w: w.width, h: w.height, minW: 2, minH: 2, maxH: 40 }))} onDragStop={updateLayout} onResizeStop={updateLayout}>
       {dashboard.widgets.map(widget => <div key={widget.id} data-widget-id={widget.id} className="flex flex-col overflow-hidden rounded-xl border border-outline bg-surface">
         <div className="flex shrink-0 items-center border-b border-outline"><div className="widget-handle flex-1 cursor-move px-4 py-2 text-xs text-muted" aria-label={t("Move widget")}>{t("Drag to move")}</div><button aria-label={t("Remove widget")} disabled={busy} className="px-3 text-muted" onClick={() => change(current => ({ ...current, widgets: current.widgets.filter(w => w.id !== widget.id) }))}>×</button></div>
-        <div className="flex items-center gap-2 px-3 py-1"><input aria-label={t("Widget title")} placeholder={visualizations.find(v => v.id === widget.visualization_id)?.name ?? t("Widget title")} value={widget.title ?? ""} disabled={busy} onChange={e => change(current => ({ ...current, widgets: current.widgets.map(w => w.id === widget.id ? { ...w, title: e.target.value || null } : w) }))} className="min-w-0 flex-1 bg-transparent text-xs" /><label className="flex gap-1 text-[10px] text-muted"><input type="checkbox" aria-label={t("Show widget title")} checked={widget.config?.show_title !== false} disabled={busy} onChange={e => change(current => ({ ...current, widgets: current.widgets.map(w => w.id === widget.id ? { ...w, config: { ...w.config, show_title: e.target.checked } } : w) }))} />{t("Title")}</label></div>
+        <div className="flex items-center gap-2 px-3 py-1"><button disabled={busy} className="text-xs text-accent underline" aria-label={t("Edit visualization")} onClick={() => { const visualization = visualizations.find(item => item.id === widget.visualization_id); if (visualization) setEditingVisualization(visualization); }}>{t("Settings")}</button><input aria-label={t("Widget title")} placeholder={visualizations.find(v => v.id === widget.visualization_id)?.name ?? t("Widget title")} value={widget.title ?? ""} disabled={busy} onChange={e => change(current => ({ ...current, widgets: current.widgets.map(w => w.id === widget.id ? { ...w, title: e.target.value || null } : w) }))} className="min-w-0 flex-1 bg-transparent text-xs" /><label className="flex gap-1 text-[10px] text-muted"><input type="checkbox" aria-label={t("Show widget title")} checked={widget.config?.show_title !== false} disabled={busy} onChange={e => change(current => ({ ...current, widgets: current.widgets.map(w => w.id === widget.id ? { ...w, config: { ...w.config, show_title: e.target.checked } } : w) }))} />{t("Title")}</label></div>
         <div className="min-h-0 flex-1">{!viewError ? <VisualizationView id={widget.visualization_id} parameters={workflowValues(config, visualizations.find(v => v.id === widget.visualization_id)?.workflow_id ?? "", values)} onSelect={widget.config?.action ? row => navigate(widget.config!.action!, row) : undefined} titleOverride={widget.title ?? undefined} hideTitle={widget.config?.show_title === false} /> : null}</div>
       </div>)}
     </GridLayout> : null}</div>

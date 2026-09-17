@@ -1,5 +1,29 @@
 # DECISIONS.md
 
+# ADR-080 - Edit saved visualization nodes from dashboard widgets
+
+Date: 2026-09-17. Status: ACCEPTED; first U4 delivery.
+Context: operators must adjust fields/formatting without switching to the canvas, while node
+configuration remains the only source of truth and dashboard layout drafts remain recoverable.
+Decision: each widget opens VisualizationSettingsDialog, reusing VisualizationConfiguration.
+The dialog loads its workflow, input schema and saved dashboard usages. Workflow/schema revisions
+must match. A single normal saveWorkflow changes only that node config with expected_revision;
+other nodes, edges and parameters are retained. Dashboard/widget revisions are not written.
+All saved uses are shown; multiple uses require an explicit shared-edit acknowledgement.
+The list is a loading-time snapshot, not a cross-dashboard concurrency lock. Unsaved placements
+are not included. Users are always told that every use of this visualization is updated.
+Conflicts/network failures keep the form. Reload explicitly discards changes with confirmation;
+Cancel/Escape and browser unload protect staged edits. Drafts in this modal are in memory, not
+persisted across a confirmed reload. Successful writes invalidate visualization/workflow caches;
+cache refresh errors cannot retry an already completed write. Existing dashboard drafts persist.
+Alternative: storing widget-specific semantic copies would violate the node-owned contract.
+Creating/copying a node and attaching a widget is a separate multi-resource operation and remains
+next in U4, requiring atomic or explicitly recoverable workflow/dashboard saves. This delivery
+does not implement independent copies, new-widget creation or exact-branch navigation.
+Consequences: no API/database changes; normal revision conflicts protect concurrent workflow
+editing. Shared settings apply everywhere; widget title/layout overrides remain dashboard-owned.
+
+
 # ADR-079 - Inspect calculation scope without guessing formula semantics
 
 Date: 2026-09-17. Status: ACCEPTED; second U3 delivery.

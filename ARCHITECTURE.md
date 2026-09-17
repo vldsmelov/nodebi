@@ -1,5 +1,14 @@
 # ARCHITECTURE.md
 
+## Dashboard visualization editing (ADR-080)
+
+VisualizationSettingsDialog reuses the schema-aware workflow visualization form. It loads a
+matching workflow/schema revision and changes one node config through saveWorkflow CAS. Saved
+usages come from project dashboards; layout/title drafts remain in DashboardEditor untouched.
+Errors preserve the modal draft; explicit reload discards it. No dashboard semantic copy or
+multi-resource write is introduced. Successful saves invalidate all affected result caches.
+
+
 ## Saved calculation scope (ADR-079)
 
 CalculationScopePanel uses calculation-scope to inspect saved Window/Group By ancestors and

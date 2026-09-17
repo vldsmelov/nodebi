@@ -26,7 +26,10 @@ Implementation authorized; stages below remain incomplete until their acceptance
 * [x] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
   * [x] Share/rank dialog creates ordinary Window/Calculated Column/trailing Filter, shows selected input scope and upstream filters; atomic undo/reload and result invariance acceptance (ADR-078).
   * [x] Explicitly chosen Window/Group By scope: input/subsequent path highlights, before/after/other-branch filters and parameter locations; pre-selection output reused through UI with invariant comparison rows (ADR-079). Human usability evaluation remains U0.
-* [ ] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
+* [~] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
+  * [x] Edit existing visualization settings from widgets through the shared node form; saved-use disclosure/acknowledgement, CAS conflict recovery and dashboard draft preservation (ADR-080).
+  * [ ] Create/copy visualization + widget through atomic or recoverable saves; exact calculation-branch navigation.
+  * [ ] ID/label parameter selectors, guided navigation and view mode/grid templates.
 * [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.
 
 ## Approved constructor/dashboard parity extension (2026-09-14)

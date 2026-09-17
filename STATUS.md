@@ -5,20 +5,21 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: second U3 delivery adds saved Calculation scope inspection (ADR-079).
-Authors choose a Window/Group By node and see grouping, before/after/other-input filters,
-field/parameter labels, input/path highlights and links to actual node configuration.
-Inspection does not infer denominator semantics. Highlights are view-only and expire on graph
-changes. Explicit pre-selection output reuse through Add next step preserves comparison rows.
-71 frontend tests, TypeScript, ESLint and Docker production build pass. Focused browser
-acceptance passes: no revision on inspection, correct highlights, all six comparison rows for
-multiple item parameters, selected branch unchanged, reload persistence. Full browser regression:
-28 passed, 10 opt-in skips (3.3 minutes), including six-dashboard restoration after application/
-PostgreSQL restart, three languages and both themes. Frontend deployed locally.
-Evidence: .backups/ux-scope-build.log, ux-scope-focused.log and ux-scope-full-e2e.log.
-Current milestone: U3 engineering complete; next: U4 dashboard-centered widget creation/editing,
-then named selectors, navigation and view mode. Human operator study remains U0 and unmeasured.
-No new P0/P1 or blocker. Original project/data intact; backend contracts/source unchanged.
+Latest session: first U4 delivery edits existing visualization nodes directly from dashboard
+widgets (ADR-080). The shared schema-aware form changes only node config through workflow CAS.
+Saved usages are listed; shared edits require acknowledgement. Dashboard drafts/layout and
+widget overrides are preserved. Conflicts retain the modal draft; reload discards it explicitly.
+73 frontend tests, TypeScript, ESLint, OpenAPI drift and Docker production build pass.
+Focused browser acceptance passes on two dashboards: shared updates, draft retention, unchanged
+layout, API 409 with retained edits, explicit recovery and reload. Full browser regression:
+29 passed, 10 opt-in skips (3.1 minutes), including six-dashboard restoration after frontend/
+backend/PostgreSQL restart, three languages and both themes. Frontend is deployed locally.
+Evidence: .backups/ux-dashboard-settings-build.log, ux-dashboard-settings-focused.log and
+ux-dashboard-settings-full-e2e.log.
+Current milestone: U4 in progress. Next: create/copy node + widget via atomic or recoverable
+saves and exact-branch navigation; then ID/label selectors, guided navigation and view mode.
+Human study remains U0 and unmeasured. No new P0/P1 or blocker; original project/data intact.
+Backend source/contracts unchanged. Modal drafts are transient; independent copies not yet added.
 
 Previous session: fifth U2 delivery implements grouped Unpivot authoring (ADR-076). A staged
 table assigns values to 1-10 groups and creates ordinary Unpivot/Calculated Column branches

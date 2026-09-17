@@ -25,6 +25,9 @@ nodes remain individually editable; existing upstream filters are disclosed as a
 Authors can inspect a chosen saved total/rank node, see filter and parameter application points,
 highlight its input path or subsequent path, and reuse its output through ordinary graph controls.
 This inspector describes connections; it does not infer denominator meaning from arbitrary formulas.
+Saved widget visualization settings can be edited from the dashboard using the same form as
+its workflow node. Shared uses are disclosed; saving updates all uses with workflow revision
+protection while retaining dashboard layout drafts. Independent copy/creation is a later U4 step.
 Authors can arrange the graph by dependencies and undo/redo graph edits within the current
 editor session. Undo saves through normal revision checks. A visualization used on a dashboard
 must be detached there before removing its graph node; graph undo cannot delete its widgets.

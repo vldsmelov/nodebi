@@ -217,3 +217,21 @@ the view. None of these actions saves a workflow revision; edits hide stale insp
 Open calculation node, then Add next step to reuse the full pre-selection output in another
 branch. Existing consumers remain connected. This is an explicit shared graph output, with
 normal save/reload and no hidden measure or automatic rewriting of formula semantics.
+
+
+### Edit visualization settings on a dashboard
+
+Use Settings on an existing widget to open the same visualization form used by its workflow
+node. Change fields, chart title, orientation and formats, then Save visualization. Settings
+are saved to the node; they are not copied into the widget. Widget-specific title/layout
+settings remain separate. The current dashboard draft is retained and still needs Save dashboard.
+
+The dialog lists saved placements loaded at opening. If several widgets share the visualization,
+acknowledge applying the changes to all of them. Newly attached/unsaved uses may not appear in
+this snapshot, but all uses share the same node. Independent copies are not implemented here.
+
+A concurrent workflow edit returns a conflict and keeps your entered values. Reload settings
+requires explicitly discarding that draft before loading the new workflow revision. Failed
+requests can be retried; the expected revision prevents overwriting other saves. Closing with
+changes asks for confirmation. The modal draft is in memory and does not survive a confirmed
+page reload. The underlying dashboard draft retains its existing session recovery behavior.
