@@ -1,11 +1,13 @@
 "use client";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import type { ResolvedColumn } from "./types";
+import type { GraphIssue, ResolvedColumn } from "./types";
 import { formulaFieldLabel, formulaParts, replaceFormulaSelection } from "./formula-presentation";
 
-export function FormulaEditor({ expression, columns, onChange }: { expression: string; columns: ResolvedColumn[] | null; onChange: (expression: string) => void }) {
-  const { t } = useI18n();
+export function FormulaEditor({ expression, columns, onChange, issues = [], validationPending = false }: { issues?: GraphIssue[]; validationPending?: boolean; expression: string; columns: ResolvedColumn[] | null; onChange: (expression: string) => void }) {
+  const { t, errorText } = useI18n();
+  const diagnosticsId = useId();
+  const currentIssues = validationPending ? [] : issues;
   const textarea = useRef<HTMLTextAreaElement>(null);
   const selection = useRef<{ expression: string; start: number; end: number } | null>(null);
   const [search, setSearch] = useState("");
@@ -33,8 +35,11 @@ export function FormulaEditor({ expression, columns, onChange }: { expression: s
       {!expression ? <span className="text-muted">{t("Select a field to start a formula.")}</span> : null}
     </div>
     <p className="mt-2 text-xs text-muted">{t("Click a field token, then choose another field to replace it. Edit operators and text below.")}</p>
-    <label className="mt-3 block text-xs">{t("Expression")}<textarea ref={textarea} aria-label={t("Expression")} className={control} rows={4} value={expression}
+    <label className="mt-3 block text-xs">{t("Expression")}<textarea ref={textarea} aria-label={t("Expression")} aria-describedby={diagnosticsId} className={control} rows={4} value={expression}
       onSelect={remember} onBlur={remember} onChange={event => { selection.current = { expression: event.target.value, start: event.target.selectionStart, end: event.target.selectionEnd }; onChange(event.target.value); }} placeholder={t("quantity * price")} /></label>
+    <div id={diagnosticsId} aria-live="polite" className="mt-2 text-xs">
+      {validationPending ? <p className="text-muted">{t("Formula checks update after saving.")}</p> : currentIssues.map((issue, index) => <p key={index} role="alert" className="text-danger">{errorText(issue)}</p>)}
+    </div>
     <input aria-label={t("Find formula field")} className={control} value={search} onChange={event => setSearch(event.target.value)} placeholder={t("Find formula field")} />
     <select aria-label={t("Insert formula field")} className={control} value="" disabled={columns === null} onChange={event => { if (event.target.value) insert(`[${event.target.value}]`); }}>
       <option value="">{t("Select field")}</option>{visible.map(column => <option key={column.column_id} value={column.column_id}>{formulaFieldLabel(column, columns ?? [])} · {t(column.logical_type)}</option>)}

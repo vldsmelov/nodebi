@@ -157,3 +157,12 @@ field membership/labels in Unpivot, and connections on the canvas. The ordinary 
 now offers an optional label for each selected value field. Clearing it restores the current
 source name; duplicate labels are valid. There is no separate persisted wizard recipe.
 Unapplied choices are transient; Cancel/Escape asks before discarding edits and unload warns.
+
+
+### Formula diagnostics
+
+The single-node expression editor displays server schema/configuration issues directly below
+its expression. Messages retain node and configuration-path context and use the selected UI
+language. Editing or awaiting the saved revision's schema hides old diagnostics. No message is
+not proof of validity: runtime data errors still appear in output preview. Staged batch formulas
+are validated by the server after Apply, when ordinary graph nodes have been saved.

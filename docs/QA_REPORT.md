@@ -357,3 +357,14 @@ and Tatar/dark screenshots reviewed. No open extension P0/P1.
 
 [Final report and reproduction](OPOP_CONSTRUCTOR_ACCEPTANCE.md) documents private artifacts,
 backup, stage-history distinctions and the non-blocking source-row-ID selector limitation.
+
+
+## Formula diagnostics beside expression (2026-09-17)
+
+58 frontend tests pass, including pending/stale message removal and node/field context.
+TypeScript, ESLint and local production build pass. Docker frontend rebuilt/deployed.
+Focused formula browser acceptance passes: stable-reference rename and preview/reload,
+invalid syntax shown beside expression, correction and normal autosave.
+Evidence: .backups/ux-formula-diagnostics-build.log and ux-formula-diagnostics-e2e.log.
+Backend/full restart matrix was not rerun: this change only presents existing server issues.
+Richer source labels and U0 human measurements remain pending.

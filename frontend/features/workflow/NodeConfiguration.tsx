@@ -15,9 +15,11 @@ const operatorLabel = (operator: string) => operator.replaceAll("_", " ");
 
 import type { ComponentType } from "react";
 import type { DataSource } from "@/features/data-sources/api";
-import type { ResolvedColumn, WorkflowParameter } from "./types";
+import type { GraphIssue, ResolvedColumn, WorkflowParameter } from "./types";
 
 type Props = {
+  issues?: GraphIssue[];
+  validationPending?: boolean;
   parameters?: WorkflowParameter[];
   type: string;
   config: Record<string, unknown>;

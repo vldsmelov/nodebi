@@ -18,7 +18,8 @@ Implementation authorized; stages below remain incomplete until their acceptance
 * [~] U2: Named formula tokens and batch preparation forms backed by ordinary explicit nodes.
   * [x] P2: Field-specific configuration feedback replaces raw Pydantic dumps; nested errors retained in English/Russian/Tatar; empty Filter repair verified.
   * [x] Named formula token view, cursor/selection insertion, schema-aware field lookup and signature hints; canonical text editing retained (ADR-073).
-  * [ ] Rich source labels and expression diagnostics adjacent to the formula; current duplicate labels use engine names/IDs.
+  * [x] Revision-aware server diagnostics adjacent to the expression; hide stale errors during edits and schema refresh.
+  * [ ] Rich source labels; current duplicate labels use engine names/IDs.
   * [x] Calculated-field table: dependent rows, atomic creation, undo/redo, graph-derived existing-chain editing and reload acceptance (ADR-074).
   * [x] Preparation table: selection, rename, explicit type/error/null policies, node preview, exact integer fill and atomic ordinary branch creation (ADR-075).
   * [x] Grouped Unpivot authoring: ordinary branches/Union, independent duplicate labels, stable field IDs, manual edits, atomic undo/reload acceptance (ADR-076).

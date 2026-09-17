@@ -40,3 +40,19 @@ it("restricts aggregation choices when the selected field becomes nonnumeric", (
   expect(screen.getByLabelText("Aggregation 1")).toHaveValue("count");
   expect(screen.getByRole("option", { name: /^sum$/ })).toBeDisabled();
 });
+
+
+it("shows server diagnostics beside the expression and hides them while validation is pending", () => {
+  const props = { type: "calculated_column", config: { name: "Total", expression: "[q] +" }, columns, sources: [], onChange: () => {}, issues: [{ code: "SCHEMA_INFERENCE_FAILED", message: "Invalid arithmetic expression.", node_id: "calculation", severity: "error" as const, edge_id: null, field: "config.expression" }] };
+  const view = render(<NodeConfiguration {...props} />);
+  const expression = screen.getByLabelText("Expression");
+  const description = document.getElementById(expression.getAttribute("aria-describedby")!);
+  expect(description).toHaveTextContent("Invalid arithmetic expression.");
+  expect(description).toHaveTextContent("calculation");
+  view.rerender(<NodeConfiguration {...props} validationPending />);
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(description).toHaveTextContent("Formula checks update after saving.");
+  view.rerender(<NodeConfiguration {...props} issues={[]} />);
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(description).toBeEmptyDOMElement();
+});

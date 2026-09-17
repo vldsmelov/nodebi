@@ -40,6 +40,13 @@ test("insert and replace named formula fields and retain references after upstre
     await page.screenshot({ path: "../.backups/ux-formula.png" });
     await page.reload(); await page.getByLabel("Edit workflow node").selectOption(c);
     await expect(formula.getByRole("button", { name: "Renamed units · integer" })).toBeVisible();
+    const expression = page.getByLabel("Expression", { exact: true });
+    await expression.fill("[col_6] +");
+    const diagnostics = page.locator('[id="' + await expression.getAttribute("aria-describedby") + '"]');
+    await expect(diagnostics).toContainText("Invalid arithmetic expression.");
+    await expression.fill("2 * [col_6] + 5");
+    await expect(diagnostics).not.toContainText("Invalid arithmetic expression.");
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const saved = await (await request.get(`${api}/api/v1/workflows/${workflow.id}`)).json();
     expect(saved.nodes.find((node: { id: string }) => node.id === c).config.expression).toBe("2 * [col_6] + 5");
   } finally { await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
