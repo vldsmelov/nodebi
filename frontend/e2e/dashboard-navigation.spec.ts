@@ -95,7 +95,8 @@ test("build dashboard drill-through in the UI and restore URL slices and history
     await page.getByRole("button", { name: "Back to overview", exact: true }).click();
     await expect(page.getByLabel("Dashboard name")).toHaveValue("Overview");
     await page.goto(`/projects/${project.id}/dashboard?dashboard=${detailId}&parameters=${encodeURIComponent('{"selection":12}')}`);
-    await expect(page.getByRole("main").getByRole("alert")).toContainText("requires string");
+    // The choices query may also report its bound workflow parameter error.
+    await expect(page.getByRole("main").getByRole("alert").filter({ hasText: "Parameter 'selection'" })).toContainText("requires string");
     await expect(page.getByRole("table")).toHaveCount(0);
   } finally {
     await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`);

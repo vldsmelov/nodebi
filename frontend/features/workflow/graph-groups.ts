@@ -1,6 +1,7 @@
 import type { Edge } from "@xyflow/react";
 import type { EditorNode } from "./WorkflowNodeCard";
 import { nodeLabel } from "./graph-interaction";
+import { layoutGraph } from "./graph-layout";
 
 export function groupName(node: EditorNode): string {
   const value = node.data.ui?.group;
@@ -37,5 +38,32 @@ export function projectGroups(nodes: EditorNode[], edges: Edge[], collapsed: str
         input_ports: toPorts(boundary.input), output_ports: toPorts(boundary.output),
       } } };
   });
-  return { nodes: [...nodes.map(node => ({ ...node, hidden: owners.has(node.id) })), ...proxies], edges: displayEdges };
+  // Match WorkflowNodeCard's 320px group card and 110px header + 28px boundary rows.
+  const dimensions = (node: EditorNode) => node.data.group
+    ? { width: 320, height: 110 + Math.max(node.data.definition.input_ports.length, node.data.definition.output_ports.length) * 28 }
+    : { width: node.measured?.width ?? 256, height: node.measured?.height ?? 220 };
+  let placed = proxies;
+  if (proxies.length && owners.size === nodes.length) {
+    // The full summary has its own compact layout; no real node coordinates change.
+    const sized = proxies.map(node => ({ ...node, measured: dimensions(node) }));
+    const arranged = layoutGraph(sized, displayEdges.filter(edge => !edge.hidden));
+    // Contracting non-convex groups can form a visual cycle in a valid execution DAG.
+    // A simple grid remains available rather than mistaking that cycle for invalid data.
+    const height = Math.max(...sized.map(node => node.measured.height)) + 60;
+    placed = (arranged ?? sized.map((node, index) => ({ ...node, position: { x: 80 + index % 3 * 430, y: 80 + Math.floor(index / 3) * height } })))
+      .map(node => { const original = proxies.find(item => item.id === node.id)!; return { ...original, position: node.position }; });
+  } else {
+    // Keep expanded nodes in place, moving only proxies below any intersecting cards.
+    const occupied = nodes.filter(node => !owners.has(node.id)).map(node => ({ ...node.position, ...dimensions(node) }));
+    placed = proxies.map(node => {
+      const box = { ...node.position, ...dimensions(node) };
+      let conflicts;
+      do {
+        conflicts = occupied.filter(other => box.x < other.x + other.width + 30 && box.x + box.width + 30 > other.x && box.y < other.y + other.height + 30 && box.y + box.height + 30 > other.y);
+        if (conflicts.length) box.y = Math.max(...conflicts.map(other => other.y + other.height)) + 60;
+      } while (conflicts.length);
+      occupied.push(box); return { ...node, position: { x: box.x, y: box.y } };
+    });
+  }
+  return { nodes: [...nodes.map(node => ({ ...node, hidden: owners.has(node.id) })), ...placed], edges: displayEdges };
 }

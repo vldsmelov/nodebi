@@ -5,7 +5,29 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: final U4 delivery adds URL view mode and two reversible layout templates
+Latest session: U5 technical acceptance is COMPLETE; human evaluation remains pending (ADR-087). Database/source backups
+u5-before.dump and u5-sources.tar are retained under .backups. Independent project copy:
+2173f33a-aa46-46af-9a19-b720de4fd036, workflow 1faead6b-91bc-45f5-ad34-e68ea1b81a5b.
+168 nodes/172 edges, 53 visualizations/55 widgets and six dashboards remain explicit/editable.
+Added seven presentation groups and applied layouts through existing UI; computation/navigation
+semantics and original project are unchanged. API copy identity remapping is test tooling only.
+P2 found and fixed: collapsed groups overlapped and large graphs could not fit at default minimum
+zoom. Complete summaries now have their own non-overlapping layout; partial summaries move only
+proxies. Full-card viewport and non-overlap acceptance passes on the real copy without graph saves.
+82 frontend tests, TypeScript/ESLint and production build pass; frontend is deployed.
+164 slices / 1551 widget pages match the original exactly after copy-identity/revision normalization.
+After backend/frontend/PostgreSQL restart, all six views, 55 sample widget results, typed URL values,
+three languages and both themes restore. Full browser regression: 35 passed, 12 opt-in skips (3.8m).
+Both U5 opt-in scenarios pass separately. Final UI step replaces source-row-only service selectors
+with service names: 18 affected widget results unchanged, typed IDs retained, labels survive a second
+restart. Original graph/dashboards remain unchanged. No new known defects or environment blockers.
+Next: conduct U0/U5 sessions with 3-5 actual operators and compare recorded results with baseline;
+this requires human participants. Do not claim the 40% speed target from automated tests.
+Resume context: .backups/ux-project-copy.json, ux-copy-parity-checkpoint.json and ux-copy-*.log.
+U0/U5 human measurements remain pending; docs/U5_ACCEPTANCE.md and the raw-results CSV are ready.
+No backend/API/schema/dependency changes. Backend baseline remains 256 passed, 4 SQLite-only skips.
+
+Previous session: final U4 delivery adds URL view mode and two reversible layout templates
 (ADR-086). Filters/transitions remain available in view mode; editing controls and grid movement
 are disabled. Drafts survive switching; unsaved content is explicit. Templates preview/cancel,
 change only positions/sizes, and use normal CAS saving; guarded undo preserves semantic edits.

@@ -35,7 +35,11 @@ Implementation authorized; stages below remain incomplete until their acceptance
     * [x] Per-widget staged dialog, typed mappings, unique-name suggestions, required/missing-reference feedback and sample preview; preserve unrelated dashboard drafts (ADR-084).
     * [x] Propose missing context fields; review shared uses and save graph/widget action atomically with all revisions, late rollback, concurrent-write and lost-response recovery acceptance (ADR-085).
   * [x] URL view mode, draft-preserving toggles and two previewable grid templates with guarded placement undo; browser/restart acceptance (ADR-086).
-* [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.
+* [~] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.
+  * [x] Backup database/source artifacts and retain an independently identified API-created project copy; apply groups and layouts without calculation changes.
+  * [x] Fix large-graph collapsed-group overlap and fit limits; 164 slices / 1551 widget pages match; six-screen restart and browser regression pass (ADR-087).
+  * [x] Configure service-name selectors through UI; preserve typed IDs and 18 affected widget results; restore labels after restart.
+  * [ ] Conduct U0/U5 operator sessions; record raw measurements and compare with baseline.
 
 ## Approved constructor/dashboard parity extension (2026-09-14)
 

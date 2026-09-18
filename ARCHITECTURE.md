@@ -1,5 +1,12 @@
 # ARCHITECTURE.md
 
+## Large collapsed group projection (ADR-087)
+
+Complete group summaries use dependency layout with actual boundary-port card heights; contracted
+visual cycles fall back to a grid. Partial summaries move proxies clear of expanded cards.
+Real node positions, all edges/ports and persistence remain unchanged. Canvas minimum zoom is
+0.05 so Fit view can encompass large graphs. Acceptance copy tools belong only to e2e, not runtime.
+
 ## Dashboard view and layout templates (ADR-086)
 
 The dashboard page owns URL mode=view and propagates it through parameter/drill navigation.

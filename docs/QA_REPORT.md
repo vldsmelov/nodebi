@@ -1,5 +1,51 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## U5 retained project copy and large-graph projection - 2026-09-18
+
+Independent API-created project 2173f33a-aa46-46af-9a19-b720de4fd036 retains 168 nodes,
+172 edges, 53 visualizations and 55 widgets in six dashboards. Computations remain ordinary nodes;
+only presentation changes were applied. Source and PostgreSQL backups exist and archive listing
+passes; local Excel SHA-256 matches a stored artifact. Backup restore into a separate DB was not
+repeated this session. Operator instructions and links: docs/U5_ACCEPTANCE.md.
+
+**164 slices / 1551 widget pages** compared exactly against the retained original project after
+normalizing copied identities and workflow revision. This is copy equivalence to the previously
+verified reference, not a fresh independent execution of every opop_bi formula. All slices were
+compared before restart; after backend/frontend/PostgreSQL restart, 55 sample widget results,
+complete graph/dashboard snapshots, six browser views and typed URL slices are preserved.
+All three languages and both themes pass. A copied table transition remains within the copied
+project. The original project is unchanged. Checkpointed comparison resumed after 124 successful
+slices with identical source/copy fingerprints; the restart ran after the separate regression ended.
+
+Final presentation refinement uses existing UI controls to show service names instead of bare
+source-row IDs on the two service selectors. IDs remain numeric in URL and workflow filters.
+All 18 affected widget results are equal before/after, graph revision is unchanged, and saved
+labels plus the selected service survive another backend/frontend/PostgreSQL restart. This
+refinement followed the exhaustive data comparison and had its own targeted persistence check.
+
+P2 reproduced on the real copy: collapsed cards overlapped at member-coordinate minima and the
+minimum zoom clipped large diagrams. Fixed by separate compact summary layout (grid fallback for
+contracted visual cycles), collision avoidance for partial summaries and 0.05 minimum zoom. Boundary
+ports/edges and real coordinates remain intact. Unit tests cover tall groups and visual cycles;
+browser checks every real copied group for non-overlap, full viewport containment and no graph save.
+Intersection ratios tolerate subpixel float rounding (observed 0.99999982 for a fully visible card).
+
+Checks: **82 frontend tests**, TypeScript, ESLint and Docker production build pass; frontend deployed.
+Full browser suite: **35 passed, 12 opt-in skips (3.8m)**; the two new private U5 scenarios pass
+separately, including actual restart. The full-suite restart flags were disabled to avoid interrupting
+parallel read-only comparison; restart evidence comes from the U5 scenarios. An older navigation
+test assumed a single alert; it now specifically asserts the invalid dashboard parameter because
+its bound choices query may also report an error. The corrected full run passes.
+Backend/API/schema/dependencies unchanged; prior backend baseline: 256 passed, 4 SQLite-only skips,
+PostgreSQL enabled. No new known P0/P1. Human U0/U5 measurements remain pending, not simulated.
+
+Evidence (ignored private artifacts): .backups/ux-project-copy.log, ux-copy-regression.log,
+ux-copy-parity.log, ux-copy-parity-before-resume.log, ux-copy-parity-report.json,
+ux-copy-parity-before-restart.json, ux-copy-unit.log, ux-copy-build.log, ux-copy-groups.png,
+ux-copy-{ru,en,tt}-{light,dark}.png and ux-copy-named-selection-*.png. Group and Russian light
+screenshots reviewed. A fresh exhaustive run is required after subsequent configuration changes;
+the earlier comparison checkpoint intentionally rejects the final label-refined dashboard snapshot.
+
 ## U4 view mode and placement templates - 2026-09-18
 
 79 frontend tests pass, with both template layouts tested for deterministic, non-overlapping

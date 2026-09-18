@@ -1,5 +1,13 @@
 # Graph authoring usability: first U1 delivery
 
+## Real-project acceptance copy (U5, ADR-087)
+
+See [U5 acceptance](U5_ACCEPTANCE.md) for the independent six-dashboard copy and operator tasks.
+Collapsed groups now have non-overlapping presentation positions. When all nodes are collapsed,
+the summary gets a compact dependency layout (grid fallback for visual group cycles). Expanding
+a group restores its real nodes at their saved positions. Fit view can encompass large graphs;
+zoom in or open a group to inspect details. These view changes do not save workflow revisions.
+
 ## View and arrange a dashboard (U4, ADR-086)
 
 Use **View dashboard** to hide editing controls; filters and widget transitions continue working.

@@ -1,5 +1,30 @@
 # DECISIONS.md
 
+# ADR-087 - Retained UX acceptance copy and non-overlapping group summaries
+
+Date: 2026-09-18. Status: ACCEPTED.
+Context: U5 requires presentation changes on an independent copy of the six-screen project.
+The real 168-node graph exposed P2 overlap of collapsed group cards, and the default minimum
+zoom prevented fitting the graph into the canvas. Small synthetic group tests did not expose it.
+Decision: retain an API-created acceptance copy after database/source-file backups. Test tooling
+remaps known UUIDs and UUID-derived field references, including JSON keys and formulas; this is
+not a supported general import/export API. Declare dashboard parameters before navigation.
+A journal retains created IDs on failure, requiring explicit reviewed resume instead of duplicates.
+Configure service selectors with the existing label-field option; numeric IDs retain their meaning.
+Group nodes by downstream dashboard usage, with shared preparation in a separate group. Apply
+layout and group edits through the existing UI; preserve exact computation semantics and navigation.
+Compare every widget result over all 164 reference slices against the original verified project,
+normalizing copy identities and workflow revision only. This is equivalence to the retained
+reference project, not a new independent comparison of every metric against opop_bi source code.
+
+Fully collapsed graphs receive a separate dependency layout with group card dimensions; visual
+cycles introduced by grouping fall back to a grid. Partially collapsed graphs retain real node
+positions and shift only proxies past occupied cards. Every boundary port and edge is retained.
+Lower the permitted canvas zoom for Fit view. Projection never writes graph coordinates or changes
+execution. Alternatives: modifying execution groups or dropping ports would violate core contracts.
+Consequences: overview can be zoomed out substantially on large graphs; drill into groups for detail.
+Automated acceptance is separate from the still-required human operator study (U0/U5).
+
 # ADR-086 - Dashboard viewing and reversible layout templates
 
 Date: 2026-09-18. Status: ACCEPTED.
