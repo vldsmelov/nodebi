@@ -1,5 +1,18 @@
 # Graph authoring usability: first U1 delivery
 
+## Add missing transition fields (U4, ADR-085)
+
+The widget transition form now offers compatible fields from the visualization input as well
+as its current result. Select a missing identity field yourself or use **Suggest matching values**.
+The review lists fields to add and widgets using the same visualization. Existing chart/table
+settings are preserved; the added fields become navigation context. Confirm the review and use
+**Save fields and transition** to persist both changes in one operation. Save any dashboard draft
+first; the modal explains this requirement without discarding the draft.
+After saving, reopen the transition form to preview the new values. A conflict or network error
+keeps the modal choices. If the server saved but the response was lost, retry reports a conflict;
+**Reload dashboard** reveals the committed state after confirmation. Existing-field mappings
+still use **Apply navigation changes** followed by **Save dashboard**.
+
 ## Guided widget transitions (U4, ADR-084)
 
 Choose **Configure navigation** on a widget, then choose its destination dashboard. Each target
@@ -9,8 +22,7 @@ and type matches without replacing existing mappings. Review the mapping before 
 **Preview transition** displays destination values for the first result row and current selections;
 other rows may contain nulls. It does not navigate or save. **Apply navigation changes** merges
 the action into your current dashboard draft; use **Save dashboard** to persist. Cancel preserves
-unrelated title/layout edits. Missing context fields must currently be added through visualization
-settings first. Automatic addition of those fields is a separate unfinished U4 step.
+unrelated title/layout edits. Missing context fields now use the atomic review above (ADR-085).
 
 ## Named parameter choices (U4, ADR-083)
 

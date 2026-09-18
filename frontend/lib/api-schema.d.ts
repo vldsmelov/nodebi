@@ -332,6 +332,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboards/{dashboard_id}/navigation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Author Navigation */
+        post: operations["author_navigation_api_v1_dashboards__dashboard_id__navigation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -375,6 +392,37 @@ export interface components {
         DashboardList: {
             /** Items */
             items: components["schemas"]["DashboardRead"][];
+        };
+        /** DashboardNavigationSave */
+        DashboardNavigationSave: {
+            /**
+             * Workflow Id
+             * Format: uuid
+             */
+            workflow_id: string;
+            /**
+             * Widget Id
+             * Format: uuid
+             */
+            widget_id: string;
+            /** Expected Workflow Revision */
+            expected_workflow_revision: number;
+            /** Expected Dashboard Revision */
+            expected_dashboard_revision: number;
+            /** Expected Target Revision */
+            expected_target_revision: number;
+            /** Add Context Column Ids */
+            add_context_column_ids: string[];
+            action: components["schemas"]["NavigationAction"];
+            /** Parameters */
+            parameters?: {
+                [key: string]: string | number | boolean | null;
+            };
+            /**
+             * Acknowledge Shared
+             * @default false
+             */
+            acknowledge_shared: boolean;
         };
         /** DashboardParameter */
         DashboardParameter: {
@@ -2079,6 +2127,41 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    author_navigation_api_v1_dashboards__dashboard_id__navigation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dashboard_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardNavigationSave"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

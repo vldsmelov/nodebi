@@ -1,5 +1,16 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Review new fields and save them with the transition in one operation.": ["Проверьте новые поля и сохраните их вместе с переходом одной операцией.", "Яңа кырларны тикшерегез һәм аларны күчеш белән бергә саклагыз."],
+  "Review added navigation fields": ["Проверка добавляемых полей", "Өстәлә торган кырларны тикшерү"],
+  "Fields to add to the visualization": ["Поля для добавления в визуализацию", "Визуализациягә өстәлә торган кырлар"],
+  "Added fields are shared by these widgets. The transition is saved for this widget.": ["Добавленные поля доступны всем указанным виджетам. Переход сохраняется для этого виджета.", "Өстәлгән кырлар күрсәтелгән барлык виджетларда кулланыла. Күчеш бу виджет өчен саклана."],
+  "Save dashboard changes before adding navigation fields.": ["Сначала сохраните изменения дашборда, затем добавляйте поля перехода.", "Күчеш кырларын өстәгәнче дашборд үзгәрешләрен саклагыз."],
+  "I reviewed the added fields and transition": ["Я проверил добавляемые поля и переход", "Өстәлә торган кырларны һәм күчешне тикшердем"],
+  "Save fields and transition": ["Сохранить поля и переход", "Кырларны һәм күчешне сакларга"],
+  "Save the added fields and transition together before previewing the new values.": ["Для проверки новых значений сохраните поля и переход одной операцией.", "Яңа кыйммәтләрне тикшерү өчен кырларны һәм күчешне бергә саклагыз."],
+  "Confirm adding navigation fields to all widgets using this visualization.": ["Подтвердите добавление полей всем виджетам, использующим эту визуализацию.", "Бу визуализацияне кулланган барлык виджетларга кырлар өстәүне раслагыз."],
+  "Resolve the visualization schema before adding navigation fields.": ["Исправьте схему визуализации перед добавлением полей перехода.", "Күчеш кырларын өстәгәнче визуализация схемасын төзәтегез."],
+  "Only fields missing from the visualization result may be added.": ["Можно добавить только поля, отсутствующие в результате визуализации.", "Визуализация нәтиҗәсендә булмаган кырларны гына өстәргә мөмкин."],
   "Configure navigation": ["Настроить переход", "Күчешне көйләргә"],
   "Choose the destination, then map its parameters. Changes are staged until you save the dashboard.": ["Выберите экран и источники его параметров. Чтобы сохранить изменения, сохраните дашборд.", "Экранны һәм аның параметр чыганакларын сайлагыз. Үзгәрешләрне саклау өчен дашбордны саклагыз."],
   "Suggest matching values": ["Предложить соответствия", "Туры килүләрне тәкъдим итәргә"],

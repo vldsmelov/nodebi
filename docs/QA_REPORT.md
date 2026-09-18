@@ -524,3 +524,24 @@ ux-guided-navigation-e2e.log and ux-guided-navigation.png. Full browser/restart 
 10 opt-in skips (3.3 minutes). Six-dashboard restoration after application/PostgreSQL restart,
 three languages and both themes pass; no required check remains failing.
 Original project/data unchanged. Automatic missing-context-field addition remains unfinished U4.
+
+
+## Atomic navigation context fields (2026-09-18, ADR-085)
+
+Backend matrix: 256 passed, 4 SQLite-only skips with PostgreSQL enabled. API tests verify three
+revision conflicts, project/widget ownership, shared-use acknowledgement, rejection of visible
+or missing fields, incompatible mappings, rollback after graph staging, required target parameters,
+one winner for concurrent requests, stable node/edge IDs and unchanged shared dashboard state.
+Ruff lint/format: 109 files; mypy: 68 source files. OpenAPI regenerated and drift check passes.
+77 frontend tests, TypeScript/ESLint and production builds pass; backend/frontend deployed.
+Focused browser acceptance: 2 passed, covering prior staged-only behavior and new atomic context
+addition. The UI blocks unsaved dashboard edits, reviews shared uses, retains mapping after a
+workflow conflict, recovers a committed but lost response without repeated writes and follows the
+restored transition using a hidden context field. Visible table columns and other widget settings
+remain unchanged. Screenshot .backups/ux-navigation-context.png visually reviewed.
+Logs under .backups/: ux-navigation-context-backend.log, ux-navigation-context-build.log,
+ux-navigation-context-frontend-build.log, ux-navigation-context-focused.log,
+ux-navigation-context-e2e.log. Full browser/restart result: 34 passed, 10 opt-in skips (3.4 minutes).
+Six-dashboard restoration after application/PostgreSQL restart, three languages and both themes
+pass. No required check remains failing. No migration/new dependency;
+original project/data unchanged. U4 view mode/grid templates remain unfinished.

@@ -18,3 +18,6 @@ export const deleteDashboard = (identity: string) => apiRequest<void>(`/api/v1/d
 
 export type DashboardVisualizationCreate = components["schemas"]["DashboardVisualizationCreate"];
 export const createDashboardVisualization = (dashboardId: string, payload: DashboardVisualizationCreate) => apiRequest<Dashboard>(`/api/v1/dashboards/${dashboardId}/visualizations`, { method: "POST", body: JSON.stringify(payload) });
+
+export const saveDashboardNavigation = (id: string, payload: components["schemas"]["DashboardNavigationSave"]) =>
+  apiRequest<Dashboard>(`/api/v1/dashboards/${id}/navigation`, { method: "POST", body: JSON.stringify(payload) });

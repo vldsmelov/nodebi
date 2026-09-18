@@ -1,5 +1,30 @@
 # DECISIONS.md
 
+# ADR-085 - Atomic navigation context fields and widget action
+
+Date: 2026-09-18. Status: ACCEPTED; completes guided-navigation U4 work.
+Context: useful row identities may exist in the visualization input but not its output. A widget
+transition must not be saved separately from the fields required to execute it.
+Decision: the navigation dialog offers typed input fields from matching workflow/schema/result
+revisions. Selected mappings identify missing output fields. A review lists additions and all
+known widget uses, with explicit acknowledgement. Existing visible fields cannot be added as
+context fields (which would hide them in tables). Only missing input fields are appended to the
+ordinary visualization node's context_column_ids; other settings and graph identities remain.
+The additive dashboard navigation endpoint locks the project, source/target dashboards and graph,
+checks all three expected revisions, validates the selected branch schema and field types,
+stages graph/index changes and saves one widget action in one transaction. A late rejection rolls
+back both revisions/configurations. Shared uses require acknowledgement, even for direct API calls.
+UI requires a clean dashboard before the cross-resource operation. Existing-field mappings retain
+the prior local-draft Apply behavior. For added fields, Save fields and transition persists both;
+success installs the returned dashboard and clears its recovery snapshot. Errors retain the review;
+retrying a committed operation after a lost response conflicts, and explicit reload reveals it.
+Alternatives: separate workflow/dashboard writes risk broken actions; cloning calculations would
+duplicate semantics. Input-field selection adds no hidden transformations or financial code.
+Consequences: typed additive OpenAPI contract, no DB migration/new persistent schema. ADR-084's
+manual-only context-field limitation is superseded. Preview of newly added values is available
+after the atomic save, not by materializing an unsaved graph. Shared widgets receive context data
+without layout/action changes. View mode/grid templates remain unfinished U4 work.
+
 # ADR-084 - Staged widget navigation with typed suggestions and sample preview
 
 Date: 2026-09-17. Status: ACCEPTED; first guided-navigation U4 delivery.

@@ -1,12 +1,21 @@
 # ARCHITECTURE.md
 
+## Atomic navigation context authoring (ADR-085)
+
+dashboard_navigation composes existing graph and dashboard services with commit=False under a
+project lock, checks source/target dashboard and workflow revisions and commits once. The existing
+ExecutionPlanner limits schema validation to the visualization branch. Only missing input fields
+may be appended to context_column_ids; existing visible columns cannot be turned into hidden ones.
+The UI reviews additions/shared uses and uses this endpoint only from a clean dashboard. Existing
+field-only mappings still use local dashboard drafts. No DB schema change or alternate executor.
+
 ## Guided widget navigation (ADR-084)
 
 WidgetNavigationDialog stages an ordinary NavigationAction. The pure navigation-plan helper
 offers unique type-compatible name matches and reports structural mapping issues. Sample preview
 and actual clicks share navigationValues, using field IDs rather than display text. Apply merges
 the action into the dashboard's existing local draft; ordinary dashboard CAS persists it. No
-workflow mutation is performed. Missing context-field authoring remains a separate U4 task.
+workflow mutation is performed for existing-field mappings. Missing fields use ADR-085 above.
 
 ## Parameter ID/label selectors (ADR-083)
 

@@ -31,9 +31,9 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [x] Create/copy visualization + widget atomically with both revisions, stable retry IDs, rollback and independent settings (ADR-081).
   * [x] Exact calculation-branch navigation from dashboard widgets: URL targets, project membership, collapsed-group reveal, ancestor highlight, missing-target feedback and draft/reload/history acceptance (ADR-082).
   * [x] ID/label parameter selectors: optional display field, typed URL/filter values, duplicate-name identity, bounded search, off-page selected labels and ambiguity feedback (ADR-083).
-  * [~] Guided navigation.
+  * [x] Guided navigation.
     * [x] Per-widget staged dialog, typed mappings, unique-name suggestions, required/missing-reference feedback and sample preview; preserve unrelated dashboard drafts (ADR-084).
-    * [ ] Propose missing context fields and add them with an atomic graph/dashboard revision contract and review before save.
+    * [x] Propose missing context fields; review shared uses and save graph/widget action atomically with all revisions, late rollback, concurrent-write and lost-response recovery acceptance (ADR-085).
   * [ ] View mode/grid templates.
 * [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.
 

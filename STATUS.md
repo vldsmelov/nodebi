@@ -1,11 +1,24 @@
 # Node BI Development Status
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: fifth U4 delivery adds staged per-widget navigation with typed suggestions and
+Latest session: sixth U4 delivery adds missing input fields to visualization navigation context
+and saves the widget action atomically (ADR-085). All three revisions, project/widget ownership,
+shared acknowledgement and field types are checked; visible fields cannot be hidden by this API.
+256 backend tests pass with PostgreSQL (4 SQLite-only skips), including real concurrent saves,
+late rollback and compatibility. Ruff lint/format (109 files), mypy (68 files), 77 frontend tests,
+TypeScript/ESLint and OpenAPI drift pass. Production builds pass and are deployed. Both focused
+browser scenarios pass (including conflict/lost response). Full browser/restart regression:
+34 passed, 10 opt-in skips (3.4 minutes), including six-dashboard restoration after application
+and PostgreSQL restart, three languages and both themes. Evidence: docs/QA_REPORT.md and
+.backups/ux-navigation-context-e2e.log.
+Next: U4 view mode/grid templates. Guided navigation is complete; full U4 remains in progress.
+No new known defects or blockers; no data reset/migration/new dependency. Original project intact.
+
+Previous session: fifth U4 delivery adds staged per-widget navigation with typed suggestions and
 sample preview (ADR-084). Required/missing/incompatible mappings are explicit; apply preserves
 other dashboard drafts, cancel discards only modal changes. Existing global forms remain available.
 77 frontend tests, TypeScript/ESLint and production build pass; frontend deployed. Focused browser

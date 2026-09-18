@@ -5,7 +5,9 @@
 Authors can configure a transition directly at its widget, inspect required destination inputs,
 request unambiguous typed mapping suggestions and preview values from an example result row.
 Applying merges into the current dashboard draft; cancellation preserves unrelated edits.
-Missing visualization context fields currently require the existing visualization settings form.
+Missing visualization context fields can be selected from its input and reviewed with shared uses.
+From a saved dashboard, authors save added fields and the transition atomically; stale source,
+destination or workflow revisions reject the operation while preserving the modal review.
 
 Dashboard choice sources may use separate value and display-label fields. Filters and URL state
 retain typed values; identical names with distinct IDs remain selectable. Search covers both

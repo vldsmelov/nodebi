@@ -13,6 +13,7 @@ from app.models import Dashboard
 from app.nodes import get_node_registry
 from app.schemas.dashboards import (
     DashboardList,
+    DashboardNavigationSave,
     DashboardRead,
     DashboardSave,
     DashboardVisualizationCreate,
@@ -22,6 +23,7 @@ from app.schemas.dashboards import (
 )
 from app.schemas.workflows import WorkflowCreate
 from app.services.dashboard_authoring import create_visualization
+from app.services.dashboard_navigation import save_navigation
 from app.services.dashboards import DashboardService
 from app.services.execution import (
     InMemoryExecutionCache,
@@ -126,3 +128,16 @@ def author_visualization(
     registry: Annotated[NodeRegistry, Depends(get_node_registry)],
 ) -> DashboardRead:
     return create_visualization(session, dashboard_id, payload, registry)
+
+
+@router.post("/api/v1/dashboards/{dashboard_id}/navigation", response_model=DashboardRead)
+def author_navigation(
+    dashboard_id: uuid.UUID,
+    payload: DashboardNavigationSave,
+    session: Database,
+    registry: Annotated[NodeRegistry, Depends(get_node_registry)],
+    storage: Annotated[StorageProvider, Depends(get_storage_provider)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    cache: Annotated[InMemoryExecutionCache, Depends(get_execution_cache)],
+) -> DashboardRead:
+    return save_navigation(session, dashboard_id, payload, registry, storage, settings, cache)

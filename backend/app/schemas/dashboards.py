@@ -103,3 +103,15 @@ class DashboardVisualizationCreate(BaseModel):
     replace_existing: bool = False
     type: ChartType
     config: dict[str, Any] = Field(default_factory=dict)
+
+
+class DashboardNavigationSave(BaseModel):
+    workflow_id: uuid.UUID
+    widget_id: uuid.UUID
+    expected_workflow_revision: int = Field(ge=1)
+    expected_dashboard_revision: int = Field(ge=1)
+    expected_target_revision: int = Field(ge=1)
+    add_context_column_ids: list[str] = Field(min_length=1, max_length=64)
+    action: NavigationAction
+    parameters: ParameterValues = Field(default_factory=dict)
+    acknowledge_shared: bool = False
