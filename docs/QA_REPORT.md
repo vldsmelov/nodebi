@@ -1,5 +1,22 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## U4 view mode and placement templates - 2026-09-18
+
+79 frontend tests pass, with both template layouts tested for deterministic, non-overlapping
+placement of 100 widgets, semantic preservation and URL typed-value preservation. TypeScript,
+ESLint and Docker production build pass; frontend is deployed. Focused browser acceptance passes:
+preview/cancel, apply, title edit, draft view toggle, position-only undo, save, reload, drill-through,
+parameter selection and browser Back. Read-only viewing does not save dashboard/workflow revisions.
+The test waits for client navigation before reload; the initial test race was corrected.
+Full browser/restart regression: **35 passed, 10 opt-in skips (3.6 minutes)**, including six-dashboard
+restoration after frontend/backend/PostgreSQL restart, both themes and three languages.
+Evidence: .backups/ux-dashboard-view-unit.log, ux-dashboard-view-focused.log,
+ux-dashboard-view-e2e.log, ux-dashboard-view-build.log and ux-dashboard-view.png (reviewed).
+Backend/API/schema unchanged; prior 256 passing PostgreSQL-enabled backend checks with four
+SQLite-only skips were not rerun. No new known P0/P1. View mode is presentation, not access control;
+undo lasts for the mounted editor and is invalidated by manual layout/membership changes.
+U4 is complete; U5 project-copy parity and human operator evaluation remain pending.
+
 ## Grouped Unpivot checkpoint - 2026-09-17
 
 250 backend tests pass with PostgreSQL (4 SQLite-only skips), Ruff lint/format (104 files), mypy

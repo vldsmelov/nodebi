@@ -50,8 +50,9 @@ export function navigationValues(action: NavigationAction, dashboards: Dashboard
   return resolveViewValues(target.configuration ?? emptyConfiguration, mapped);
 }
 
-export function dashboardUrl(projectId: string, dashboardId: string, values: ParameterValues = {}): string {
+export function dashboardUrl(projectId: string, dashboardId: string, values: ParameterValues = {}, viewOnly = false): string {
   const query = new URLSearchParams({ dashboard: dashboardId });
+  if (viewOnly) query.set("mode", "view");
   if (Object.keys(values).length) query.set("parameters", JSON.stringify(values));
   return `/projects/${encodeURIComponent(projectId)}/dashboard?${query}`;
 }

@@ -1,5 +1,16 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "View dashboard": ["Просмотр дашборда", "Дашбордны карау"],
+  "Edit dashboard": ["Редактировать дашборд", "Дашбордны үзгәртергә"],
+  "Viewing unsaved changes. Return to editing to save them.": ["Показаны несохранённые изменения. Вернитесь к редактированию, чтобы сохранить их.", "Сакланмаган үзгәрешләр күрсәтелә. Аларны саклау өчен үзгәртү режимына кайтыгыз."],
+  "Layout templates": ["Шаблоны размещения", "Урнаштыру шаблоннары"],
+  "Layout template": ["Шаблон размещения", "Урнаштыру шаблоны"],
+  "Undo layout template": ["Отменить применение шаблона", "Шаблон куллануны кире кагарга"],
+  "Preview placement. Applying changes only widget positions and sizes in the dashboard draft.": ["Проверьте размещение. Применение изменит только позиции и размеры виджетов в черновике дашборда.", "Урнашуны тикшерегез. Куллану дашборд караламасындагы виджетларның урыннарын һәм үлчәмнәрен генә үзгәртә."],
+  "KPI and charts": ["KPI и диаграммы", "KPI һәм диаграммалар"],
+  "Report layout": ["Размещение для отчёта", "Хисап өчен урнаштыру"],
+  "Layout preview": ["Предпросмотр размещения", "Урнашуны алдан карау"],
+  "Apply layout template": ["Применить шаблон размещения", "Урнаштыру шаблонын кулланырга"],
   "Review new fields and save them with the transition in one operation.": ["Проверьте новые поля и сохраните их вместе с переходом одной операцией.", "Яңа кырларны тикшерегез һәм аларны күчеш белән бергә саклагыз."],
   "Review added navigation fields": ["Проверка добавляемых полей", "Өстәлә торган кырларны тикшерү"],
   "Fields to add to the visualization": ["Поля для добавления в визуализацию", "Визуализациягә өстәлә торган кырлар"],

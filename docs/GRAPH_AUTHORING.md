@@ -1,5 +1,19 @@
 # Graph authoring usability: first U1 delivery
 
+## View and arrange a dashboard (U4, ADR-086)
+
+Use **View dashboard** to hide editing controls; filters and widget transitions continue working.
+Use **Edit dashboard** to return. Mode is stored in the URL and follows drill-through navigation.
+Switching modes keeps your unsaved draft; a warning identifies it until you return and save.
+
+In editing mode choose **Layout templates**, then **KPI and charts** or **Report layout**.
+Review the miniature placement and apply, or cancel without changing anything. KPI cards come
+first, then charts, then full-width tables. Apply changes the draft only; use **Save dashboard**
+to persist. **Undo layout template** restores the previous placement without undoing later title
+or configuration edits. Manual movement/resizing or widget membership changes disable that undo.
+The undo checkpoint lasts until leaving/reloading this dashboard editor; saved settings and the
+existing session draft recovery follow their normal lifecycle.
+
 ## Add missing transition fields (U4, ADR-085)
 
 The widget transition form now offers compatible fields from the visualization input as well

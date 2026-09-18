@@ -1,5 +1,14 @@
 # PRODUCT_SPEC.md
 
+## Dashboard viewing and placement
+
+Authors can switch between editing and viewing a dashboard. Viewing retains filters and
+transitions but hides configuration, movement and resize controls. The selected mode survives
+URL reloads and navigation. Unsaved drafts remain visible with an explicit warning.
+Two optional placement templates (KPI and charts; report) offer preview, cancel, apply and undo.
+They change only widget positions/sizes in the draft, persisted by normal dashboard saving.
+Names, calculations, formats and transitions remain intact. View mode is not a permission boundary.
+
 ## Approved extension: constructor dashboard parity (2026-09-14)
 
 Authors can configure a transition directly at its widget, inspect required destination inputs,

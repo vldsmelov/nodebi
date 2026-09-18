@@ -26,7 +26,7 @@ Implementation authorized; stages below remain incomplete until their acceptance
 * [x] U3: Share/rank builders with explicit denominator scope and parameter dependency explanations.
   * [x] Share/rank dialog creates ordinary Window/Calculated Column/trailing Filter, shows selected input scope and upstream filters; atomic undo/reload and result invariance acceptance (ADR-078).
   * [x] Explicitly chosen Window/Group By scope: input/subsequent path highlights, before/after/other-branch filters and parameter locations; pre-selection output reused through UI with invariant comparison rows (ADR-079). Human usability evaluation remains U0.
-* [~] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
+* [x] U4: Widget creation/editing from dashboards, ID/label selectors, guided navigation and view mode.
   * [x] Edit existing visualization settings from widgets through the shared node form; saved-use disclosure/acknowledgement, CAS conflict recovery and dashboard draft preservation (ADR-080).
   * [x] Create/copy visualization + widget atomically with both revisions, stable retry IDs, rollback and independent settings (ADR-081).
   * [x] Exact calculation-branch navigation from dashboard widgets: URL targets, project membership, collapsed-group reveal, ancestor highlight, missing-target feedback and draft/reload/history acceptance (ADR-082).
@@ -34,7 +34,7 @@ Implementation authorized; stages below remain incomplete until their acceptance
   * [x] Guided navigation.
     * [x] Per-widget staged dialog, typed mappings, unique-name suggestions, required/missing-reference feedback and sample preview; preserve unrelated dashboard drafts (ADR-084).
     * [x] Propose missing context fields; review shared uses and save graph/widget action atomically with all revisions, late rollback, concurrent-write and lost-response recovery acceptance (ADR-085).
-  * [ ] View mode/grid templates.
+  * [x] URL view mode, draft-preserving toggles and two previewable grid templates with guarded placement undo; browser/restart acceptance (ADR-086).
 * [ ] U5: Apply to a project copy, repeat 164-slice parity/restart checks and human usability evaluation.
 
 ## Approved constructor/dashboard parity extension (2026-09-14)

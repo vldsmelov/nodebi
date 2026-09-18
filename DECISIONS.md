@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# ADR-086 - Dashboard viewing and reversible layout templates
+
+Date: 2026-09-18. Status: ACCEPTED.
+Context: dashboard authoring controls obscure the analytical view, and placing each widget
+manually adds repetitive work. Existing widget positions and semantic settings must survive.
+Decision: mode=view is a URL presentation option, retained through selections, navigation,
+reload and history. Editing remains the default. The same editor instance preserves drafts;
+viewing unsaved content displays an explicit warning. View mode disables grid dragging/resizing
+and hides authoring controls, while retaining filters, data, titles and transitions.
+Two generic templates place KPI, charts and tables in that order. Overview uses 3/6/12-column
+widths; report uses 4/12/12. Placement is deterministic and non-overlapping. A modal previews
+placement; applying changes only draft positions/sizes. Standard revision-checked Save persists.
+Undo restores positions/sizes, preserving later semantic edits, only while the current layout
+matches the template result; membership/manual-position changes invalidate that undo.
+Alternatives: separate viewer state risks draft divergence; immediate template persistence
+would bypass existing save/recovery behavior. No API, database or dependency change is needed.
+Consequences: this is presentation, not access control. Template undo lasts for the mounted
+dashboard editor, not across reloads; ordinary session draft recovery remains available.
+Human usability/speed improvements still require U0/U5 operator measurement.
+
 # ADR-085 - Atomic navigation context fields and widget action
 
 Date: 2026-09-18. Status: ACCEPTED; completes guided-navigation U4 work.

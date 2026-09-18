@@ -5,7 +5,21 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: sixth U4 delivery adds missing input fields to visualization navigation context
+Latest session: final U4 delivery adds URL view mode and two reversible layout templates
+(ADR-086). Filters/transitions remain available in view mode; editing controls and grid movement
+are disabled. Drafts survive switching; unsaved content is explicit. Templates preview/cancel,
+change only positions/sizes, and use normal CAS saving; guarded undo preserves semantic edits.
+U4 is complete. Next: U5 backup/project copy, presentation changes and 164-slice parity/restart
+verification; U0/U5 human operator measurements remain pending and no speed gain is claimed.
+79 frontend tests, TypeScript, ESLint and Docker production build pass; frontend deployed.
+Focused browser acceptance passes; full browser/restart suite: 35 passed, 10 opt-in skips (3.6m),
+including original six-dashboard restoration, three languages and both themes. Logs/screenshots:
+.backups/ux-dashboard-view-*; details in docs/QA_REPORT.md. No new known defects or blockers.
+Backend/API/schema unchanged; prior backend evidence remains 256 passed, 4 SQLite-only skips
+with PostgreSQL enabled (not rerun this frontend-only delivery). No reset/new dependency;
+original project and its saved configuration are unchanged.
+
+Previous session: sixth U4 delivery adds missing input fields to visualization navigation context
 and saves the widget action atomically (ADR-085). All three revisions, project/widget ownership,
 shared acknowledgement and field types are checked; visible fields cannot be hidden by this API.
 256 backend tests pass with PostgreSQL (4 SQLite-only skips), including real concurrent saves,

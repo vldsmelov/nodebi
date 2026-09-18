@@ -1,5 +1,14 @@
 # ARCHITECTURE.md
 
+## Dashboard view and layout templates (ADR-086)
+
+The dashboard page owns URL mode=view and propagates it through parameter/drill navigation.
+DashboardEditor stays mounted across mode changes, retaining its draft and filter input state.
+View mode hides authoring and disables grid interaction; unsaved data is explicitly identified.
+layout-templates is a pure placement function over widget metadata. LayoutTemplates owns staged
+preview and guarded position-only undo. Applying flows through existing draft change and CAS
+save paths; visualization semantics, widget identities/actions and backend execution are unchanged.
+
 ## Atomic navigation context authoring (ADR-085)
 
 dashboard_navigation composes existing graph and dashboard services with commit=False under a
