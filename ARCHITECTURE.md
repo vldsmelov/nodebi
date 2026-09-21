@@ -1,5 +1,19 @@
 # ARCHITECTURE.md
 
+## Persisted field projections (ADR-089)
+
+WorkflowEdge.source_column_id identifies a projected column of a dataset output. The optional
+reference is preserved through API, ORM and domain conversion; absence still means a table edge.
+Migration 20260921_0007 adds the nullable String(200) column without rewriting existing graphs.
+V1 serialization omits an absent reference, preserving existing snapshots. New field connections
+require format_version=2 on save; ordinary revision/ownership checks still apply. Downgrade locks
+workflow_edges on PostgreSQL and refuses to remove the column while any projection exists.
+
+Graph validation derives FIELD for a projected dataset output and rejects projections in v1 or
+from non-table outputs. Until typed routing lands, FIELD_ROUTING_UNAVAILABLE blocks schema and
+execution before source materialization. A saved draft must never execute a field wire as a table
+wire. Presentation metadata and typed executor registration remain separate unfinished work.
+
 ## Typed value foundation and format acknowledgement (ADR-088)
 
 The approved field editor is staged in docs/FIELD_EDITOR_PLAN.md. Domain values distinguish
@@ -16,8 +30,8 @@ PUT WorkflowSave.format_version defaults to 1. The service checks stored format 
 the project lock; downgrade returns WORKFLOW_FORMAT_UNSUPPORTED (409). Explicit upgrades commit
 with the graph's normal revision CAS. Current clients explicitly acknowledge only v1. Unknown
 fields in v2 drafts are rejected, not discarded. The existing Workflow.version column stores
-format; no new persistent columns or migration are needed for this guard. Full v2 edge and
-presentation persistence will require a migration before typed editing can be enabled.
+format; no new persistent columns or migration are needed for this guard. Field projection
+persistence is added by ADR-089; presentation persistence still needs its own migration.
 
 ## Large collapsed group projection (ADR-087)
 

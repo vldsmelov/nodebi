@@ -114,6 +114,7 @@ class WorkflowEdge(Base):
     )
     source_node_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
     source_port: Mapped[str] = mapped_column(String(100), nullable=False)
+    source_column_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
     target_node_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
     target_port: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

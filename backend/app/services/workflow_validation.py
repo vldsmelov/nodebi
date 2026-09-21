@@ -11,6 +11,7 @@ from app.domain.nodes import (
     NodeDefinition,
     NodeRegistry,
     PortDefinition,
+    PortKind,
     SchemaInferenceMode,
     UnknownNodeTypeError,
 )
@@ -126,7 +127,32 @@ class WorkflowGraphValidator:
                     )
                 )
                 continue
-            if source_port.kind != target_port.kind:
+            source_kind = source_port.kind
+            if edge.source_column_id is not None:
+                if graph.version < 2 or source_kind != PortKind.DATASET:
+                    issues.append(
+                        GraphIssue(
+                            "INVALID_FIELD_PROJECTION",
+                            "Field connections require a table output and workflow format v2.",
+                            node_id=target.id,
+                            edge_id=edge.id,
+                            field="source_column_id",
+                        )
+                    )
+                    continue
+                source_kind = PortKind.FIELD
+                # Typed executors/schema routing land in the next delivery. Never
+                # pass the entire source table to a legacy executor for a field wire.
+                issues.append(
+                    GraphIssue(
+                        "FIELD_ROUTING_UNAVAILABLE",
+                        "Field connections are saved, but this editor cannot execute them yet.",
+                        node_id=target.id,
+                        edge_id=edge.id,
+                        field="source_column_id",
+                    )
+                )
+            if source_kind != target_port.kind:
                 issues.append(
                     GraphIssue(
                         "INCOMPATIBLE_PORTS",
@@ -258,6 +284,8 @@ class WorkflowSchemaResolver:
             "UNKNOWN_NODE_TYPE",
             "INVALID_EDGE_PORT",
             "INCOMPATIBLE_PORTS",
+            "INVALID_FIELD_PROJECTION",
+            "FIELD_ROUTING_UNAVAILABLE",
             "MAX_INPUT_CONNECTIONS",
             "MAX_OUTPUT_CONNECTIONS",
             "CYCLE_DETECTED",

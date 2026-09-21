@@ -70,6 +70,10 @@ def validate_draft(payload: WorkflowSave, registry: NodeRegistry) -> None:
         except UnknownNodeTypeError as exc:
             raise ApplicationError("INVALID_NODE", str(exc)) from exc
     for edge in payload.edges:
+        if edge.source_column_id is not None and payload.format_version < 2:
+            raise ApplicationError(
+                "WORKFLOW_FORMAT_REQUIRED", "Field connections require workflow format v2."
+            )
         if edge.source_node_id not in known or edge.target_node_id not in known:
             raise ApplicationError("INVALID_EDGE", "Edge references a missing node.")
 
@@ -143,6 +147,7 @@ def save_graph(
             workflow_id=workflow.id,
             source_node_id=edge.source_node_id,
             source_port=edge.source_port,
+            source_column_id=edge.source_column_id,
             target_node_id=edge.target_node_id,
             target_port=edge.target_port,
         )
@@ -205,6 +210,7 @@ def read_workflow(session: Session, workflow: Workflow) -> WorkflowRead:
                 id=edge.id,
                 source_node_id=edge.source_node_id,
                 source_port=edge.source_port,
+                source_column_id=edge.source_column_id,
                 target_node_id=edge.target_node_id,
                 target_port=edge.target_port,
             )
@@ -240,6 +246,7 @@ def domain_graph(session: Session, workflow: Workflow) -> WorkflowGraph:
                 edge.source_port,
                 edge.target_node_id,
                 edge.target_port,
+                edge.source_column_id,
             )
             for edge in payload.edges
         ),

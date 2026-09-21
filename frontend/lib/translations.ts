@@ -1,5 +1,8 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Field connections require workflow format v2.": ["Для полевых связей нужен формат графа v2.", "Кыр бәйләнешләре өчен графның v2 форматы кирәк."],
+  "Field connections require a table output and workflow format v2.": ["Поле нужно подключать к выходу таблицы в графе формата v2.", "Кырны v2 форматындагы графта таблица чыгышына тоташтырырга кирәк."],
+  "Field connections are saved, but this editor cannot execute them yet.": ["Полевые связи сохранены, но этот редактор пока не поддерживает их выполнение.", "Кыр бәйләнешләре сакланган, ләкин бу редактор әлегә аларны үти алмый."],
   "Open this workflow in an editor that supports its format before saving.": ["Для сохранения откройте граф в редакторе, поддерживающем его формат.", "Саклау өчен графны аның форматын хуплаучы редакторда ачыгыз."],
   "View dashboard": ["Просмотр дашборда", "Дашбордны карау"],
   "Edit dashboard": ["Редактировать дашборд", "Дашбордны үзгәртергә"],

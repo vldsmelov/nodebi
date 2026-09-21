@@ -26,6 +26,7 @@ class WorkflowEdge:
     source_port: str
     target_node_id: uuid.UUID
     target_port: str
+    source_column_id: str | None = None
 
 
 @dataclass(frozen=True)

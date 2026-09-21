@@ -5,7 +5,24 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Current milestone: F1 typed field-editor foundation, IN PROGRESS (ADR-088).
+Current milestone: F1 typed field-editor, IN PROGRESS (ADR-089).
+Latest completed subtask: source_column_id persists through API, database and domain graph in v2.
+Migration 20260921_0007 adds a nullable column; downgrade locks/checks projections and refuses
+semantic loss. V1 JSON stays unchanged. Source kind/format validation and explicit schema/preview
+guard prevent unimplemented field routing from silently passing an entire table. No new UI yet.
+Next: typed executor registry/schema routing and named preview; workbook/composite presentation
+persistence is also pending. F1-F4 are not complete. No new known defect in this subtask.
+Checks: 292 backend tests pass with PostgreSQL, five SQLite matrix skips; final migration guard
+rerun passes. Ruff lint/format, mypy, 82 frontend tests, TypeScript/ESLint, OpenAPI drift and local/
+Docker frontend production builds pass. Seven browser checks pass, including a persisted field
+wire surviving rejected v1 edits/reload, slow saves, two tabs, recovery, Excel preview and charts.
+Deployment: backup .backups/field-edge-before.dump; migration 0007 applied in local PostgreSQL.
+Original financial project and UX copy graph/dashboard snapshots match exactly across all six
+captured API endpoints after restart. This is persistence equivalence, not a new 164-slice result
+comparison. Backend image retains the prior runtime with updated app/migrations; the cold-build
+download limitation from the previous session remains. No data reset or format auto-upgrade.
+
+Previous F1 session (ADR-088):
 Completed: typed value/expression primitives with row-context checks, constants/parameters,
 arithmetic/comparisons/logic, explicit sum/append/filter and bounded expressions; shared compiler
 preserves v1 syntax. Legacy runner uses named table outputs without copying frames; sink previews

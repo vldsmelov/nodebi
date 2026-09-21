@@ -583,6 +583,8 @@ export interface components {
             target_node_id: string;
             /** Target Port */
             target_port: string;
+            /** Source Column Id */
+            source_column_id?: string | null;
         };
         /** GraphIssueRead */
         GraphIssueRead: {

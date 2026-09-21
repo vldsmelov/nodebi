@@ -1,5 +1,26 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F1 field-connection persistence - 2026-09-21
+
+292 backend tests pass with PostgreSQL enabled, five SQLite matrix skips. Field projections
+roundtrip through save/read/domain; v1 requests and stale revisions cannot alter them. Schema and
+preview reject unsupported typed routing explicitly. Old edge JSON is byte-structure compatible
+(absent source_column_id is omitted). Migration upgrade/downgrade and ORM comparison pass on
+PostgreSQL. Downgrade locks workflow_edges and refuses to discard non-null references; after
+explicit removal in the isolated test schema, downgrade/upgrade preserves ordinary edges.
+
+Ruff lint/format, mypy, OpenAPI drift, TypeScript/ESLint, 82 frontend tests and local/Docker frontend
+production builds pass. Seven focused browser tests pass (workflow-format, editor, charts):
+actual persisted field metadata survives a v1 editor's rejected save and reload; normal v1
+autosave/recovery, two tabs, Excel preview and charts continue working.
+
+Before local migration, PostgreSQL backup created at .backups/field-edge-before.dump. Alembic head
+is 20260921_0007. Original and UX-copy workflow/dashboard JSON match the pre-migration snapshots
+across six API endpoints after app restart. No automatic format conversion or data reset. This
+does not claim rerunning the 164-slice numerical parity or implementing the field editor.
+Backend deployment reuses the prior runtime with updated app/migrations; the previously recorded
+cold-build download limitation remains. New schema/preview error messages have RU/EN/TT copy.
+
 ## F1 typed-value foundation and format guard - 2026-09-21
 
 Backend: 288 passed with NODEBI_TEST_POSTGRES_URL; four SQLite-only matrix skips. Existing

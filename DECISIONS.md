@@ -1,5 +1,22 @@
 # DECISIONS.md
 
+# ADR-089 - Persist field projections without interpreting them as table connections
+
+Date: 2026-09-21. Status: ACCEPTED; typed execution remains IN PROGRESS.
+Context: future field wires must survive revision-aware saves and retain column identity without
+encoding it in display names or port strings. New persistence must not change existing projects.
+Decision: nullable WorkflowEdge.source_column_id, carried by typed API/ORM/domain contracts;
+require format v2 for non-null references. Migration 0007 adds only this column. Omit null from
+wire serialization so unchanged v1 snapshots remain exact. Existing edge ownership, uniqueness
+and revision checks remain in force. PostgreSQL downgrade locks the table and rejects non-null
+references to prevent silent semantic loss, including a concurrent save racing the check.
+Validation treats a projection as FIELD and checks its source kind and graph format. Until typed
+routing is integrated, schema/preview explicitly reject projected edges before executing nodes.
+Alternatives: ignoring the reference would silently compute the wrong input; storing IDs in UI
+metadata would make execution depend on presentation; eager conversion would alter user projects.
+Consequences: field drafts can be persisted but not executed or authored in the current UI.
+No automatic conversion. Presentation metadata and typed schema/executor routing are still pending.
+
 # ADR-088 - Typed expressions, legacy output adapter and explicit format acknowledgement
 
 Date: 2026-09-21. Status: ACCEPTED; field-editor integration IN PROGRESS.

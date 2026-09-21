@@ -7,7 +7,8 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
 * [~] F1: Typed connections, persistence and execution.
   * [x] Table/field/scalar value foundation, row-context checks, shared expression compiler, explicit arithmetic/null policies, parameter scalars and legacy named-table adapter.
   * [x] Explicit save-format acknowledgement and CAS upgrade guard; reject old-client overwrite and unsupported v2 fields; regenerate OpenAPI types.
-  * [ ] Complete v2 persistence and migrations for field references and presentation metadata.
+  * [x] Persist source_column_id through API/ORM/domain with migration 0007, v1 wire compatibility, CAS/format guards and loss-preventing downgrade.
+  * [ ] Persist typed workbook/composite presentation metadata with revision-safe validation and migrations.
   * [ ] Register typed executors, schema inference and typed routing in the common engine.
   * [ ] Named field/scalar preview, output-aware cache and node/field-attributed diagnostics.
 * [ ] F2: Opt-in editor, workbook/sheets, interactive fields/cards, compatible wires and A/B previews.

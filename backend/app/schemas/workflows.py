@@ -27,6 +27,9 @@ class EdgePayload(BaseModel):
     source_port: str = Field(min_length=1, max_length=100)
     target_node_id: uuid.UUID
     target_port: str = Field(min_length=1, max_length=100)
+    source_column_id: str | None = Field(
+        default=None, min_length=1, max_length=200, exclude_if=lambda value: value is None
+    )
 
 
 class WorkflowCreate(BaseModel):
