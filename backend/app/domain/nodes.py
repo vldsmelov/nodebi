@@ -33,6 +33,8 @@ class NodeCategory(StrEnum):
 
 class PortKind(StrEnum):
     DATASET = "dataset"
+    FIELD = "field"
+    SCALAR = "scalar"
 
 
 class SchemaInferenceMode(StrEnum):

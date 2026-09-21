@@ -1,5 +1,27 @@
 # DECISIONS.md
 
+# ADR-088 - Typed expressions, legacy output adapter and explicit format acknowledgement
+
+Date: 2026-09-21. Status: ACCEPTED; field-editor integration IN PROGRESS.
+Context: the approved editor needs real field wires without materializing one table per wire,
+and must prevent clients unaware of v2 from discarding its semantics. Existing executors return
+one Dataset and visualization sinks have no graph output ports.
+Decision: introduce typed values with explicit row context and compose Polars expressions through
+the existing safe formula compiler. Predicate syntax is opt-in; v1 syntax is unchanged. Preserve
+arithmetic failure checks through downstream predicates. Apply explicit null policies at division
+and boolean filtering. Use existing parameter validation for scalar defaults/types, including
+typed nulls. Bound expression expansion before execution. Adapt legacy results to named table
+outputs without copying frames; preserve sink Dataset previews and the existing cache budget.
+WorkflowSave acknowledges format_version, defaulting to 1 for old clients. Read the persisted
+format after the project lock, reject downgrade with 409, and commit explicit upgrade only with
+normal revision CAS. Reject unknown v2 fields rather than silently ignoring unfinished contracts.
+Alternatives: positional alignment across branches is incorrect; table-per-wire execution wastes
+memory; an independent expression evaluator would duplicate typing/security rules; automatic
+version propagation from GET in an old editor would falsely claim support for unseen fields.
+Consequences: current UI remains a v1 editor and cannot save v2. Full typed routing, source-column
+edge persistence, presentation metadata/migrations, typed preview and the new UI are unfinished.
+No automatic project conversion or claim of completed new editor. See docs/FIELD_EDITOR_PLAN.md.
+
 # ADR-087 - Retained UX acceptance copy and non-overlapping group summaries
 
 Date: 2026-09-18. Status: ACCEPTED.

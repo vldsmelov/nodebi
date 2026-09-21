@@ -37,7 +37,7 @@ export function VisualizationSettingsDialog({ visualization, projectId, close }:
     setBusy(true); setError(null);
     try {
       const workflow = snapshot.workflow;
-      await saveWorkflow(workflow.id, { name: workflow.name, expected_revision: workflow.revision, parameters: workflow.parameters, nodes: workflow.nodes.map(item => item.id === node.id ? { ...item, config } : item), edges: workflow.edges });
+      await saveWorkflow(workflow.id, { format_version: 1, name: workflow.name, expected_revision: workflow.revision, parameters: workflow.parameters, nodes: workflow.nodes.map(item => item.id === node.id ? { ...item, config } : item), edges: workflow.edges });
     } catch (error) { setError(error); setBusy(false); return; }
     // The write has succeeded. Cache refresh failure must never turn into a repeated write.
     await Promise.allSettled([

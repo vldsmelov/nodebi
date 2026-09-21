@@ -1,5 +1,6 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Open this workflow in an editor that supports its format before saving.": ["Для сохранения откройте граф в редакторе, поддерживающем его формат.", "Саклау өчен графны аның форматын хуплаучы редакторда ачыгыз."],
   "View dashboard": ["Просмотр дашборда", "Дашбордны карау"],
   "Edit dashboard": ["Редактировать дашборд", "Дашбордны үзгәртергә"],
   "Viewing unsaved changes. Return to editing to save them.": ["Показаны несохранённые изменения. Вернитесь к редактированию, чтобы сохранить их.", "Сакланмаган үзгәрешләр күрсәтелә. Аларны саклау өчен үзгәртү режимына кайтыгыз."],

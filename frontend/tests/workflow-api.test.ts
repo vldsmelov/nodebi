@@ -36,6 +36,7 @@ describe("workflow API", () => {
     vi.stubGlobal("fetch", fetchMock);
     const payload = {
       expected_revision: 1,
+      format_version: 1 as const,
       name: "Sales workflow",
       nodes: [{ id: "node-1", type: "excel_source", version: 1, position: { x: 10, y: 20 }, config: { source_id: "source-1", sheet_name: "Sales" }, ui: {} }],
       edges: [],

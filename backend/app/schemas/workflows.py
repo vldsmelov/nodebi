@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.domain.parameters import ParameterDefinition, ParameterValue, ParameterValues
 
@@ -43,10 +43,26 @@ class WorkflowCreate(BaseModel):
 
 class WorkflowSave(WorkflowCreate):
     expected_revision: int = Field(ge=1)
+    format_version: Literal[1, 2] = 1
     name: str = Field(min_length=1, max_length=200)
     nodes: list[NodePayload]
     edges: list[EdgePayload]
     parameters: list[ParameterDefinition] | None = Field(default=None, max_length=64)
+
+    @model_validator(mode="before")
+    @classmethod
+    def preserve_new_format_fields(cls, value: Any) -> Any:
+        # v1 retains its historical tolerance for read-response attributes in PUTs.
+        # v2 must not silently discard capabilities absent from this server build.
+        if isinstance(value, dict) and value.get("format_version") == 2:
+            items = [(value, set(cls.model_fields))]
+            for key, model in (("nodes", NodePayload), ("edges", EdgePayload)):
+                if isinstance(value.get(key), list):
+                    items.extend((item, set(model.model_fields)) for item in value[key])
+            for item, supported in items:
+                if isinstance(item, dict) and item.keys() - supported:
+                    raise ValueError("This server does not support all fields in the v2 draft.")
+        return value
 
     @field_validator("parameters")
     @classmethod

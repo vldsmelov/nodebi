@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import replace
 from pathlib import Path
 
 import polars as pl
@@ -17,6 +18,7 @@ from app.domain.nodes import (
     SchemaInferenceMode,
     ValidationResult,
 )
+from app.domain.values import RowContext, TableValue
 from app.domain.workflows import NodeInstance, Position, WorkflowEdge, WorkflowGraph
 from app.services.execution import (
     ExecutionFailure,
@@ -144,6 +146,11 @@ def test_execution_routes_two_inputs_and_reuses_content_cache(
     assert first.output.row_count == 2
     assert second.metadata["cache_hits"] == 3
     assert (left_executor.calls, right_executor.calls, join_executor.calls) == (1, 1, 1)
+    for result in (first, second):
+        value = result.outputs["output"]
+        assert isinstance(value, TableValue)
+        assert value.dataset is result.output
+        assert value.context == RowContext(graph.id, target.id, "output")
 
 
 def test_cache_identity_changes_with_config_and_upstream() -> None:
@@ -165,3 +172,31 @@ def test_execution_failure_is_attributed_to_node(session: Session, tmp_path: Pat
 
     assert captured.value.node_id == source.id
     assert captured.value.category == "source"
+
+
+def test_sink_preview_survives_named_output_adapter() -> None:
+    registry = NodeRegistry()
+    registry.register(replace(make_definition("sink", CountingExecutor()), output_ports=()))
+    target = make_node(1, "sink")
+    graph = WorkflowGraph(uuid.uuid4(), uuid.uuid4(), "Sink", 1, (target,), ())
+    result = WorkflowExecutionService(registry).execute(
+        graph, target.id, ExecutionContext(graph.project_id, graph.id, uuid.uuid4())
+    )
+    assert result.output.row_count == 2
+    assert result.outputs == {}
+
+
+def test_legacy_adapter_does_not_claim_to_return_scalar() -> None:
+    registry = NodeRegistry()
+    registry.register(
+        replace(
+            make_definition("source", CountingExecutor()),
+            output_ports=(PortDefinition("output", "Scalar", PortKind.SCALAR, False, None),),
+        )
+    )
+    target = make_node(1, "source")
+    graph = WorkflowGraph(uuid.uuid4(), uuid.uuid4(), "Wrong contract", 1, (target,), ())
+    with pytest.raises(ExecutionFailure, match="typed output routing"):
+        WorkflowExecutionService(registry).execute(
+            graph, target.id, ExecutionContext(graph.project_id, graph.id, uuid.uuid4())
+        )

@@ -1170,6 +1170,12 @@ export interface components {
             name: string;
             /** Expected Revision */
             expected_revision: number;
+            /**
+             * Format Version
+             * @default 1
+             * @enum {integer}
+             */
+            format_version: 1 | 2;
             /** Nodes */
             nodes: components["schemas"]["NodePayload"][];
             /** Edges */

@@ -1,5 +1,15 @@
 # PRODUCT_SPEC.md
 
+## Approved extension: functional nodes and field connections (2026-09-21)
+
+Implement the opt-in field editor specified in docs/FIELD_EDITOR_PLAN.md: expandable workbook
+cards, real typed table/field/scalar connections, explicit calculations, A/B previews and one-level
+composite blocks. Preserve stable node/field identities, dashboard links, three languages and
+both themes. Different row contexts require an explicit Join. Existing projects remain usable;
+conversion is explicit and the original financial project must not be converted automatically.
+Enable the new mode only through staged acceptance; internal computation functions alone do not
+constitute completed operator-facing nodes. Human usability claims require measured evidence.
+
 ## Dashboard viewing and placement
 
 Authors can switch between editing and viewing a dashboard. Viewing retains filters and

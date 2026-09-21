@@ -12,7 +12,8 @@ from threading import Lock
 
 from app.domain.datasets import Dataset, DatasetSchema
 from app.domain.errors import NodeExecutionError
-from app.domain.nodes import ExecutionContext, NodeRegistry
+from app.domain.nodes import ExecutionContext, NodeRegistry, PortKind
+from app.domain.values import ExecutionValue, RowContext, TableValue, dataset_outputs
 from app.domain.workflows import NodeInstance, WorkflowEdge, WorkflowGraph
 from app.services.workflow_validation import (
     GraphIssue,
@@ -183,6 +184,7 @@ class ExecutionResult:
     duration_ms: float
     metadata: dict[str, object] = field(default_factory=dict)
     warnings: tuple[str, ...] = ()
+    outputs: dict[str, ExecutionValue] = field(default_factory=dict)
 
 
 class WorkflowExecutionService:
@@ -207,18 +209,43 @@ class WorkflowExecutionService:
                 issues=exc.issues,
             ) from exc
         nodes = {node.id: node for node in plan.graph.nodes}
-        results: dict[uuid.UUID, Dataset] = {}
+        results: dict[uuid.UUID, dict[str, ExecutionValue]] = {}
+        target_output: Dataset | None = None
         identities: dict[uuid.UUID, str] = {}
         cache_hits = 0
         for node_id in plan.ordered_node_ids:
             node = nodes[node_id]
             definition = self.registry.get(node.type, node.version)
+            if len(definition.output_ports) > 1 or any(
+                port.kind != PortKind.DATASET for port in definition.output_ports
+            ):
+                raise ExecutionFailure(
+                    "INVALID_NODE_OUTPUT",
+                    "This executor requires typed output routing.",
+                    category="type",
+                    execution_id=context.execution_id,
+                    node_id=node_id,
+                )
             inbound = sorted(
                 (edge for edge in plan.graph.edges if edge.target_node_id == node_id),
                 key=lambda edge: (edge.target_port, str(edge.id)),
             )
-            inputs = {edge.target_port: results[edge.source_node_id] for edge in inbound}
-            upstream = {edge.target_port: identities[edge.source_node_id] for edge in inbound}
+            inputs: dict[str, Dataset] = {}
+            for edge in inbound:
+                value = results[edge.source_node_id].get(edge.source_port)
+                if not isinstance(value, TableValue):
+                    raise ExecutionFailure(
+                        "INVALID_NODE_OUTPUT",
+                        "The connected output is not a table.",
+                        category="type",
+                        execution_id=context.execution_id,
+                        node_id=node_id,
+                    )
+                inputs[edge.target_port] = value.dataset
+            upstream = {
+                edge.target_port: f"{identities[edge.source_node_id]}:{edge.source_port}"
+                for edge in inbound
+            }
             validation = definition.executor.validate(
                 node, {port: dataset.schema for port, dataset in inputs.items()}, context
             )
@@ -270,9 +297,16 @@ class WorkflowExecutionService:
                     )
                 if context.cache:
                     context.cache.put(key, output)
-            results[node_id] = output
+            results[node_id] = {}
+            for port in definition.output_ports:
+                results[node_id].update(
+                    dataset_outputs(output, RowContext(graph.id, node_id, port.id))
+                )
+            if node_id == target_node_id:
+                target_output = output
             identities[node_id] = key
-        target = results[target_node_id]
+        assert target_output is not None
+        target = target_output
         return ExecutionResult(
             context.execution_id,
             target_node_id,
@@ -281,6 +315,7 @@ class WorkflowExecutionService:
             target.schema,
             (time.perf_counter() - started) * 1000,
             {"executed_nodes": len(plan.ordered_node_ids), "cache_hits": cache_hits},
+            outputs=results[target_node_id],
         )
 
 

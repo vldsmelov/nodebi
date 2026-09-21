@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { WorkflowAutosave, type GraphDraft } from "@/features/workflow/autosave";
 import type { Workflow } from "@/features/workflow/types";
 
-const draft = (name: string): GraphDraft => ({ name, nodes: [], edges: [] });
+const draft = (name: string): GraphDraft => ({ format_version: 1, name, nodes: [], edges: [] });
 const saved = (revision: number) => ({ revision }) as Workflow;
 afterEach(() => { vi.useRealTimers(); sessionStorage.clear(); });
 

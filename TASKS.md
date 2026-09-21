@@ -1,5 +1,19 @@
 # TASKS.md
 
+## Functional nodes and field connections (authorized 2026-09-21)
+
+Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retained below.
+
+* [~] F1: Typed connections, persistence and execution.
+  * [x] Table/field/scalar value foundation, row-context checks, shared expression compiler, explicit arithmetic/null policies, parameter scalars and legacy named-table adapter.
+  * [x] Explicit save-format acknowledgement and CAS upgrade guard; reject old-client overwrite and unsupported v2 fields; regenerate OpenAPI types.
+  * [ ] Complete v2 persistence and migrations for field references and presentation metadata.
+  * [ ] Register typed executors, schema inference and typed routing in the common engine.
+  * [ ] Named field/scalar preview, output-aware cache and node/field-attributed diagnostics.
+* [ ] F2: Opt-in editor, workbook/sheets, interactive fields/cards, compatible wires and A/B previews.
+* [ ] F3: Atomic one-level composite blocks, navigation/public ports, field Bar Chart and scalar KPI.
+* [ ] F4: UI-built end-to-end scenario, restart/compatibility/164-slice parity and operator evaluation.
+
 ## Manual-authoring UX review and proposed redesign (2026-09-15)
 
 * [x] Review current manual journey, saved graph and editor forms; distinguish functional acceptance from human usability.

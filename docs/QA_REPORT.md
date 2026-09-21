@@ -1,5 +1,27 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F1 typed-value foundation and format guard - 2026-09-21
+
+Backend: 288 passed with NODEBI_TEST_POSTGRES_URL; four SQLite-only matrix skips. Existing
+migration/concurrency tests run against isolated PostgreSQL schemas. 28 typed-value regressions
+cover schema-only projection, row-context boundaries, stable IDs/duplicate labels, scalar/parameter
+typing, numeric checks through predicates, null policies, empty tables and expression limits.
+The save-format test runs on both databases: normal v1 save, explicit v2, rejected stale upgrade,
+rejected v1 overwrite at current revision, rejected unsupported v2 fields and unchanged state.
+Legacy named-output routing and visualization sink preview remain covered.
+
+Ruff lint/format, mypy, OpenAPI drift, 82 frontend tests, TypeScript, ESLint and frontend production
+builds pass. Focused Playwright: 12 passed in 36s (workflow-format, editor, charts, localization,
+theme). A v1 editor cannot save v2; its rejected draft survives reload. Normal autosave/recovery,
+two tabs, slow responses, Excel preview, chart rendering, three languages and both themes pass.
+
+Local deployment uses the new frontend production image. Cold backend Docker build was interrupted
+at a slow Linux Polars wheel download. An ignored .backups/field-foundation.Dockerfile layers current
+app files onto the previously working backend runtime with unchanged pinned dependencies; container
+imports resolve /app/app and the new arithmetic returns the expected result. Cold Docker reproducibility
+is pending, not claimed. No data reset or project conversion. Full 164-slice parity and the new field
+editor's end-to-end journey were not rerun/completed; the field UI does not exist yet.
+
 ## U5 retained project copy and large-graph projection - 2026-09-18
 
 Independent API-created project 2173f33a-aa46-46af-9a19-b720de4fd036 retains 168 nodes,

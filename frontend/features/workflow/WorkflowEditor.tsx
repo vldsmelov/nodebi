@@ -90,7 +90,7 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
   const [saveState, setSaveState] = useState<SaveState>({ status: "saved", revision: workflow.revision, error: null });
   const [writer] = useState(() => new WorkflowAutosave(
     workflow.id, workflow.revision,
-    { name: workflow.name, nodes: workflow.nodes, edges: workflow.edges, parameters: workflow.parameters ?? [] },
+    { format_version: 1, name: workflow.name, nodes: workflow.nodes, edges: workflow.edges, parameters: workflow.parameters ?? [] },
     (payload) => saveWorkflow(workflow.id, payload),
     (state) => { setSaveState(state); if (state.status === "saved") onSaved?.(); },
     window.sessionStorage,
@@ -165,7 +165,7 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
   };
   const saveStatus = saveState.status;
   const saveError = saveState.error;
-  const graph = useMemo(() => ({ name: workflow.name, nodes: serializeNodes(nodes), edges: serializeEdges(edges), parameters }), [workflow.name, nodes, edges, parameters]);
+  const graph = useMemo(() => ({ format_version: 1 as const, name: workflow.name, nodes: serializeNodes(nodes), edges: serializeEdges(edges), parameters }), [workflow.name, nodes, edges, parameters]);
   const [history] = useState(() => new GraphHistory(graph));
   useSyncExternalStore(history.subscribe, history.getVersion, history.getVersion);
   const editGroup = useRef<string | null>(null);

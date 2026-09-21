@@ -1,5 +1,24 @@
 # ARCHITECTURE.md
 
+## Typed value foundation and format acknowledgement (ADR-088)
+
+The approved field editor is staged in docs/FIELD_EDITOR_PLAN.md. Domain values distinguish
+tables, fields (Polars expression plus row context) and scalars. Row context is the workflow,
+node and output endpoint; a table transformation establishes a new context. Cross-context
+arithmetic is rejected; no positional alignment is inferred. Field projection uses column IDs.
+Schema-only projection enables preflight without source materialization. Arithmetic and predicates
+share the allowlisted formula compiler; predicate syntax is opt-in and v1 formulas are unchanged.
+Typed null scalars retain their declared type. Runtime arithmetic checks travel with expressions.
+
+The existing runner now routes legacy results by declared output name via a zero-copy adapter;
+terminal visualization previews remain Dataset responses. Typed graph routing is still pending.
+PUT WorkflowSave.format_version defaults to 1. The service checks stored format after acquiring
+the project lock; downgrade returns WORKFLOW_FORMAT_UNSUPPORTED (409). Explicit upgrades commit
+with the graph's normal revision CAS. Current clients explicitly acknowledge only v1. Unknown
+fields in v2 drafts are rejected, not discarded. The existing Workflow.version column stores
+format; no new persistent columns or migration are needed for this guard. Full v2 edge and
+presentation persistence will require a migration before typed editing can be enabled.
+
 ## Large collapsed group projection (ADR-087)
 
 Complete group summaries use dependency layout with actual boundary-port card heights; contracted

@@ -23,7 +23,13 @@ class CompiledFormula:
     logical_type: LogicalType = LogicalType.FLOAT
 
 
-def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
+def compile_formula(
+    expression: str,
+    schema: DatasetSchema,
+    *,
+    bindings: dict[str, CompiledFormula] | None = None,
+    allow_predicates: bool = False,
+) -> CompiledFormula:
     if not expression.strip() or len(expression) > 4096:
         raise FormulaValidationError("Enter an arithmetic expression of at most 4096 characters.")
     if "__nodebi_" in expression:
@@ -50,6 +56,7 @@ def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
     if sum(1 for _ in ast.walk(tree)) > 256:
         raise FormulaValidationError("Expression is too complex (maximum 256 syntax nodes).")
     referenced: dict[str, ColumnSchema] = {}
+    bound_references: dict[str, None] = {}
 
     types: dict[int, LogicalType] = {}
 
@@ -67,6 +74,9 @@ def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
     def visit_inner(node: ast.AST, depth: int = 0) -> pl.Expr:
         if depth > 64:
             raise FormulaValidationError("Expression nesting is too deep.")
+        if allow_predicates and isinstance(node, ast.Constant) and type(node.value) is bool:
+            types[id(node)] = LogicalType.BOOLEAN
+            return pl.lit(node.value)
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
             types[id(node)] = LogicalType.STRING
             return pl.lit(node.value)
@@ -113,6 +123,11 @@ def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
                 raise FormulaValidationError("Numeric constants must be finite.")
             return pl.lit(numeric_value, dtype=pl.Float64)
         if isinstance(node, ast.Name):
+            bound = (bindings or {}).get(node.id)
+            if bound is not None:
+                bound_references.update(dict.fromkeys(bound.referenced_columns))
+                types[id(node)] = bound.logical_type
+                return bound.expression
             column = aliases.get(node.id)
             if column is None:
                 candidates = [field for field in schema.columns if field.engine_name == node.id]
@@ -127,6 +142,48 @@ def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
             operand = numeric(node.operand, depth + 1)
             return operand if isinstance(node.op, ast.UAdd) else -operand
+        if allow_predicates and isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+            operand = visit(node.operand, depth + 1)
+            if types[id(node.operand)] != LogicalType.BOOLEAN:
+                raise FormulaValidationError("Logical operations require boolean fields.")
+            types[id(node)] = LogicalType.BOOLEAN
+            return ~operand
+        if (
+            allow_predicates
+            and isinstance(node, ast.BoolOp)
+            and isinstance(node.op, (ast.And, ast.Or))
+        ):
+            values = [visit(value, depth + 1) for value in node.values]
+            if any(types[id(value)] != LogicalType.BOOLEAN for value in node.values):
+                raise FormulaValidationError("Logical operations require boolean fields.")
+            types[id(node)] = LogicalType.BOOLEAN
+            result = values[0]
+            for value in values[1:]:
+                result = result & value if isinstance(node.op, ast.And) else result | value
+            return result
+        if allow_predicates and isinstance(node, ast.Compare) and len(node.ops) == 1:
+            left = visit(node.left, depth + 1)
+            right = visit(node.comparators[0], depth + 1)
+            pair = {types[id(node.left)], types[id(node.comparators[0])]}
+            if pair == {LogicalType.INTEGER, LogicalType.FLOAT}:
+                left, right = left.cast(pl.Float64), right.cast(pl.Float64)
+            elif len(pair) != 1 or LogicalType.UNKNOWN in pair:
+                raise FormulaValidationError("Comparison requires compatible explicit types.")
+            types[id(node)] = LogicalType.BOOLEAN
+            operator = node.ops[0]
+            if isinstance(operator, ast.Eq):
+                return left == right
+            if isinstance(operator, ast.NotEq):
+                return left != right
+            if isinstance(operator, ast.Lt):
+                return left < right
+            if isinstance(operator, ast.LtE):
+                return left <= right
+            if isinstance(operator, ast.Gt):
+                return left > right
+            if isinstance(operator, ast.GtE):
+                return left >= right
+            raise FormulaValidationError("Unsupported comparison operator.")
         if isinstance(node, ast.BinOp) and isinstance(
             node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)
         ):
@@ -146,4 +203,5 @@ def compile_formula(expression: str, schema: DatasetSchema) -> CompiledFormula:
     dtype = types[id(tree.body)]
     if dtype in {LogicalType.INTEGER, LogicalType.FLOAT}:
         result, dtype = result.cast(pl.Float64), LogicalType.FLOAT
-    return CompiledFormula(result, tuple(referenced), True, dtype)
+    references = tuple(dict.fromkeys((*referenced, *bound_references)))
+    return CompiledFormula(result, references, True, dtype)

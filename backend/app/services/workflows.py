@@ -86,6 +86,19 @@ def save_graph(
     # Serialize reference changes with source/project deletion. JSON configuration
     # cannot express this cross-table relationship as a database foreign key.
     ProjectService(session).lock(workflow.project_id)
+    # Read after acquiring the project lock: this ORM instance may predate a
+    # concurrent format upgrade. Revision acknowledgement alone is insufficient
+    # for a client that reads a v2 graph but cannot preserve its new semantics.
+    with session.no_autoflush:
+        stored_version = session.scalar(select(Workflow.version).where(Workflow.id == workflow.id))
+    if stored_version is None:
+        raise ApplicationError("WORKFLOW_NOT_FOUND", "Workflow does not exist.", 404)
+    if payload.format_version < stored_version:
+        raise ApplicationError(
+            "WORKFLOW_FORMAT_UNSUPPORTED",
+            "Open this workflow in an editor that supports its format before saving.",
+            409,
+        )
     protect_used_visualizations(session, workflow, payload)
     for node in payload.nodes:
         if node.type != "excel_source" or not node.config.get("source_id"):
@@ -108,6 +121,7 @@ def save_graph(
                 node_id=str(node.id),
             )
     workflow.name = payload.name.strip()
+    workflow.version = payload.format_version
     if payload.parameters is not None:
         workflow.parameters = [item.model_dump(mode="json") for item in payload.parameters]
     nodes = [

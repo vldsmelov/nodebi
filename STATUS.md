@@ -1,11 +1,37 @@
 # Node BI Development Status
 
-Last updated: 2026-09-18
+Last updated: 2026-09-21
 Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Latest session: U5 technical acceptance is COMPLETE; human evaluation remains pending (ADR-087). Database/source backups
+Current milestone: F1 typed field-editor foundation, IN PROGRESS (ADR-088).
+Completed: typed value/expression primitives with row-context checks, constants/parameters,
+arithmetic/comparisons/logic, explicit sum/append/filter and bounded expressions; shared compiler
+preserves v1 syntax. Legacy runner uses named table outputs without copying frames; sink previews
+remain compatible. Save-format acknowledgement guards v2 against old-client overwrite, participates
+in CAS rollback and rejects unsupported draft fields. Current frontend explicitly saves format 1;
+OpenAPI types are regenerated. No persisted edge/presentation changes and no migration yet.
+Next: full v2 persistence/migration, typed executor registry/schema routing and output-aware preview;
+then workbook/cards/A-B UI and composite blocks. Details: docs/FIELD_EDITOR_PLAN.md and TASKS F1-F4.
+New field operations are internal foundations, not yet exposed in the catalog or UI. The entire
+approved plan is NOT complete. No conversion/reset of existing projects. U5 human studies remain
+pending independently. No known defect in the implemented foundation; no environment blocker.
+Validation: 288 backend tests pass with PostgreSQL enabled; four SQLite-only matrix skips.
+28 new typed-value cases plus API format guards cover context, types, null, zero division,
+empty/zero-column tables, stable IDs, expression limits and CAS rollback. Ruff lint/format,
+mypy, OpenAPI drift, 82 frontend tests, TypeScript/ESLint and production frontend builds pass.
+12 browser scenarios pass: format rejection/reload keeps the local draft, normal save/recovery,
+two tabs, Excel preview, charts, three languages and both themes. Full browser/164-slice parity
+and new-editor end-to-end acceptance are not claimed in this session.
+Deployment: local frontend production image and updated backend are running. A clean backend
+image build was interrupted during a very slow Linux Polars download. The local backend image
+reuses the prior working runtime/dependencies with current app files via ignored
+.backups/field-foundation.Dockerfile; /app/app imports and new arithmetic were checked in-container.
+The ordinary clean backend Docker build remains to be repeated when downloads are practical;
+Dockerfiles, dependency locks and production data were not changed by that workaround.
+
+Previous session: U5 technical acceptance is COMPLETE; human evaluation remains pending (ADR-087). Database/source backups
 u5-before.dump and u5-sources.tar are retained under .backups. Independent project copy:
 2173f33a-aa46-46af-9a19-b720de4fd036, workflow 1faead6b-91bc-45f5-ad34-e68ea1b81a5b.
 168 nodes/172 edges, 53 visualizations/55 widgets and six dashboards remain explicit/editable.

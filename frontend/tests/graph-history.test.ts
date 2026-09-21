@@ -4,7 +4,7 @@ import { layoutGraph } from "@/features/workflow/graph-layout";
 import { WorkflowAutosave, type GraphDraft } from "@/features/workflow/autosave";
 import type { Workflow } from "@/features/workflow/types";
 
-const draft = (name: string): GraphDraft => ({ name, nodes: [], edges: [] });
+const draft = (name: string): GraphDraft => ({ format_version: 1, name, nodes: [], edges: [] });
 it("coalesces one field-edit session, ignores identical graphs and drops redo after new edits", () => {
   const h = new GraphHistory(draft("initial"));
   h.record(draft("a"), "input"); h.record(draft("ab"), "input"); h.record(draft("ab"));
