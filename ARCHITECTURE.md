@@ -1,5 +1,24 @@
 # ARCHITECTURE.md
 
+## Workflow container persistence (ADR-092)
+
+Workflow.presentation is a JSON/JSONB column added by migration 0008, with empty default {}.
+Typed WorkbookContainer and CompositeBlock contracts contain labels, positions, collapsed state
+and real member node IDs. Books reference one Excel source and optionally detached member IDs;
+sheet reading options remain in each source node. Public ports reference actual member node/port
+endpoints, optionally an output column ID. There is no copied internal graph or new execution node.
+
+Every crossing edge must have a public boundary endpoint; additional outputs may be pinned.
+Container/node IDs cannot collide, membership cannot overlap, nesting is not representable and
+book nodes cannot also belong to a block. Validation is structural and performs no source reads;
+availability of projected fields remains the schema/execution layer's responsibility.
+The normal save operation validates metadata against the submitted graph and persists both under
+the existing revision CAS. Missing/null presentation preserves its locked database value; {} is
+an explicit unwrap. Retained references are validated against changed graph members/ports too.
+Format v1 omits presentation in reads; non-null presentation requires v2. Legacy per-node UI
+groups remain untouched and are not automatically converted. Downgrade locks workflows and
+refuses to drop nonempty container metadata. New editor/pack-unpack UI remains separate work.
+
 ## Data-dependent schemas in typed branches (ADR-091)
 
 Typed schema resolution proceeds in DAG order. For a legacy DATA_DEPENDENT executor it first
@@ -31,8 +50,8 @@ Cache dependencies include source output and projected column ID. Scalar paramet
 include only the used resolved value/type. Table results use the existing bounded cache; composed
 expressions, scalars and multiple-output typed results are not stored in that Dataset-only cache.
 Source availability/ownership is validated before cache access. ADR-091 adds data-dependent
-legacy schemas, including Pivot, to typed branches. Workbook/composite persistence and editor
-forms/translations remain open.
+legacy schemas, including Pivot, to typed branches. ADR-092 adds workbook/composite persistence;
+editor forms/translations remain open.
 
 ## Persisted field projections (ADR-089)
 
@@ -46,7 +65,7 @@ workflow_edges on PostgreSQL and refuses to remove the column while any projecti
 Graph validation derives FIELD for a projected dataset output and rejects projections in v1 or
 from non-table outputs. ADR-090 replaces the temporary routing guard with actual schema and
 context validation. A saved draft never executes a field wire as a table wire. Presentation
-metadata remains separate unfinished work.
+metadata is defined in ADR-092.
 
 ## Typed value foundation and format acknowledgement (ADR-088)
 

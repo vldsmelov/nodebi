@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.domain.parameters import ParameterDefinition, ParameterValue, ParameterValues
+from app.schemas.presentation import WorkflowPresentation
 
 
 class PositionPayload(BaseModel):
@@ -45,6 +46,7 @@ class WorkflowCreate(BaseModel):
 
 
 class WorkflowSave(WorkflowCreate):
+    presentation: WorkflowPresentation | None = None
     expected_revision: int = Field(ge=1)
     format_version: Literal[1, 2] = 1
     name: str = Field(min_length=1, max_length=200)
@@ -78,6 +80,9 @@ class WorkflowSave(WorkflowCreate):
 
 
 class WorkflowRead(BaseModel):
+    presentation: WorkflowPresentation | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     parameters: list[ParameterDefinition] = Field(default_factory=list)
     revision: int
     id: uuid.UUID

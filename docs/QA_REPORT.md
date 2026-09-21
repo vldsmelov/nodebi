@@ -1,5 +1,24 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F1 container persistence - 2026-09-21
+
+327 backend tests pass with PostgreSQL enabled; six skips apply only to the SQLite matrix.
+
+Workbook/block metadata now roundtrips with the ordinary graph revision. Tests cover computation
+invariance after rename/collapse/unwrap, stale saves, metadata omitted by earlier v2 clients,
+retained references after node deletion, overlapping/nested members, invalid/public projected
+ports, missing boundaries, unknown fields, blank names, source mismatch and detached-sheet IDs.
+SQLite/PostgreSQL API tests and migration tests pass; downgrade refuses to erase nonempty
+containers, while empty downgrade/upgrade and model comparison remain valid.
+
+Ruff lint/format, mypy, regenerated OpenAPI drift, TypeScript/ESLint, 82 frontend tests and
+production build pass. Seven browser regressions pass against the deployed backend; the format
+guard now includes a persisted block and verifies exact retention after rejected edits/reload.
+Backup .backups/workflow-presentation-before.dump precedes migration 0008. Standard Docker build
+and healthy restart pass; all six original/UX-copy snapshot endpoints remain unchanged.
+Container packing, opening, boundary-port generation and undo through UI remain unimplemented;
+this is persistence acceptance, not F2/F3 completion or a new 164-slice parity claim.
+
 ## F1 dynamic schemas in typed branches - 2026-09-21
 
 312 backend tests pass with PostgreSQL enabled, five SQLite-only matrix skips. Eight new cases

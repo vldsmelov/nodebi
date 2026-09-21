@@ -72,6 +72,9 @@ class Workflow(TimestampMixin, Base):
     parameters: Mapped[list[dict[str, Any]]] = mapped_column(
         json_type, default=list, server_default="[]", nullable=False
     )
+    presentation: Mapped[dict[str, Any]] = mapped_column(
+        json_type, default=dict, server_default="{}", nullable=False
+    )
 
 
 class WorkflowNode(TimestampMixin, Base):

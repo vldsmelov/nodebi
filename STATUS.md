@@ -5,7 +5,26 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Current milestone: F1 typed field-editor, IN PROGRESS (ADR-091).
+Current milestone: F1 typed field-editor, IN PROGRESS (ADR-092).
+Latest completed subtask: workbook/composite presentation persistence with migration 0008.
+Typed containers reference existing nodes/ports, including detached workbook sheets and projected
+output fields. Membership, boundary ports and source references are validated without execution.
+Metadata shares graph revision CAS; omission preserves stored metadata, explicit {} unwraps it.
+API rename/collapse/unwrap preserves nodes, edges and computed values. Existing UI groups are
+not converted. New containers are API-only until the opt-in editor is implemented.
+Next: finish field-specific diagnostic paths/translations and start F2 opt-in cards/book/wires
+with revision-aware drafts, configuration forms and A/B preview. Boundary-port derivation, UI
+pack/unpack and undo remain F3 work. F1-F4 are not complete; no new known P0/P1 defect.
+Checks: 327 backend tests pass with PostgreSQL (six SQLite-only matrix skips); targeted container,
+migration and field tests pass. Ruff lint/format, mypy, generated OpenAPI drift, TypeScript/ESLint,
+82 frontend tests and production build pass. Seven browser scenarios pass, now including saved
+block metadata surviving an old editor's rejected save and reload.
+Deployment: .backups/workflow-presentation-before.dump created before upgrade; normal Docker
+backend build and healthy restart succeeded. Local DB is at 20260921_0008. Original/UX-copy
+workflow/dashboard snapshots remain identical across six API endpoints. No reset/conversion.
+No new-editor UI authoring acceptance, full 164-slice numerical parity or human study claimed.
+
+Previous F1 session (ADR-091):
 Latest completed subtask: data-dependent legacy schemas in mixed typed branches. Pivot now
 accepts a typed upstream calculation and exposes stable fields to downstream field operations.
 Schema discovery executes only validated dynamic prefixes through the common bounded engine;

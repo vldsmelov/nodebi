@@ -373,6 +373,35 @@ export interface components {
             /** Nullable */
             nullable: boolean;
         };
+        /** CompositeBlock */
+        CompositeBlock: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Node Ids */
+            node_ids: string[];
+            position: components["schemas"]["ContainerPosition"];
+            /**
+             * Collapsed
+             * @default false
+             */
+            collapsed: boolean;
+            /** Inputs */
+            inputs?: components["schemas"]["PublicPort"][];
+            /** Outputs */
+            outputs?: components["schemas"]["PublicPort"][];
+        };
+        /** ContainerPosition */
+        ContainerPosition: {
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+        };
         /** DashboardConfiguration */
         DashboardConfiguration: {
             /** Parameters */
@@ -948,6 +977,25 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** PublicPort */
+        PublicPort: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Node Id
+             * Format: uuid
+             */
+            node_id: string;
+            /** Port */
+            port: string;
+            /** Column Id */
+            column_id?: string | null;
+        };
         /** ReadinessResponse */
         ReadinessResponse: {
             /**
@@ -1160,6 +1208,31 @@ export interface components {
             /** Height */
             height: number;
         };
+        /** WorkbookContainer */
+        WorkbookContainer: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Node Ids */
+            node_ids: string[];
+            position: components["schemas"]["ContainerPosition"];
+            /**
+             * Collapsed
+             * @default false
+             */
+            collapsed: boolean;
+            /**
+             * Source Id
+             * Format: uuid
+             */
+            source_id: string;
+            /** Detached Node Ids */
+            detached_node_ids?: string[];
+        };
         /** WorkbookInfoRead */
         WorkbookInfoRead: {
             /** Sheets */
@@ -1175,8 +1248,16 @@ export interface components {
             /** Items */
             items: components["schemas"]["WorkflowSummary"][];
         };
+        /** WorkflowPresentation */
+        WorkflowPresentation: {
+            /** Workbooks */
+            workbooks?: components["schemas"]["WorkbookContainer"][];
+            /** Blocks */
+            blocks?: components["schemas"]["CompositeBlock"][];
+        };
         /** WorkflowRead */
         WorkflowRead: {
+            presentation?: components["schemas"]["WorkflowPresentation"] | null;
             /** Parameters */
             parameters?: components["schemas"]["ParameterDefinition"][];
             /** Revision */
@@ -1214,6 +1295,7 @@ export interface components {
         WorkflowSave: {
             /** Name */
             name: string;
+            presentation?: components["schemas"]["WorkflowPresentation"] | null;
             /** Expected Revision */
             expected_revision: number;
             /**

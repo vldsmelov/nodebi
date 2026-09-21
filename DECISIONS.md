@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# ADR-092 - Container references saved with the workflow revision
+
+Date: 2026-09-21. Status: ACCEPTED; container UI remains pending.
+Context: book cards and composite blocks must restore without duplicating calculations, losing
+dashboard node IDs or letting an older client discard their structure.
+Decision: migration 0008 adds Workflow.presentation (JSON/JSONB, default {}). Typed contracts
+reference real nodes/endpoints. Books bind an Excel source, used sheet nodes and detached-sheet
+IDs; blocks expose input/output endpoints with optional output field projection. Validate unique
+membership, single-level structure, declared ports and every crossing edge without materializing
+data. Save metadata and graph in one normal CAS transaction. Omitted/null metadata preserves the
+locked stored value; explicit {} unwraps it. Changed graph references must still validate.
+V1 responses stay unchanged and v1 cannot submit non-null presentation. Downgrade locks and
+refuses to erase containers. Existing per-node UI groups and project data are not converted.
+Alternatives: UI-only storage cannot survive server/browser restoration; copying subgraphs loses
+identity; new tables add unnecessary cross-table synchronization for one atomic presentation value.
+Consequences: API can persist books/blocks, collapse/rename/detach/unwrap without changing graph
+execution. New UI must derive boundary ports when packing, persist container edits with graph
+edits and handle one undo action. Field availability is checked by schema resolution, so an
+incomplete draft can retain a projected field that has become unavailable. UI acceptance is pending.
+
 # ADR-091 - Discover dynamic fields from validated execution prefixes
 
 Date: 2026-09-21. Status: ACCEPTED.

@@ -8,7 +8,7 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
   * [x] Table/field/scalar value foundation, row-context checks, shared expression compiler, explicit arithmetic/null policies, parameter scalars and legacy named-table adapter.
   * [x] Explicit save-format acknowledgement and CAS upgrade guard; reject old-client overwrite and unsupported v2 fields; regenerate OpenAPI types.
   * [x] Persist source_column_id through API/ORM/domain with migration 0007, v1 wire compatibility, CAS/format guards and loss-preventing downgrade.
-  * [ ] Persist typed workbook/composite presentation metadata with revision-safe validation and migrations.
+  * [x] Persist typed workbook/composite presentation metadata with revision-safe validation, omission preservation and migration 0008; detached sheets/public ports reference existing nodes (ADR-092).
   * [x] Register eight typed operations, static schema/context preflight and named routing through the common legacy-compatible engine (ADR-090).
   * [x] Named field/scalar preview and output/column/parameter-aware cache; API persistence/execution regression on SQLite/PostgreSQL.
   * [x] Adapt DATA_DEPENDENT legacy schemas in mixed typed branches through validated prefix execution; Pivot field IDs, parameter changes, cache, limits and error attribution verified (ADR-091).

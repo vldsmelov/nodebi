@@ -9,10 +9,12 @@ test("v1 editor cannot overwrite v2 and retains its rejected draft", async ({ pa
     const path = `${api}/api/v1/workflows/${workflow.id}`;
     const nodes = [0, 1].map(index => ({ id: crypto.randomUUID(), type: "select_columns", version: 1, position: { x: index * 310, y: 0 }, config: {}, ui: {} }));
     const edges = [{ id: crypto.randomUUID(), source_node_id: nodes[0].id, source_port: "dataset", source_column_id: "stable-field", target_node_id: nodes[1].id, target_port: "input" }];
-    const upgrade = await request.put(path, { data: { name: "Main", expected_revision: workflow.revision, format_version: 2, nodes, edges } });
+    const presentation = { blocks: [{ id: crypto.randomUUID(), label: "Saved block", node_ids: nodes.map(node => node.id), position: { x: 0, y: 0 }, collapsed: true, inputs: [], outputs: [] }], workbooks: [] };
+    const upgrade = await request.put(path, { data: { name: "Main", expected_revision: workflow.revision, format_version: 2, nodes, edges, presentation } });
     expect(upgrade.ok()).toBe(true);
     const saved = await upgrade.json();
     expect(saved.edges).toEqual(edges);
+    expect(saved.presentation).toEqual(presentation);
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByTitle("Add Select Columns").click();
     await expect(page.getByRole("alert").filter({ hasText: "supports its format" })).toBeVisible();

@@ -19,6 +19,7 @@ from app.domain.workflows import (
 from app.infrastructure.storage import StorageProvider
 from app.models import DataSource, Workflow, WorkflowEdge, WorkflowNode
 from app.repositories.sqlalchemy import SqlAlchemyWorkflowRepository
+from app.schemas.presentation import WorkflowPresentation
 from app.schemas.workflows import (
     EdgePayload,
     NodePayload,
@@ -30,6 +31,7 @@ from app.services.execution import InMemoryExecutionCache, default_execution_log
 from app.services.projects import ProjectService
 from app.services.source_access import ProjectSourceAccess
 from app.services.visualization_index import protect_used_visualizations, synchronize_visualizations
+from app.services.workflow_presentation import validate_presentation
 
 
 def get_workflow(session: Session, workflow_id: uuid.UUID) -> Workflow:
@@ -59,6 +61,10 @@ def delete_workflow(session: Session, workflow_id: uuid.UUID) -> None:
 
 
 def validate_draft(payload: WorkflowSave, registry: NodeRegistry) -> None:
+    if payload.presentation is not None and payload.format_version < 2:
+        raise ApplicationError(
+            "WORKFLOW_FORMAT_REQUIRED", "Presentation requires workflow format v2."
+        )
     node_ids = [node.id for node in payload.nodes]
     edge_ids = [edge.id for edge in payload.edges]
     if len(node_ids) != len(set(node_ids)) or len(edge_ids) != len(set(edge_ids)):
@@ -109,6 +115,18 @@ def save_graph(
             "Open this workflow in an editor that supports its format before saving.",
             409,
         )
+    # Preserve omitted metadata, including for clients predating presentation.
+    # Read under the same project lock as format/revision and source ownership.
+    with session.no_autoflush:
+        stored_presentation = session.scalar(
+            select(Workflow.presentation).where(Workflow.id == workflow.id)
+        )
+    presentation = (
+        payload.presentation
+        if payload.presentation is not None
+        else (WorkflowPresentation.model_validate(stored_presentation or {}))
+    )
+    validate_presentation(presentation, payload, registry)
     protect_used_visualizations(session, workflow, payload)
     for node in payload.nodes:
         if node.type != "excel_source" or not node.config.get("source_id"):
@@ -132,6 +150,7 @@ def save_graph(
             )
     workflow.name = payload.name.strip()
     workflow.version = payload.format_version
+    workflow.presentation = presentation.model_dump(mode="json", exclude_defaults=True)
     if payload.parameters is not None:
         workflow.parameters = [item.model_dump(mode="json") for item in payload.parameters]
     nodes = [
@@ -194,6 +213,9 @@ def read_workflow(session: Session, workflow: Workflow) -> WorkflowRead:
         select(WorkflowEdge).where(WorkflowEdge.workflow_id == workflow.id)
     ).all()
     return WorkflowRead(
+        presentation=WorkflowPresentation.model_validate(workflow.presentation)
+        if workflow.version >= 2
+        else None,
         parameters=workflow.parameters,
         revision=workflow.revision,
         id=workflow.id,
