@@ -9,11 +9,24 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import lru_cache
 from threading import Lock
+from typing import Literal
 
-from app.domain.datasets import Dataset, DatasetSchema
+import polars as pl
+
+from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema
 from app.domain.errors import NodeExecutionError
-from app.domain.nodes import ExecutionContext, NodeRegistry, PortKind
-from app.domain.values import ExecutionValue, RowContext, TableValue, dataset_outputs
+from app.domain.nodes import ExecutionContext, NodeRegistry, PortKind, TypedNodeExecutor
+from app.domain.values import (
+    ExecutionValue,
+    FieldValue,
+    RowContext,
+    ScalarValue,
+    TableValue,
+    ValueConnectionError,
+    dataset_outputs,
+    project_field,
+    validate_field,
+)
 from app.domain.workflows import NodeInstance, WorkflowEdge, WorkflowGraph
 from app.services.workflow_validation import (
     GraphIssue,
@@ -185,6 +198,8 @@ class ExecutionResult:
     metadata: dict[str, object] = field(default_factory=dict)
     warnings: tuple[str, ...] = ()
     outputs: dict[str, ExecutionValue] = field(default_factory=dict)
+    output_port: str | None = None
+    value_kind: Literal["dataset", "field", "scalar"] = "dataset"
 
 
 class WorkflowExecutionService:
@@ -196,10 +211,43 @@ class WorkflowExecutionService:
         graph: WorkflowGraph,
         target_node_id: uuid.UUID,
         context: ExecutionContext,
+        *,
+        output_port: str | None = None,
     ) -> ExecutionResult:
         started = time.perf_counter()
         try:
             plan = ExecutionPlanner(self.registry).plan(graph, target_node_id)
+            if graph.version >= 2 and (
+                any(edge.source_column_id is not None for edge in plan.graph.edges)
+                or any(
+                    isinstance(
+                        self.registry.get(node.type, node.version).executor, TypedNodeExecutor
+                    )
+                    for node in plan.graph.nodes
+                )
+            ):
+                from app.services.typed_schema import resolve_typed_schema
+
+                preflight = resolve_typed_schema(self.registry, plan.graph, context)
+                if not preflight.valid:
+                    raise InvalidWorkflowError(preflight.issues)
+            target_definition = self.registry.get(
+                next(node.type for node in plan.graph.nodes if node.id == target_node_id),
+                next(node.version for node in plan.graph.nodes if node.id == target_node_id),
+            )
+            if output_port is not None and output_port not in {
+                port.id for port in target_definition.output_ports
+            }:
+                raise InvalidWorkflowError(
+                    (
+                        GraphIssue(
+                            "INVALID_OUTPUT_PORT",
+                            "Select an available output port.",
+                            node_id=target_node_id,
+                            field="output_port",
+                        ),
+                    )
+                )
         except InvalidWorkflowError as exc:
             raise ExecutionFailure(
                 "WORKFLOW_VALIDATION_FAILED",
@@ -211,13 +259,16 @@ class WorkflowExecutionService:
         nodes = {node.id: node for node in plan.graph.nodes}
         results: dict[uuid.UUID, dict[str, ExecutionValue]] = {}
         target_output: Dataset | None = None
+        tables: dict[RowContext, TableValue] = {}
         identities: dict[uuid.UUID, str] = {}
         cache_hits = 0
         for node_id in plan.ordered_node_ids:
             node = nodes[node_id]
             definition = self.registry.get(node.type, node.version)
-            if len(definition.output_ports) > 1 or any(
-                port.kind != PortKind.DATASET for port in definition.output_ports
+            typed = isinstance(definition.executor, TypedNodeExecutor)
+            if not typed and (
+                len(definition.output_ports) > 1
+                or any(port.kind != PortKind.DATASET for port in definition.output_ports)
             ):
                 raise ExecutionFailure(
                     "INVALID_NODE_OUTPUT",
@@ -231,9 +282,22 @@ class WorkflowExecutionService:
                 key=lambda edge: (edge.target_port, str(edge.id)),
             )
             inputs: dict[str, Dataset] = {}
+            values: dict[str, ExecutionValue] = {}
             for edge in inbound:
                 value = results[edge.source_node_id].get(edge.source_port)
-                if not isinstance(value, TableValue):
+                if value is None:
+                    raise ExecutionFailure(
+                        "INVALID_NODE_OUTPUT",
+                        "The connected output is missing.",
+                        category="type",
+                        execution_id=context.execution_id,
+                        node_id=node_id,
+                    )
+                if edge.source_column_id is not None:
+                    assert isinstance(value, TableValue)
+                    value = project_field(value, edge.source_column_id)
+                values[edge.target_port] = value
+                if not typed and not isinstance(value, TableValue):
                     raise ExecutionFailure(
                         "INVALID_NODE_OUTPUT",
                         "The connected output is not a table.",
@@ -241,15 +305,20 @@ class WorkflowExecutionService:
                         execution_id=context.execution_id,
                         node_id=node_id,
                     )
-                inputs[edge.target_port] = value.dataset
+                if isinstance(value, TableValue):
+                    inputs[edge.target_port] = value.dataset
             upstream = {
-                edge.target_port: f"{identities[edge.source_node_id]}:{edge.source_port}"
+                edge.target_port: json.dumps(
+                    [identities[edge.source_node_id], edge.source_port, edge.source_column_id]
+                )
                 for edge in inbound
             }
-            validation = definition.executor.validate(
-                node, {port: dataset.schema for port, dataset in inputs.items()}, context
-            )
-            if not validation.valid:
+            validation = None
+            if not isinstance(definition.executor, TypedNodeExecutor):
+                validation = definition.executor.validate(
+                    node, {port: dataset.schema for port, dataset in inputs.items()}, context
+                )
+            if validation is not None and not validation.valid:
                 raise ExecutionFailure(
                     "NODE_VALIDATION_FAILED",
                     validation.issues[0].message,
@@ -263,12 +332,45 @@ class WorkflowExecutionService:
                 )
             artifact = definition.cache_identity(node, context) if definition.cache_identity else ""
             key = cache_key(node, upstream, scope=str(context.project_id), artifact=artifact)
-            output = context.cache.get(key) if context.cache else None
+            cacheable = not typed or (
+                len(definition.output_ports) == 1
+                and definition.output_ports[0].kind == PortKind.DATASET
+            )
+            output = context.cache.get(key) if context.cache and cacheable else None
+            named: dict[str, ExecutionValue] = {}
             if output is not None:
                 cache_hits += 1
             else:
                 try:
-                    output = definition.executor.execute(node, inputs, context)
+                    if isinstance(definition.executor, TypedNodeExecutor):
+                        named = definition.executor.execute_outputs(node, values, context)
+                        if named.keys() != {port.id for port in definition.output_ports}:
+                            raise ValueConnectionError("Executor returned undeclared outputs.")
+                        for port in definition.output_ports:
+                            runtime_value = named[port.id]
+                            runtime_kind = (
+                                PortKind.DATASET
+                                if isinstance(runtime_value, TableValue)
+                                else PortKind.FIELD
+                                if isinstance(runtime_value, FieldValue)
+                                else PortKind.SCALAR
+                                if isinstance(runtime_value, ScalarValue)
+                                else None
+                            )
+                            if runtime_kind not in {port.kind, *port.accepted_kinds}:
+                                raise ValueConnectionError(
+                                    "Executor returned an incompatible output kind."
+                                )
+                        output = next(
+                            (
+                                value.dataset
+                                for value in named.values()
+                                if isinstance(value, TableValue)
+                            ),
+                            None,
+                        )
+                    else:
+                        output = definition.executor.execute(node, inputs, context)
                 except Exception as exc:
                     if context.logger:
                         context.logger.exception(
@@ -281,13 +383,13 @@ class WorkflowExecutionService:
                     raise ExecutionFailure(
                         "NODE_EXECUTION_FAILED",
                         str(exc)
-                        if isinstance(exc, NodeExecutionError)
+                        if isinstance(exc, (NodeExecutionError, ValueConnectionError))
                         else "The node could not run. Check its configuration and source data.",
                         category=category,
                         execution_id=context.execution_id,
                         node_id=node_id,
                     ) from exc
-                if not isinstance(output, Dataset):
+                if not typed and not isinstance(output, Dataset):
                     raise ExecutionFailure(
                         "INVALID_NODE_OUTPUT",
                         "Node executor returned an unsupported runtime value.",
@@ -295,16 +397,48 @@ class WorkflowExecutionService:
                         execution_id=context.execution_id,
                         node_id=node_id,
                     )
-                if context.cache:
+                if context.cache and output is not None and cacheable:
                     context.cache.put(key, output)
-            results[node_id] = {}
-            for port in definition.output_ports:
-                results[node_id].update(
-                    dataset_outputs(output, RowContext(graph.id, node_id, port.id))
-                )
+            if output is not None and not named:
+                for port in definition.output_ports:
+                    named.update(dataset_outputs(output, RowContext(graph.id, node_id, port.id)))
+            results[node_id] = named
+            tables.update(
+                {value.context: value for value in named.values() if isinstance(value, TableValue)}
+            )
             if node_id == target_node_id:
                 target_output = output
             identities[node_id] = key
+        selected_port = output_port or next(
+            (port.id for port in target_definition.output_ports), None
+        )
+        selected = results[target_node_id].get(selected_port) if selected_port else None
+        if isinstance(selected, TableValue):
+            target_output = selected.dataset
+        elif isinstance(selected, (FieldValue, ScalarValue)):
+            try:
+                if isinstance(selected, FieldValue):
+                    table = tables[selected.context]
+                    validate_field(table, selected)
+                    frame = table.dataset.frame.select(selected.formula.expression.alias("value"))
+                else:
+                    frame = pl.select(selected.formula.expression.alias("value"))
+                column = ColumnSchema(
+                    f"value_{target_node_id.hex}",
+                    "value",
+                    "Value",
+                    selected.formula.logical_type,
+                    selected.formula.nullable,
+                )
+                target_output = Dataset(frame, DatasetSchema((column,)))
+            except ValueConnectionError as exc:
+                raise ExecutionFailure(
+                    "NODE_EXECUTION_FAILED",
+                    str(exc),
+                    category="transformation",
+                    execution_id=context.execution_id,
+                    node_id=target_node_id,
+                ) from exc
         assert target_output is not None
         target = target_output
         return ExecutionResult(
@@ -316,6 +450,12 @@ class WorkflowExecutionService:
             (time.perf_counter() - started) * 1000,
             {"executed_nodes": len(plan.ordered_node_ids), "cache_hits": cache_hits},
             outputs=results[target_node_id],
+            output_port=selected_port,
+            value_kind="field"
+            if isinstance(selected, FieldValue)
+            else "scalar"
+            if isinstance(selected, ScalarValue)
+            else "dataset",
         )
 
 

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.domain.errors import ApplicationError
-from app.domain.nodes import NodeRegistry
+from app.domain.nodes import NodeRegistry, TypedNodeExecutor
 from app.domain.visualizations import CHART_TYPES, VisualizationConfig
 from app.infrastructure.storage import StorageProvider
 from app.models import DashboardWidget
@@ -111,7 +111,10 @@ def save_navigation(
         }
         VisualizationConfig.model_validate(config)
         domain_node = next(item for item in branch.nodes if item.id == node.id)
-        output = registry.get(node.type, node.version).executor.infer_schema(
+        executor = registry.get(node.type, node.version).executor
+        if isinstance(executor, TypedNodeExecutor):
+            raise ApplicationError("INVALID_VISUALIZATION", "Select a visualization node.")
+        output = executor.infer_schema(
             replace(domain_node, config=config), {"input": source}, context
         )
         if output is None:

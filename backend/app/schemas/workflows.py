@@ -109,6 +109,7 @@ class PortRead(BaseModel):
     kind: str
     required: bool
     max_connections: int | None
+    accepted_kinds: list[str] | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class NodeDefinitionRead(BaseModel):
@@ -146,10 +147,27 @@ class ResolvedColumnRead(BaseModel):
     metadata: dict[str, Any]
 
 
+class RowContextRead(BaseModel):
+    workflow_id: uuid.UUID
+    node_id: uuid.UUID
+    output_port: str
+
+
+class ValueSchemaRead(BaseModel):
+    kind: Literal["dataset", "field", "scalar"]
+    columns: list[ResolvedColumnRead] | None = None
+    logical_type: str | None = None
+    row_context: RowContextRead | None = None
+    nullable: bool
+
+
 class NodeSchemaRead(BaseModel):
     node_id: uuid.UUID
     columns: list[ResolvedColumnRead] | None
     issues: list[GraphIssueRead]
+    outputs: dict[str, ValueSchemaRead] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class WorkflowSchemaRead(BaseModel):
@@ -160,6 +178,7 @@ class WorkflowSchemaRead(BaseModel):
 
 
 class PreviewRequest(BaseModel):
+    output_port: str | None = Field(default=None, min_length=1, max_length=100)
     parameters: ParameterValues = Field(default_factory=dict)
     limit: int = Field(default=100, ge=1, le=10_000)
 
@@ -188,6 +207,10 @@ class NodeValuesRead(BaseModel):
 
 
 class PreviewRead(BaseModel):
+    output_port: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    value_kind: Literal["dataset", "field", "scalar"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     revision: int
     execution_id: uuid.UUID
     node_id: uuid.UUID

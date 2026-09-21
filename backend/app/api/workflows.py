@@ -1,7 +1,8 @@
 import uuid
+from dataclasses import asdict
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -24,6 +25,8 @@ from app.schemas.workflows import (
     PreviewRead,
     PreviewRequest,
     ResolvedColumnRead,
+    RowContextRead,
+    ValueSchemaRead,
     WorkflowCreate,
     WorkflowList,
     WorkflowRead,
@@ -128,6 +131,24 @@ def resolve_workflow_schema(
                     else None
                 ),
                 issues=[_issue_read(issue) for issue in item.issues],
+                outputs={
+                    name: ValueSchemaRead(
+                        kind=value.kind,
+                        columns=[
+                            ResolvedColumnRead(**column.to_dict()) for column in value.table.columns
+                        ]
+                        if value.table
+                        else None,
+                        logical_type=value.logical_type,
+                        row_context=RowContextRead(**asdict(value.context))
+                        if value.context
+                        else None,
+                        nullable=value.nullable,
+                    )
+                    for name, value in item.outputs.items()
+                }
+                if graph.version >= 2
+                else None,
             )
             for item in result.nodes
         ],
@@ -153,7 +174,9 @@ def preview_workflow_node(
     graph = _domain_graph(session, workflow)
     context = _execution_context(workflow, session, storage, settings, cache, payload.parameters)
     try:
-        result = WorkflowExecutionService(registry).execute(graph, node_id, context)
+        result = WorkflowExecutionService(registry).execute(
+            graph, node_id, context, output_port=payload.output_port
+        )
     except ExecutionFailure as exc:
         raise HTTPException(
             status_code=422 if exc.category == "validation" else 400,
@@ -186,6 +209,8 @@ def preview_workflow_node(
     limit = min(payload.limit, settings.max_preview_rows)
     rows = result.output.frame.head(limit).to_dicts()
     return PreviewRead(
+        output_port=result.output_port if graph.version >= 2 else None,
+        value_kind=result.value_kind if graph.version >= 2 else None,
         revision=workflow.revision,
         execution_id=result.execution_id,
         node_id=node_id,
@@ -239,6 +264,7 @@ def _definition_read(definition: NodeDefinition) -> NodeDefinitionRead:
             kind=item.kind.value,
             required=item.required,
             max_connections=item.max_connections,
+            accepted_kinds=[kind.value for kind in item.accepted_kinds] or None,
         )
 
     return NodeDefinitionRead(
@@ -256,5 +282,13 @@ def _definition_read(definition: NodeDefinition) -> NodeDefinitionRead:
 
 
 @router.get("/api/v1/node-catalog", response_model=NodeCatalogRead)
-def node_catalog(registry: Registry) -> NodeCatalogRead:
-    return NodeCatalogRead(items=[_definition_read(item) for item in registry.catalog()])
+def node_catalog(
+    registry: Registry, format_version: Annotated[int, Query(ge=1, le=2)] = 1
+) -> NodeCatalogRead:
+    return NodeCatalogRead(
+        items=[
+            _definition_read(item)
+            for item in registry.catalog()
+            if item.workflow_format <= format_version
+        ]
+    )

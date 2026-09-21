@@ -1,7 +1,7 @@
 """Typed execution values. Field wires compose expressions, never positional row joins.
 
-This is the execution foundation for the opt-in v2 editor; the v1 graph runner
-continues to use its dataset contract until typed routing is integrated.
+The shared graph runner routes these values in v2 and adapts legacy Dataset
+executors without changing their transformation contracts.
 """
 
 import math
@@ -95,6 +95,30 @@ class ScalarValue:
 
 ExecutionValue = TableValue | FieldValue | ScalarValue
 Operand = FieldValue | ScalarValue
+
+
+@dataclass(frozen=True)
+class ValueSchema:
+    kind: Literal["dataset", "field", "scalar"]
+    table: DatasetSchema | None = None
+    logical_type: LogicalType | None = None
+    context: RowContext | None = None
+    nullable: bool = True
+    referenced_columns: tuple[str, ...] = ()
+    complexity: int = 1
+    depth: int = 1
+
+    def project(self, column_id: str) -> "ValueSchema":
+        if self.kind != "dataset" or self.table is None or self.context is None:
+            raise ValueConnectionError("Only a table output can provide a field projection.")
+        field = project_schema(self.context, self.table, column_id)
+        return ValueSchema(
+            "field",
+            logical_type=field.formula.logical_type,
+            context=self.context,
+            nullable=field.formula.nullable,
+            referenced_columns=(column_id,),
+        )
 
 
 def parameter_scalar(

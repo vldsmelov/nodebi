@@ -1,5 +1,24 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F1 typed execution and normal Docker build - 2026-09-21
+
+304 backend tests pass with PostgreSQL enabled; five skips apply only to the SQLite matrix.
+New engine regressions cover mixed legacy/typed execution, named field/scalar preview, row
+context/type preflight before source materialization, parameter-specific cache reuse, changed
+column identity, missing fields, division policy, source revocation and mixed table/scalar outputs.
+API regression uploads a real Excel workbook and saves/restores source/multiply/append/sum;
+bounded field preview and scalar total are correct with revision and output identity.
+
+Ruff lint/format, mypy, OpenAPI drift, 82 frontend tests, TypeScript/ESLint and frontend production
+build pass. Seven focused browser scenarios pass against the updated backend. The standard
+cold Docker backend build now succeeds; deployment no longer needs the temporary overlay image.
+After restart, original and UX-copy workflow/dashboard snapshots match all six captured API
+endpoints. No data reset, migration or auto-upgrade. This is not new 164-slice numerical parity.
+
+New operations are not yet authorable in the UI; F1-F4 acceptance remains open. Data-dependent
+schemas in mixed typed branches are explicitly unsupported until adapted; existing legacy Pivot
+remains available. Full RU/EN/TT new-editor forms/diagnostic copy are still pending.
+
 ## F1 field-connection persistence - 2026-09-21
 
 292 backend tests pass with PostgreSQL enabled, five SQLite matrix skips. Field projections

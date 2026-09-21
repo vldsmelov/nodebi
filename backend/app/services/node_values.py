@@ -38,7 +38,9 @@ def node_values(
     graph = domain_graph(session, workflow)
     context = execution_context(workflow, session, storage, settings, cache, request.parameters)
     try:
-        result = WorkflowExecutionService(registry).execute(graph, node_id, context)
+        result = WorkflowExecutionService(registry).execute(
+            graph, node_id, context, output_port=request.output_port
+        )
     except ExecutionFailure as exc:
         raise ApplicationError(
             exc.code, exc.message, node_id=str(exc.node_id), execution_id=str(exc.execution_id)

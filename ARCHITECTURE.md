@@ -1,5 +1,23 @@
 # ARCHITECTURE.md
 
+## Typed graph execution and named previews (ADR-090)
+
+TypedNodeExecutor declares infer_outputs/execute_outputs maps. The common runner adapts legacy
+Dataset executors and routes table/field/scalar values by port; fields retain their RowContext.
+V2 branches with typed operations or projections receive schema preflight before materialization.
+Accepted port kinds describe alternatives; resolved schemas determine the actual kind and type.
+Expressions remain lazy until append/filter/sum or an explicitly requested field preview.
+The eight initial operations are exposed by catalog format_version=2; the default catalog and
+current editor remain v1. Preview requests accept output_port; v2 responses include output_port
+and value_kind while retaining the bounded Dataset envelope, saved revision and parameters.
+
+Cache dependencies include source output and projected column ID. Scalar parameter identities
+include only the used resolved value/type. Table results use the existing bounded cache; composed
+expressions, scalars and multiple-output typed results are not stored in that Dataset-only cache.
+Source availability/ownership is validated before cache access. Data-dependent schemas in typed
+branches are currently rejected explicitly; ordinary legacy Pivot branches remain supported.
+Workbook/composite persistence, editor forms/translations and dynamic-schema adaptation remain open.
+
 ## Persisted field projections (ADR-089)
 
 WorkflowEdge.source_column_id identifies a projected column of a dataset output. The optional
@@ -10,9 +28,9 @@ require format_version=2 on save; ordinary revision/ownership checks still apply
 workflow_edges on PostgreSQL and refuses to remove the column while any projection exists.
 
 Graph validation derives FIELD for a projected dataset output and rejects projections in v1 or
-from non-table outputs. Until typed routing lands, FIELD_ROUTING_UNAVAILABLE blocks schema and
-execution before source materialization. A saved draft must never execute a field wire as a table
-wire. Presentation metadata and typed executor registration remain separate unfinished work.
+from non-table outputs. ADR-090 replaces the temporary routing guard with actual schema and
+context validation. A saved draft never executes a field wire as a table wire. Presentation
+metadata remains separate unfinished work.
 
 ## Typed value foundation and format acknowledgement (ADR-088)
 
@@ -25,7 +43,7 @@ share the allowlisted formula compiler; predicate syntax is opt-in and v1 formul
 Typed null scalars retain their declared type. Runtime arithmetic checks travel with expressions.
 
 The existing runner now routes legacy results by declared output name via a zero-copy adapter;
-terminal visualization previews remain Dataset responses. Typed graph routing is still pending.
+terminal visualization previews remain Dataset responses. Typed graph routing is defined in ADR-090.
 PUT WorkflowSave.format_version defaults to 1. The service checks stored format after acquiring
 the project lock; downgrade returns WORKFLOW_FORMAT_UNSUPPORTED (409). Explicit upgrades commit
 with the graph's normal revision CAS. Current clients explicitly acknowledge only v1. Unknown

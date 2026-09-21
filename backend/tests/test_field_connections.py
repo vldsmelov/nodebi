@@ -70,12 +70,10 @@ def test_field_connection_roundtrip_conflict_and_explicit_execution_guard(
         schema = client.get(path + "/schema")
         assert schema.status_code == 200
         assert schema.json()["valid"] is False
-        assert any(
-            issue["code"] == "FIELD_ROUTING_UNAVAILABLE" for issue in schema.json()["issues"]
-        )
+        assert any(issue["code"] == "INCOMPATIBLE_PORTS" for issue in schema.json()["issues"])
         preview = client.post(path + f"/nodes/{nodes[1]['id']}/preview", json={})
         assert preview.status_code == 422
-        assert "FIELD_ROUTING_UNAVAILABLE" in preview.text
+        assert "INCOMPATIBLE_PORTS" in preview.text
         # Unchanged IDs with a changed human label do not rewrite the connection.
         renamed = client.put(
             path,

@@ -66,7 +66,13 @@ def validate_draft(payload: WorkflowSave, registry: NodeRegistry) -> None:
     known = set(node_ids)
     for node in payload.nodes:
         try:
-            registry.get(node.type, node.version)
+            definition = registry.get(node.type, node.version)
+            if payload.format_version < definition.workflow_format:
+                raise ApplicationError(
+                    "WORKFLOW_FORMAT_REQUIRED",
+                    "This node requires workflow format v2.",
+                    node_id=str(node.id),
+                )
         except UnknownNodeTypeError as exc:
             raise ApplicationError("INVALID_NODE", str(exc)) from exc
     for edge in payload.edges:

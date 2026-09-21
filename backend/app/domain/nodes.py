@@ -1,4 +1,5 @@
 import uuid
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -10,6 +11,7 @@ from pydantic import BaseModel
 from app.domain.datasets import Dataset, DatasetSchema
 from app.domain.parameters import ParameterDefinition, ParameterValue
 from app.domain.sources import SourceAccess
+from app.domain.values import ExecutionValue, ValueSchema
 from app.domain.workflows import NodeInstance
 
 if TYPE_CHECKING:
@@ -50,6 +52,7 @@ class PortDefinition:
     kind: PortKind
     required: bool = True
     max_connections: int | None = 1
+    accepted_kinds: tuple[PortKind, ...] = ()
 
 
 @dataclass
@@ -79,6 +82,18 @@ class ValidationResult:
     @property
     def valid(self) -> bool:
         return not self.issues
+
+
+class TypedNodeExecutor(ABC):
+    @abstractmethod
+    def infer_outputs(
+        self, node: NodeInstance, inputs: dict[str, ValueSchema], context: ExecutionContext
+    ) -> dict[str, ValueSchema]: ...
+
+    @abstractmethod
+    def execute_outputs(
+        self, node: NodeInstance, inputs: dict[str, ExecutionValue], context: ExecutionContext
+    ) -> dict[str, ExecutionValue]: ...
 
 
 class NodeExecutor(Protocol):
@@ -115,9 +130,10 @@ class NodeDefinition:
     output_ports: tuple[PortDefinition, ...]
     config_schema: ConfigSchema
     schema_inference_mode: SchemaInferenceMode
-    executor: NodeExecutor
+    executor: NodeExecutor | TypedNodeExecutor
     icon: str | None = None
     cache_identity: Callable[[NodeInstance, ExecutionContext], str] | None = None
+    workflow_format: int = 1
 
 
 class UnknownNodeTypeError(KeyError):

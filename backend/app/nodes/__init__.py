@@ -5,6 +5,7 @@ from app.nodes.calculated_column import calculated_column_definition
 from app.nodes.combine import combine_definitions
 from app.nodes.convert_types import convert_types_definition
 from app.nodes.excel_source import excel_source_definition
+from app.nodes.field_operations import field_definitions
 from app.nodes.filter import filter_definition
 from app.nodes.group_by import group_by_definition
 from app.nodes.limit import limit_definition
@@ -20,6 +21,8 @@ from app.nodes.window import window_definition
 @lru_cache
 def get_node_registry() -> NodeRegistry:
     registry = NodeRegistry()
+    for definition in field_definitions():
+        registry.register(definition)
     registry.register(window_definition())
     registry.register(unpivot_definition())
     registry.register(convert_types_definition())

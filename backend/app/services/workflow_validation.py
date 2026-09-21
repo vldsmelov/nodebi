@@ -1,6 +1,6 @@
 import uuid
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 from pydantic import ValidationError
@@ -13,8 +13,10 @@ from app.domain.nodes import (
     PortDefinition,
     PortKind,
     SchemaInferenceMode,
+    TypedNodeExecutor,
     UnknownNodeTypeError,
 )
+from app.domain.values import RowContext, ValueSchema
 from app.domain.workflows import NodeInstance, WorkflowEdge, WorkflowGraph
 
 
@@ -71,6 +73,14 @@ class WorkflowGraphValidator:
             try:
                 definition = self.registry.get(node.type, node.version)
                 definitions[node.id] = definition
+                if graph.version < definition.workflow_format:
+                    issues.append(
+                        GraphIssue(
+                            "WORKFLOW_FORMAT_REQUIRED",
+                            "This node requires workflow format v2.",
+                            node_id=node.id,
+                        )
+                    )
             except UnknownNodeTypeError as exc:
                 issues.append(GraphIssue("UNKNOWN_NODE_TYPE", str(exc), node_id=node.id))
                 continue
@@ -141,18 +151,12 @@ class WorkflowGraphValidator:
                     )
                     continue
                 source_kind = PortKind.FIELD
-                # Typed executors/schema routing land in the next delivery. Never
-                # pass the entire source table to a legacy executor for a field wire.
-                issues.append(
-                    GraphIssue(
-                        "FIELD_ROUTING_UNAVAILABLE",
-                        "Field connections are saved, but this editor cannot execute them yet.",
-                        node_id=target.id,
-                        edge_id=edge.id,
-                        field="source_column_id",
-                    )
-                )
-            if source_kind != target_port.kind:
+            source_kinds = (
+                {source_kind}
+                if edge.source_column_id
+                else {source_kind, *source_port.accepted_kinds}
+            )
+            if not source_kinds.intersection({target_port.kind, *target_port.accepted_kinds}):
                 issues.append(
                     GraphIssue(
                         "INCOMPATIBLE_PORTS",
@@ -259,6 +263,7 @@ class NodeSchemaResult:
     node_id: uuid.UUID
     schema: DatasetSchema | None
     issues: tuple[GraphIssue, ...] = ()
+    outputs: dict[str, ValueSchema] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -276,6 +281,18 @@ class WorkflowSchemaResolver:
         self.registry = registry
 
     def resolve(self, graph: WorkflowGraph, context: ExecutionContext) -> SchemaResolutionResult:
+        typed_types = {
+            (item.type, item.version)
+            for item in self.registry.catalog()
+            if isinstance(item.executor, TypedNodeExecutor)
+        }
+        if graph.version >= 2 and (
+            any(edge.source_column_id is not None for edge in graph.edges)
+            or any((node.type, node.version) in typed_types for node in graph.nodes)
+        ):
+            from app.services.typed_schema import resolve_typed_schema
+
+            return resolve_typed_schema(self.registry, graph, context)
         validation = WorkflowGraphValidator(self.registry).validate(graph)
         fatal_codes = {
             "DUPLICATE_NODE_ID",
@@ -285,7 +302,6 @@ class WorkflowSchemaResolver:
             "INVALID_EDGE_PORT",
             "INCOMPATIBLE_PORTS",
             "INVALID_FIELD_PROJECTION",
-            "FIELD_ROUTING_UNAVAILABLE",
             "MAX_INPUT_CONNECTIONS",
             "MAX_OUTPUT_CONNECTIONS",
             "CYCLE_DETECTED",
@@ -313,6 +329,7 @@ class WorkflowSchemaResolver:
                 for edge in graph.edges
                 if edge.target_node_id == node_id and edge.source_node_id in schemas
             }
+            assert not isinstance(definition.executor, TypedNodeExecutor)
             node_validation = definition.executor.validate(node, input_schemas, context)
             node_issues = tuple(
                 GraphIssue(issue.code, issue.message, node_id=node_id, field=issue.field)
@@ -345,7 +362,20 @@ class WorkflowSchemaResolver:
                 else:
                     schema = definition.executor.infer_schema(node, input_schemas, context)
                 schemas[node_id] = schema
-                results.append(NodeSchemaResult(node_id, schema))
+                results.append(
+                    NodeSchemaResult(
+                        node_id,
+                        schema,
+                        outputs={
+                            port.id: ValueSchema(
+                                "dataset",
+                                table=schema,
+                                context=RowContext(graph.id, node_id, port.id),
+                            )
+                            for port in definition.output_ports
+                        },
+                    )
+                )
             except Exception as exc:
                 issue = GraphIssue("SCHEMA_INFERENCE_FAILED", str(exc), node_id=node_id)
                 results.append(NodeSchemaResult(node_id, None, (issue,)))

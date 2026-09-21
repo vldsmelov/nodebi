@@ -717,6 +717,10 @@ export interface components {
             columns: components["schemas"]["ResolvedColumnRead"][] | null;
             /** Issues */
             issues: components["schemas"]["GraphIssueRead"][];
+            /** Outputs */
+            outputs?: {
+                [key: string]: components["schemas"]["ValueSchemaRead"];
+            } | null;
         };
         /** NodeValueChoice */
         NodeValueChoice: {
@@ -741,6 +745,8 @@ export interface components {
         };
         /** NodeValuesRequest */
         NodeValuesRequest: {
+            /** Output Port */
+            output_port?: string | null;
             /** Parameters */
             parameters?: {
                 [key: string]: string | number | boolean | null;
@@ -839,6 +845,8 @@ export interface components {
             required: boolean;
             /** Max Connections */
             max_connections: number | null;
+            /** Accepted Kinds */
+            accepted_kinds?: string[] | null;
         };
         /** PositionPayload */
         PositionPayload: {
@@ -849,6 +857,10 @@ export interface components {
         };
         /** PreviewRead */
         PreviewRead: {
+            /** Output Port */
+            output_port?: string | null;
+            /** Value Kind */
+            value_kind?: ("dataset" | "field" | "scalar") | null;
             /** Revision */
             revision: number;
             /**
@@ -889,6 +901,8 @@ export interface components {
         };
         /** PreviewRequest */
         PreviewRequest: {
+            /** Output Port */
+            output_port?: string | null;
             /** Parameters */
             parameters?: {
                 [key: string]: string | number | boolean | null;
@@ -959,6 +973,21 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** RowContextRead */
+        RowContextRead: {
+            /**
+             * Workflow Id
+             * Format: uuid
+             */
+            workflow_id: string;
+            /**
+             * Node Id
+             * Format: uuid
+             */
+            node_id: string;
+            /** Output Port */
+            output_port: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -971,6 +1000,21 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** ValueSchemaRead */
+        ValueSchemaRead: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "dataset" | "field" | "scalar";
+            /** Columns */
+            columns?: components["schemas"]["ResolvedColumnRead"][] | null;
+            /** Logical Type */
+            logical_type?: string | null;
+            row_context?: components["schemas"]["RowContextRead"] | null;
+            /** Nullable */
+            nullable: boolean;
         };
         /** VisualizationList */
         VisualizationList: {
@@ -1839,7 +1883,9 @@ export interface operations {
     };
     node_catalog_api_v1_node_catalog_get: {
         parameters: {
-            query?: never;
+            query?: {
+                format_version?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1853,6 +1899,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NodeCatalogRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# ADR-090 - Typed executors share the existing workflow engine
+
+Date: 2026-09-21. Status: ACCEPTED; F1 remains IN PROGRESS.
+Context: persisted field references need real execution and schema checking without per-wire
+tables or a parallel analytical engine. Legacy transformations and current projects must survive.
+Decision: TypedNodeExecutor returns named ValueSchema/ExecutionValue maps; adapt legacy Dataset
+executors inside the common runner. Preflight typed branches for port kinds, logical types and
+row contexts before loading data. Register constants, parameters, arithmetic, comparisons, logic,
+append, mask filter and sum for format v2 only. Use the existing safe expression compiler.
+Field previews materialize only the requested expression; scalar previews use a one-column
+Dataset envelope. Output names/kinds are returned only for v2, preserving v1 wire snapshots.
+Cache table boundaries using output/column identities and used parameter values; do not store
+expression/scalar/multiple-output results in a Dataset-only cache. Recheck source access first.
+Alternatives: a separate engine duplicates caching/validation; storing fields as frames loses
+row context and multiplies materialization; auto-exposing nodes in v1 would lack usable forms.
+Consequences: static mixed graphs work through save/schema/preview APIs. Data-dependent legacy
+schemas in typed branches remain explicitly unsupported until adapted. The new editor, forms,
+translations and container persistence remain unfinished; there is no automatic project upgrade.
+This supersedes ADR-089's temporary FIELD_ROUTING_UNAVAILABLE guard, not its persistence policy.
+
 # ADR-089 - Persist field projections without interpreting them as table connections
 
 Date: 2026-09-21. Status: ACCEPTED; typed execution remains IN PROGRESS.

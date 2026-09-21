@@ -9,8 +9,10 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
   * [x] Explicit save-format acknowledgement and CAS upgrade guard; reject old-client overwrite and unsupported v2 fields; regenerate OpenAPI types.
   * [x] Persist source_column_id through API/ORM/domain with migration 0007, v1 wire compatibility, CAS/format guards and loss-preventing downgrade.
   * [ ] Persist typed workbook/composite presentation metadata with revision-safe validation and migrations.
-  * [ ] Register typed executors, schema inference and typed routing in the common engine.
-  * [ ] Named field/scalar preview, output-aware cache and node/field-attributed diagnostics.
+  * [x] Register eight typed operations, static schema/context preflight and named routing through the common legacy-compatible engine (ADR-090).
+  * [x] Named field/scalar preview and output/column/parameter-aware cache; API persistence/execution regression on SQLite/PostgreSQL.
+  * [ ] Adapt data-dependent legacy schemas in mixed typed branches (explicitly rejected for now).
+  * [ ] Complete diagnostic field paths and RU/EN/TT editor translations alongside the typed forms.
 * [ ] F2: Opt-in editor, workbook/sheets, interactive fields/cards, compatible wires and A/B previews.
 * [ ] F3: Atomic one-level composite blocks, navigation/public ports, field Bar Chart and scalar KPI.
 * [ ] F4: UI-built end-to-end scenario, restart/compatibility/164-slice parity and operator evaluation.

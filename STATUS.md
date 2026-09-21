@@ -5,7 +5,27 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Current milestone: F1 typed field-editor, IN PROGRESS (ADR-089).
+Current milestone: F1 typed field-editor, IN PROGRESS (ADR-090).
+Latest completed subtask: eight general typed operations registered in the common execution
+engine, named schemas/preview and static row-context/type preflight. Actual Excel save/read/
+preview integration passes on SQLite and PostgreSQL. New operations are API-only through the
+format_version=2 catalog; the existing editor and default catalog remain v1.
+Next: adapt data-dependent schemas in typed branches; add revision-safe workbook/composite
+presentation persistence, then opt-in forms/cards/wires and A/B previews. Complete diagnostic
+field paths and translations with those forms. F1-F4 remain unfinished. Typed Pivot branches
+currently fail explicitly; existing tabular Pivot is unchanged. No new known P0/P1 regression.
+Checks: 304 backend tests pass with PostgreSQL, five SQLite matrix skips; Ruff lint/format,
+mypy, OpenAPI drift, 82 frontend tests, TypeScript/ESLint and production build pass. Seven
+focused browser checks pass against the updated backend (format guard, editor, charts).
+Regression covers missing fields, cross-context wires, numeric types/zero division, revoked
+sources, parameter-specific cache reuse, field identity changes and mixed named outputs.
+Deployment: ordinary cold Docker backend build succeeded after connectivity was restored;
+updated backend is running on the standard image. The prior overlay workaround is no longer
+needed. Migration head remains 0007; no schema change/reset/conversion in this task. Original
+and UX-copy workflow/dashboard snapshots still match all six captured endpoints after restart.
+Full 164-slice numerical parity and new-editor UI acceptance were not rerun/claimed.
+
+Previous F1 session (ADR-089):
 Latest completed subtask: source_column_id persists through API, database and domain graph in v2.
 Migration 20260921_0007 adds a nullable column; downgrade locks/checks projections and refuses
 semantic loss. V1 JSON stays unchanged. Source kind/format validation and explicit schema/preview
