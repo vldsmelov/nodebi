@@ -1,5 +1,21 @@
 # ARCHITECTURE.md
 
+## Data-dependent schemas in typed branches (ADR-091)
+
+Typed schema resolution proceeds in DAG order. For a legacy DATA_DEPENDENT executor it first
+validates the resolved inputs and configuration, then materializes only the node's ancestor
+branch through the common runner. An internal execution entry skips repeated typed schema
+preflight for this already checked prefix, avoiding recursion; structural validation, source
+access checks, ordinary executor validation and resource limits remain active. Public execution
+always runs preflight. The resulting Dataset schema receives the dynamic node's own RowContext;
+downstream projections are checked against its actual stable column IDs before they execute.
+
+Table results reuse the bounded cache with existing parameter/output identities. Changing a
+parameter can remove a Pivot column; its wire is reported invalid rather than reusing an old
+schema. Materialization errors retain the actual failing ancestor node. Schema discovery may
+execute data-dependent prefixes, but static-only branches remain schema-only. Executors marked
+UNKNOWN_UNTIL_EXECUTION still require a discovery contract before they can enter typed branches.
+
 ## Typed graph execution and named previews (ADR-090)
 
 TypedNodeExecutor declares infer_outputs/execute_outputs maps. The common runner adapts legacy
@@ -14,9 +30,9 @@ and value_kind while retaining the bounded Dataset envelope, saved revision and 
 Cache dependencies include source output and projected column ID. Scalar parameter identities
 include only the used resolved value/type. Table results use the existing bounded cache; composed
 expressions, scalars and multiple-output typed results are not stored in that Dataset-only cache.
-Source availability/ownership is validated before cache access. Data-dependent schemas in typed
-branches are currently rejected explicitly; ordinary legacy Pivot branches remain supported.
-Workbook/composite persistence, editor forms/translations and dynamic-schema adaptation remain open.
+Source availability/ownership is validated before cache access. ADR-091 adds data-dependent
+legacy schemas, including Pivot, to typed branches. Workbook/composite persistence and editor
+forms/translations remain open.
 
 ## Persisted field projections (ADR-089)
 

@@ -96,5 +96,55 @@ def test_real_excel_field_wires_schema_preview_and_restore(
         advanced = client.get("/api/v1/node-catalog?format_version=2").json()["items"]
         assert not any(item["type"] == "field_arithmetic" for item in legacy)
         assert any(item["type"] == "field_arithmetic" for item in advanced)
+
+        # Discover a dynamic Pivot field through the same API used by selectors,
+        # then persist a real downstream field connection to its stable ID.
+        pivot = str(uuid4())
+        nodes.append(
+            {
+                "id": pivot,
+                "type": "pivot",
+                "version": 1,
+                "position": {"x": 0, "y": 0},
+                "config": {
+                    "index_column_id": "col_1",
+                    "pivot_column_id": "col_2",
+                    "value_column_id": "calc_" + append.replace("-", ""),
+                    "operation": "sum",
+                },
+            }
+        )
+        edges.append(
+            {
+                "id": str(uuid4()),
+                "source_node_id": append,
+                "source_port": "dataset",
+                "target_node_id": pivot,
+                "target_port": "input",
+            }
+        )
+        payload.update(expected_revision=2, format_version=2)
+        assert client.put(path, json=payload).status_code == 200
+        discovered = client.get(path + "/schema").json()
+        assert discovered["valid"], discovered
+        pivot_output = next(item for item in discovered["nodes"] if item["node_id"] == pivot)
+        column = next(
+            item
+            for item in pivot_output["outputs"]["dataset"]["columns"]
+            if item["engine_name"] == "pivot_20"
+        )
+        for wire in edges:
+            if wire["target_node_id"] == total:
+                wire["source_node_id"] = pivot
+                if wire["target_port"] == "value":
+                    wire["source_column_id"] = column["column_id"]
+        payload["expected_revision"] = 3
+        saved = client.put(path, json=payload)
+        assert saved.status_code == 200, saved.text
+        assert client.get(path).json() == saved.json()
+        result = client.post(path + f"/nodes/{total}/preview", json={"output_port": "value"})
+        assert result.status_code == 200, result.text
+        assert result.json()["rows"] == [{"value": 60.0}]
+        assert result.json()["revision"] == 4
     finally:
         app.dependency_overrides.clear()

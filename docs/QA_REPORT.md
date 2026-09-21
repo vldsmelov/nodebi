@@ -1,5 +1,21 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F1 dynamic schemas in typed branches - 2026-09-21
+
+312 backend tests pass with PostgreSQL enabled, five SQLite-only matrix skips. Eight new cases
+cover cached/uncached Pivot between typed operations, stable dynamic IDs, missing-field wire
+attribution, preflight numeric rejection, materialization error attribution, parameter-dependent
+category removal/restoration, resource limits, revoked sources and consecutive dynamic stages.
+The real Excel/API regression now saves Pivot, discovers its output field through schema API,
+connects that ID to field_sum, saves/restores and previews the correct total at revision 4.
+Disconnected invalid branches are not executed when a different target is requested.
+
+Ruff lint/format, mypy, OpenAPI drift and frontend typecheck pass. Seven browser scenarios
+(editor, charts, v2 overwrite protection) pass against the updated normal Docker backend image.
+After waiting for container health, original and UX-copy snapshots match six API endpoints.
+No schema migration or data reset. No UI feature, full numerical parity rerun or operator
+measurement claimed; frontend sources/build are unchanged from the preceding green checks.
+
 ## F1 typed execution and normal Docker build - 2026-09-21
 
 304 backend tests pass with PostgreSQL enabled; five skips apply only to the SQLite matrix.

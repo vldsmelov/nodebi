@@ -11,7 +11,7 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
   * [ ] Persist typed workbook/composite presentation metadata with revision-safe validation and migrations.
   * [x] Register eight typed operations, static schema/context preflight and named routing through the common legacy-compatible engine (ADR-090).
   * [x] Named field/scalar preview and output/column/parameter-aware cache; API persistence/execution regression on SQLite/PostgreSQL.
-  * [ ] Adapt data-dependent legacy schemas in mixed typed branches (explicitly rejected for now).
+  * [x] Adapt DATA_DEPENDENT legacy schemas in mixed typed branches through validated prefix execution; Pivot field IDs, parameter changes, cache, limits and error attribution verified (ADR-091).
   * [ ] Complete diagnostic field paths and RU/EN/TT editor translations alongside the typed forms.
 * [ ] F2: Opt-in editor, workbook/sheets, interactive fields/cards, compatible wires and A/B previews.
 * [ ] F3: Atomic one-level composite blocks, navigation/public ports, field Bar Chart and scalar KPI.

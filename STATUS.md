@@ -5,7 +5,28 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Current milestone: F1 typed field-editor, IN PROGRESS (ADR-090).
+Current milestone: F1 typed field-editor, IN PROGRESS (ADR-091).
+Latest completed subtask: data-dependent legacy schemas in mixed typed branches. Pivot now
+accepts a typed upstream calculation and exposes stable fields to downstream field operations.
+Schema discovery executes only validated dynamic prefixes through the common bounded engine;
+ordinary static schema inference remains data-free. Parameter changes cannot reuse obsolete
+Pivot fields; missing fields identify their wire. Runtime failures retain the actual node.
+Next: revision-safe workbook/composite presentation metadata with migration, then opt-in
+editor cards, field connections, forms/translations and A/B previews. No new UI in this task.
+UNKNOWN_UNTIL_EXECUTION executors without schema discovery remain unsupported in typed branches;
+the registered Pivot uses DATA_DEPENDENT and is supported. F1-F4 are not complete.
+Checks: 312 backend tests pass with PostgreSQL (five SQLite matrix skips), Ruff lint/format,
+mypy, OpenAPI drift and frontend typecheck pass. Seven browser regressions pass against the
+updated backend. New cases cover real Excel/API save/restore, cached/uncached execution,
+consecutive Pivots, parameter-dependent categories, missing fields, disconnected branches,
+numeric errors, source revocation and Pivot category limits. No known new P0/P1 defect.
+Deployment: standard Docker backend build and healthy restart pass; six original/UX-copy
+workflow/dashboard API snapshots remain unchanged. The first snapshot request raced startup;
+retry after Compose --wait succeeded. No DB migration/reset/automatic conversion. Full frontend
+unit/build checks were last green in ADR-090; unchanged frontend code was not rebuilt here.
+New-editor UI acceptance, full 164-slice parity and human usability remain pending.
+
+Previous F1 session (ADR-090):
 Latest completed subtask: eight general typed operations registered in the common execution
 engine, named schemas/preview and static row-context/type preflight. Actual Excel save/read/
 preview integration passes on SQLite and PostgreSQL. New operations are API-only through the

@@ -214,23 +214,41 @@ class WorkflowExecutionService:
         *,
         output_port: str | None = None,
     ) -> ExecutionResult:
+        return self._execute(graph, target_node_id, context, output_port=output_port)
+
+    def _execute(
+        self,
+        graph: WorkflowGraph,
+        target_node_id: uuid.UUID,
+        context: ExecutionContext,
+        *,
+        output_port: str | None = None,
+        preflight: bool = True,
+    ) -> ExecutionResult:
+        # Only the schema resolver may skip repeated typed preflight, after it
+        # has validated every ancestor of a data-dependent node in DAG order.
+        # Structural validation and source authorization still run below.
         started = time.perf_counter()
         try:
             plan = ExecutionPlanner(self.registry).plan(graph, target_node_id)
-            if graph.version >= 2 and (
-                any(edge.source_column_id is not None for edge in plan.graph.edges)
-                or any(
-                    isinstance(
-                        self.registry.get(node.type, node.version).executor, TypedNodeExecutor
+            if (
+                preflight
+                and graph.version >= 2
+                and (
+                    any(edge.source_column_id is not None for edge in plan.graph.edges)
+                    or any(
+                        isinstance(
+                            self.registry.get(node.type, node.version).executor, TypedNodeExecutor
+                        )
+                        for node in plan.graph.nodes
                     )
-                    for node in plan.graph.nodes
                 )
             ):
                 from app.services.typed_schema import resolve_typed_schema
 
-                preflight = resolve_typed_schema(self.registry, plan.graph, context)
-                if not preflight.valid:
-                    raise InvalidWorkflowError(preflight.issues)
+                resolved = resolve_typed_schema(self.registry, plan.graph, context)
+                if not resolved.valid:
+                    raise InvalidWorkflowError(resolved.issues)
             target_definition = self.registry.get(
                 next(node.type for node in plan.graph.nodes if node.id == target_node_id),
                 next(node.version for node in plan.graph.nodes if node.id == target_node_id),

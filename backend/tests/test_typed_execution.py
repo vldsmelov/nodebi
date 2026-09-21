@@ -363,3 +363,218 @@ def test_warm_typed_result_does_not_bypass_source_access() -> None:
         engine.execute(graph, graph.nodes[-1].id, context)
     assert "unavailable" in failure.value.issues[0].message
     assert access.loads == 1
+
+
+def pivot_setup():  # type: ignore[no-untyped-def]
+    graph, context, access = setup()
+    source, multiply, append, _ = graph.nodes
+    pivot = node(
+        "pivot",
+        index_column_id="q",
+        pivot_column_id="p",
+        value_column_id=f"calc_{append.id.hex}",
+        operation="sum",
+    )
+    graph = replace(
+        graph,
+        nodes=(source, multiply, append, pivot),
+        edges=(*graph.edges[:4], edge(append, pivot, "input")),
+    )
+    return graph, context, access
+
+
+@pytest.mark.parametrize("cached", [False, True])
+def test_pivot_between_typed_operations_discovers_real_fields(cached: bool) -> None:
+    graph, context, access = pivot_setup()
+    if not cached:
+        context.cache = None
+    registry = get_node_registry()
+    resolved = WorkflowSchemaResolver(registry).resolve(graph, context)
+    assert resolved.valid, resolved.issues
+    pivot = graph.nodes[-1]
+    schema = resolved.nodes[-1].outputs["dataset"]
+    assert schema.context == RowContext(graph.id, pivot.id, "dataset")
+    assert schema.table is not None
+    price20 = next(column for column in schema.table.columns if column.engine_name == "pivot_20")
+    total = node("field_sum")
+    graph = replace(
+        graph,
+        nodes=(*graph.nodes, total),
+        edges=(
+            *graph.edges,
+            edge(pivot, total, "table"),
+            edge(pivot, total, "value", price20.column_id),
+        ),
+    )
+    engine = WorkflowExecutionService(registry)
+    assert engine.execute(graph, total.id, context).output.frame.item() == 60
+    assert engine.execute(graph, total.id, context).output.frame.item() == 60
+    if cached:
+        assert access.loads == 1
+
+
+def test_pivot_missing_dynamic_field_is_attributed_to_wire() -> None:
+    graph, context, access = pivot_setup()
+    pivot = graph.nodes[-1]
+    total = node("field_sum")
+    wire = edge(pivot, total, "value", "removed-category")
+    graph = replace(
+        graph, nodes=(*graph.nodes, total), edges=(*graph.edges, edge(pivot, total, "table"), wire)
+    )
+    with pytest.raises(ExecutionFailure) as failure:
+        WorkflowExecutionService(get_node_registry()).execute(graph, total.id, context)
+    issue = failure.value.issues[0]
+    assert issue.code == "INVALID_FIELD_CONNECTION"
+    assert issue.node_id == total.id and issue.edge_id == wire.id
+    assert access.loads == 1
+
+
+def test_pivot_materialization_preserves_upstream_runtime_error_node() -> None:
+    graph, context, _ = pivot_setup()
+    source, multiply, append, pivot = graph.nodes
+    zero = node("scalar_constant", value=0)
+    divide = replace(multiply, config={"operation": "divide", "zero_policy": "error"})
+    graph = replace(
+        graph,
+        nodes=(source, divide, append, pivot, zero),
+        edges=tuple(
+            edge(zero, divide, "b", output="value")
+            if wire.target_node_id == divide.id and wire.target_port == "b"
+            else wire
+            for wire in graph.edges
+        ),
+    )
+    result = WorkflowSchemaResolver(get_node_registry()).resolve(graph, context)
+    assert not result.valid
+    assert result.issues[0].node_id == append.id
+    assert "division by zero" in result.issues[0].message
+
+
+def test_invalid_types_before_pivot_do_not_materialize_source() -> None:
+    graph, context, access = pivot_setup()
+    source, multiply, append, pivot = graph.nodes
+    text = node("scalar_constant", value="bad")
+    graph = replace(
+        graph,
+        nodes=(source, multiply, append, pivot, text),
+        edges=tuple(
+            edge(text, multiply, "b", output="value")
+            if wire.target_node_id == multiply.id and wire.target_port == "b"
+            else wire
+            for wire in graph.edges
+        ),
+    )
+    result = WorkflowSchemaResolver(get_node_registry()).resolve(graph, context)
+    assert not result.valid and result.issues[0].node_id == multiply.id
+    assert access.loads == 0
+
+
+def test_pivot_categories_follow_parameter_context_and_keep_source_cached() -> None:
+    graph, context, access = pivot_setup()
+    source, multiply, append, pivot = graph.nodes
+    filtered = node(
+        "filter",
+        conditions=[
+            {
+                "column_id": "p",
+                "operator": "equals",
+                "parameter": "price",
+            }
+        ],
+    )
+    graph = replace(
+        graph,
+        nodes=(*graph.nodes, filtered),
+        edges=tuple(
+            edge(filtered, pivot, "input") if wire.target_node_id == pivot.id else wire
+            for wire in graph.edges
+        )
+        + (edge(append, filtered, "input"),),
+    )
+    context.parameter_definitions = (
+        ParameterDefinition(name="price", logical_type="integer", default=10),
+    )
+    resolver = WorkflowSchemaResolver(get_node_registry())
+    first = resolver.resolve(graph, context)
+    assert first.valid
+    schema = next(item.schema for item in first.nodes if item.node_id == pivot.id)
+    assert schema is not None
+    selected = next(column for column in schema.columns if column.engine_name == "pivot_10")
+    total = node("field_sum")
+    wire = edge(pivot, total, "value", selected.column_id)
+    graph = replace(
+        graph, nodes=(*graph.nodes, total), edges=(*graph.edges, edge(pivot, total, "table"), wire)
+    )
+    engine = WorkflowExecutionService(get_node_registry())
+    assert engine.execute(graph, total.id, context).output.frame.item() == 20
+    context.parameters = {"price": 20}
+    with pytest.raises(ExecutionFailure) as failure:
+        engine.execute(graph, total.id, context)
+    assert failure.value.issues[0].edge_id == wire.id
+    context.parameters = {"price": 10}
+    assert engine.execute(graph, total.id, context).output.frame.item() == 20
+    assert access.loads == 1
+
+
+def test_pivot_resource_limits_and_source_revocation_are_not_bypassed() -> None:
+    graph, context, access = pivot_setup()
+    access.dataset = Dataset(
+        pl.DataFrame({"quantity": [1] * 129, "price": list(range(129))}),
+        access.dataset.schema,
+    )
+    result = WorkflowSchemaResolver(get_node_registry()).resolve(graph, context)
+    assert not result.valid and result.issues[0].node_id == graph.nodes[-1].id
+    assert "128 distinct" in result.issues[0].message
+
+    from app.infrastructure.excel import ExcelWorkbookError
+
+    def revoked(*_args):  # type: ignore[no-untyped-def]
+        raise ExcelWorkbookError("Source is unavailable.")
+
+    access.validate = revoked  # type: ignore[method-assign]
+    result = WorkflowSchemaResolver(get_node_registry()).resolve(graph, context)
+    assert not result.valid and result.issues[0].node_id == graph.nodes[0].id
+    assert access.loads == 1
+
+
+def test_multiple_dynamic_boundaries_and_disconnected_invalid_branch() -> None:
+    graph, context, access = pivot_setup()
+    pivot = graph.nodes[-1]
+    registry = get_node_registry()
+    first = WorkflowSchemaResolver(registry).resolve(graph, context)
+    schema = first.nodes[-1].schema
+    assert schema is not None
+    value = next(column for column in schema.columns if column.engine_name == "pivot_20")
+    second = node(
+        "pivot",
+        index_column_id="q",
+        pivot_column_id=value.column_id,
+        value_column_id=value.column_id,
+        operation="sum",
+    )
+    graph = replace(
+        graph, nodes=(*graph.nodes, second), edges=(*graph.edges, edge(pivot, second, "input"))
+    )
+    second_schema = WorkflowSchemaResolver(registry).resolve(graph, context)
+    assert second_schema.valid, second_schema.issues
+    schema = second_schema.nodes[-1].schema
+    assert schema is not None
+    amount = next(column for column in schema.columns if column.engine_name == "pivot_60.0")
+    total = node("field_sum")
+    # Executing one target must not discover an unrelated broken Pivot branch.
+    broken = node("pivot", index_column_id="missing", pivot_column_id="p", value_column_id="q")
+    graph = replace(
+        graph,
+        nodes=(*graph.nodes, total, broken),
+        edges=(
+            *graph.edges,
+            edge(second, total, "table"),
+            edge(second, total, "value", amount.column_id),
+            edge(graph.nodes[0], broken, "input"),
+        ),
+    )
+    assert (
+        WorkflowExecutionService(registry).execute(graph, total.id, context).output.frame.item()
+        == 60
+    )
+    assert access.loads == 1

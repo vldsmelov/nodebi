@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# ADR-091 - Discover dynamic fields from validated execution prefixes
+
+Date: 2026-09-21. Status: ACCEPTED.
+Context: Pivot output columns depend on values, so static-only typed preflight prevented using
+the existing general operation between field calculations. Inferring columns from a preview
+sample would omit categories and make wires unreliable.
+Decision: validate named inputs/configuration in DAG order and execute only a DATA_DEPENDENT
+node's ancestor branch to obtain the full bounded result schema. Use the common runner and
+cache, with a private entry that suppresses recursive typed preflight only after the resolver
+has checked the prefix. Public execution never exposes this option. Keep structural, source
+access, executor and resource checks. Attribute failures to the actual failing node; validate
+downstream projected IDs against the discovered schema. Used parameter values remain in cache
+identities. Missing dynamic fields fail explicitly; they are not inferred by position or name.
+Alternatives: a separate discovery executor duplicates calculations; sampling is incomplete;
+recursive public execution repeats schema resolution indefinitely; rejecting Pivot blocks scope.
+Consequences: Pivot works before/after field operations, including consecutive dynamic stages.
+Static branches still infer without loading data. Discovery can execute a prefix and can fail
+on its runtime errors. UNKNOWN_UNTIL_EXECUTION without a discovery contract remains unsupported.
+This replaces ADR-090's temporary DATA_DEPENDENT restriction, with no API or persistence change.
+
 # ADR-090 - Typed executors share the existing workflow engine
 
 Date: 2026-09-21. Status: ACCEPTED; F1 remains IN PROGRESS.

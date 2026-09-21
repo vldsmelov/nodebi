@@ -1,4 +1,4 @@
-"""Resolve named value schemas before any typed branch is materialized."""
+"""Resolve named schemas, materializing only validated data-dependent prefixes."""
 
 from uuid import UUID
 
@@ -23,6 +23,9 @@ from app.services.workflow_validation import (
 def resolve_typed_schema(
     registry: NodeRegistry, graph: WorkflowGraph, context: ExecutionContext
 ) -> SchemaResolutionResult:
+    # Execution imports the resolver at its preflight boundary.
+    from app.services.execution import ExecutionFailure, WorkflowExecutionService
+
     validation = WorkflowGraphValidator(registry).validate(graph)
     if not validation.valid:
         return SchemaResolutionResult((), validation.issues)
@@ -59,10 +62,8 @@ def resolve_typed_schema(
                     (output.table for output in outputs.values() if output.kind == "dataset"), None
                 )
             else:
-                if definition.schema_inference_mode != SchemaInferenceMode.STATIC:
-                    raise ValueError(
-                        "Data-dependent outputs are not yet supported in typed branches."
-                    )
+                if definition.schema_inference_mode == SchemaInferenceMode.UNKNOWN_UNTIL_EXECUTION:
+                    raise ValueError("This node does not support output schema discovery.")
                 input_schemas = {
                     port: value.table for port, value in inputs.items() if value.table is not None
                 }
@@ -73,7 +74,18 @@ def resolve_typed_schema(
                         for i in checked.issues
                     )
                     return SchemaResolutionResult(tuple(results), issues)
-                schema = definition.executor.infer_schema(node, input_schemas, context)
+                if definition.schema_inference_mode == SchemaInferenceMode.DATA_DEPENDENT:
+                    # All ancestors and this node's inputs/configuration have now
+                    # passed schema validation. Execute only this prefix, without
+                    # recursively asking this resolver for the same dynamic schema.
+                    # The common engine retains resource limits and access checks.
+                    schema = (
+                        WorkflowExecutionService(registry)
+                        ._execute(graph, node_id, context, preflight=False)
+                        .schema
+                    )
+                else:
+                    schema = definition.executor.infer_schema(node, input_schemas, context)
                 outputs = {
                     port.id: ValueSchema(
                         "dataset", table=schema, context=RowContext(graph.id, node_id, port.id)
@@ -87,6 +99,9 @@ def resolve_typed_schema(
                     raise ValueError("Executor schema returned an incompatible output kind.")
             resolved[node_id] = outputs
             results.append(NodeSchemaResult(node_id, schema, outputs=outputs))
+        except ExecutionFailure as exc:
+            issues = exc.issues or (GraphIssue(exc.code, str(exc), node_id=exc.node_id or node_id),)
+            return SchemaResolutionResult(tuple(results), issues)
         except (ValueError, KeyError, StopIteration) as exc:
             issue = GraphIssue(
                 "INVALID_TYPED_NODE",
