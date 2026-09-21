@@ -7,6 +7,19 @@ const saved = (revision: number) => ({ revision }) as Workflow;
 afterEach(() => { vi.useRealTimers(); sessionStorage.clear(); });
 
 describe("workflow autosave", () => {
+  it("isolates unsaved typed wires from the classic editor recovery key", () => {
+    vi.useFakeTimers();
+    const typed: GraphDraft = { ...draft("typed"), format_version: 2, edges: [{ id: "edge", source_node_id: "a", source_port: "dataset", source_column_id: "stable-field", target_node_id: "b", target_port: "value" }] };
+    const field = new WorkflowAutosave("w", 1, { ...typed, edges: [] }, vi.fn(), vi.fn(), sessionStorage, "fields-v2");
+    field.change(typed); field.dispose();
+    const classic = new WorkflowAutosave("w", 1, draft("initial"), vi.fn(), vi.fn(), sessionStorage);
+    expect(classic.recover()).toBeNull();
+    classic.change(draft("classic edit")); classic.dispose();
+    const restored = new WorkflowAutosave("w", 1, typed, vi.fn(), vi.fn(), sessionStorage, "fields-v2");
+    expect(restored.recover()?.draft).toEqual(typed);
+    restored.dispose();
+    expect(JSON.parse(sessionStorage.getItem(classic.key)!).draft.name).toBe("classic edit");
+  });
   it("coalesces edits and persists the pending draft before debounce", async () => {
     vi.useFakeTimers();
     const persist = vi.fn().mockResolvedValue(saved(2));

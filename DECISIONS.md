@@ -1,5 +1,27 @@
 # DECISIONS.md
 
+# ADR-093 - Separate opt-in field UI with shared save and execution contracts
+
+Date: 2026-09-21. Status: ACCEPTED; F2 is IN PROGRESS.
+Context: the approved field interaction needs real UI authoring, while the established editor
+contains extensive v1 authoring flows and must not implicitly convert existing projects.
+Decision: introduce a separate mode backed by the same APIs, revision-aware autosave and bounded
+history. New field workflow creates an empty v2 graph explicitly. Restore existing v2 in that
+mode; isolate local drafts by editor namespace and refuse wrong-format drafts instead of upgrading
+them silently. Preserve container metadata
+even while this first UI renders individual members. Keep existing v1 mode and format protection.
+Project column IDs into actual edge fields; handle encoding is only an interaction detail. Add
+eight typed operation forms, bounded searchable field cards, drag/list connections and local A/B
+preview pins. Schema query keys include parameters and revision; add parameterized POST schema.
+Keep valid independent schemas in incomplete typed drafts so field selection works incrementally.
+Alternatives: extending the already large classic editor risks its existing authoring flows;
+separate saving/execution infrastructure would duplicate concurrency/security rules; converting
+all projects would violate scope. Sampling schemas would make Pivot-dependent choices unreliable.
+Consequences: the first field-calculation journey is authorable without IDs/JSON. Workbook cards,
+container UI, operation-drop menus, full compatible-port highlighting, virtualization, selected
+field path and final chart/dashboard acceptance remain open. A/B compares separate previews;
+pin/view state is not persisted as workflow semantics. No measured operator-speed claim.
+
 # ADR-092 - Container references saved with the workflow revision
 
 Date: 2026-09-21. Status: ACCEPTED; container UI remains pending.

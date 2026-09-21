@@ -5,7 +5,30 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Current milestone: F1 typed field-editor, IN PROGRESS (ADR-092).
+Current milestone: F2 opt-in field editor, IN PROGRESS (ADR-093); F1 diagnostics remain open.
+Latest completed slice: explicit new-v2 editor with field cards, eight operation forms, drag/list
+connections, shared revision-safe autosave/history and two independent named-output A/B previews.
+Authoring Excel -> multiply quantity/price -> append Revenue -> sum now works through the UI.
+Schema POST accepts preview parameters; partial typed drafts retain usable independent schemas.
+Late previews are keyed by node/output/parameters and saved revision. Classic and field editors
+use separate local recovery namespaces. Wrong-format drafts are refused, never auto-upgraded.
+Entry: project workflow page -> New field workflow; reopen v2 via Field editor (mode=fields).
+Operator steps: docs/FIELD_EDITOR_GUIDE.md. Existing projects are not converted automatically.
+Next: workbook/sheet container UI and detach/reveal, compatible-port highlighting/drop menus,
+field dependency focus, complete virtualization/large-graph acceptance. Finish diagnostic field
+paths; F3 composite UI and direct field chart/scalar KPI remain pending. Constant form currently
+offers number/string/boolean/null; date/integer-specific controls remain to extend. Container
+metadata is preserved but represented as individual nodes; A/B pins are page-local view state.
+No known P0/P1 in this delivered slice; F1-F4 and operator measurements remain incomplete.
+Validation details: docs/QA_REPORT.md. Full backend suite: 328 pass, six SQLite matrix skips;
+parameterized-schema API and legacy workflow checks rerun on PostgreSQL after the API addition.
+Frontend: 89 tests pass; all nine browser scenarios pass after the final recovery-key fix.
+Type/lint/build and browser scenarios cover authoring, wire drag, A/B,
+restore, undo/redo, three languages, both themes, slow saves, two tabs and classic compatibility.
+Standard Docker images rebuilt/deployed; migration stays 0008. Six original/UX-copy snapshot
+endpoints remain unchanged. No DB reset or full 164-slice numerical parity rerun in this slice.
+
+Previous F1 session (ADR-092):
 Latest completed subtask: workbook/composite presentation persistence with migration 0008.
 Typed containers reference existing nodes/ports, including detached workbook sheets and projected
 output fields. Membership, boundary ports and source references are validated without execution.

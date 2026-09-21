@@ -7,6 +7,7 @@ import { previewWorkflowNode } from "./api";
 import type { GraphIssue, NodeSchemaResult } from "./types";
 
 type Props = {
+  outputPort?: string;
   parameters?: import("./types").ParameterValues;
   workflowId: string;
   nodeId: string;
@@ -17,11 +18,12 @@ type Props = {
 };
 
 /** Schema and preview are visible only for the currently acknowledged graph revision. */
-function NodeOutputContent({ workflowId, nodeId, revision, dirty, schema, issues, parameters = {} }: Props) {
+function NodeOutputContent({ workflowId, nodeId, revision, dirty, schema, issues, parameters = {}, outputPort }: Props) {
   const { t, errorText, cell } = useI18n();
-  const preview = useMutation({ mutationFn: (request: { nodeId: string; revision: number }) => previewWorkflowNode(workflowId, request.nodeId, 100, parameters) });
+  const preview = useMutation({ mutationFn: (request: { nodeId: string; revision: number }) => previewWorkflowNode(workflowId, request.nodeId, 100, parameters, outputPort) });
   const result = !dirty && preview.data?.revision === revision ? preview.data : undefined;
   return <>
+    {dirty && <p className="mt-3 text-xs text-warning">{t("Preview is stale. Save changes before running again.")}</p>}
     <button onClick={() => preview.mutate({ nodeId, revision })} disabled={preview.isPending || dirty}
       className="mt-5 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary disabled:opacity-40">
       {preview.isPending ? t("Running preview…") : t("Preview output")}
@@ -58,5 +60,5 @@ function NodeOutputContent({ workflowId, nodeId, revision, dirty, schema, issues
 }
 
 export function NodeOutputPanel(props: Props) {
-  return <NodeOutputContent key={`${props.nodeId}:${JSON.stringify(props.parameters ?? {})}`} {...props} />;
+  return <NodeOutputContent key={`${props.nodeId}:${props.outputPort ?? ""}:${JSON.stringify(props.parameters ?? {})}`} {...props} />;
 }

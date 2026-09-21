@@ -20,8 +20,8 @@ export function getWorkflow(workflowId: string): Promise<Workflow> {
   return request(`/api/v1/workflows/${workflowId}`);
 }
 
-export function getWorkflowSchema(workflowId: string): Promise<WorkflowSchemaResult> {
-  return request(`/api/v1/workflows/${workflowId}/schema`);
+export function getWorkflowSchema(workflowId: string, parameters?: import("./types").ParameterValues): Promise<WorkflowSchemaResult> {
+  return request(`/api/v1/workflows/${workflowId}/schema`, parameters ? { method: "POST", body: JSON.stringify({ parameters }) } : undefined);
 }
 
 export function previewWorkflowNode(
@@ -29,10 +29,11 @@ export function previewWorkflowNode(
   nodeId: string,
   limit = 100,
   parameters: import("./types").ParameterValues = {},
+  outputPort?: string,
 ): Promise<NodePreview> {
   return request(`/api/v1/workflows/${workflowId}/nodes/${nodeId}/preview`, {
     method: "POST",
-    body: JSON.stringify({ limit, parameters }),
+    body: JSON.stringify({ limit, parameters, ...(outputPort ? { output_port: outputPort } : {}) }),
   });
 }
 
@@ -43,7 +44,7 @@ export function saveWorkflow(workflowId: string, payload: WorkflowSave): Promise
   });
 }
 
-export async function getNodeCatalog(): Promise<NodeDefinition[]> {
-  const result = await request<{ items: NodeDefinition[] }>("/api/v1/node-catalog");
+export async function getNodeCatalog(formatVersion: 1 | 2 = 1): Promise<NodeDefinition[]> {
+  const result = await request<{ items: NodeDefinition[] }>(`/api/v1/node-catalog${formatVersion === 2 ? "?format_version=2" : ""}`);
   return result.items;
 }

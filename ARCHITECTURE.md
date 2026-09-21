@@ -1,5 +1,28 @@
 # ARCHITECTURE.md
 
+## Opt-in field editor foundation (ADR-093)
+
+The workflow page creates a new explicit v2 workflow from the New field workflow action; existing
+v1 workflows are not upgraded. mode=fields opens FieldWorkflowEditor with the v2 catalog. Classic
+editor remains the default and retains its old-client format guard. Both editors reuse the same
+WorkflowAutosave and GraphHistory implementations. Field drafts use a separate fields-v2 storage
+namespace so switching modes cannot overwrite unsaved typed wires; wrong-format drafts are refused.
+Presentation metadata is included in the v2 draft and
+history, but container rendering/packing is not yet implemented (members are shown individually).
+
+Canvas handles encode port+column only for display; field-wires serializes explicit source_port
+and source_column_id. Connections can be dragged or selected by node/field label. Input replacement
+is one draft/history action. Local checks cover port kinds, cycles, capacity and known row context;
+backend validation remains authoritative. Cards bound unconnected field rendering to 20 search
+results and retain connected ports. Full virtualization and compatibility highlighting remain open.
+
+Named-output preview is shared with the classic panel. A/B pins are local view state and request
+separate previews; they do not infer row equivalence or trigger whole-graph thumbnail execution.
+Revision, parameters and output identity hide obsolete results. POST workflow/schema accepts
+preview parameters without changing revision; existing GET schema retains defaults. Incomplete
+typed drafts retain schemas of valid independent nodes, while downstream unavailable schemas
+receive explicit issues. Fatal structural graph errors still block inference.
+
 ## Workflow container persistence (ADR-092)
 
 Workflow.presentation is a JSON/JSONB column added by migration 0008, with empty default {}.

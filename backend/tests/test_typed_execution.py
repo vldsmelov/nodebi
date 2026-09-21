@@ -578,3 +578,28 @@ def test_multiple_dynamic_boundaries_and_disconnected_invalid_branch() -> None:
         == 60
     )
     assert access.loads == 1
+
+
+def test_partial_draft_keeps_source_fields_while_new_node_is_unconnected() -> None:
+    graph, context, access = setup()
+    pending = node("field_arithmetic", operation="multiply")
+    graph = replace(graph, nodes=(*graph.nodes, pending))
+    resolved = WorkflowSchemaResolver(get_node_registry()).resolve(graph, context)
+    assert not resolved.valid
+    assert (
+        next(item for item in resolved.nodes if item.node_id == graph.nodes[0].id)
+        .outputs["dataset"]
+        .table
+        is not None
+    )
+    assert (
+        next(item for item in resolved.nodes if item.node_id == graph.nodes[-2].id)
+        .outputs["value"]
+        .kind
+        == "scalar"
+    )
+    assert any(
+        issue.node_id == pending.id and issue.code == "MISSING_REQUIRED_INPUT"
+        for issue in resolved.issues
+    )
+    assert access.loads == 0

@@ -6,6 +6,24 @@ import { NodeOutputPanel } from "@/features/workflow/NodeOutputPanel";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+it("named output changes discard a late result and send the selected port", async () => {
+  let resolve!: (value: Response) => void;
+  const fetcher = vi.fn(() => new Promise<Response>(done => { resolve = done; }));
+  vi.stubGlobal("fetch", fetcher);
+  const client = new QueryClient();
+  const panel = (outputPort: string) => <QueryClientProvider client={client}>
+    <NodeOutputPanel workflowId="workflow" nodeId="node" outputPort={outputPort} revision={1} dirty={false} issues={[]} />
+  </QueryClientProvider>;
+  const view = render(panel("first"));
+  fireEvent.click(screen.getByRole("button", { name: "Preview output" }));
+  await waitFor(() => expect(fetcher).toHaveBeenCalled());
+  expect(JSON.parse((fetcher.mock.calls[0] as unknown as [string, RequestInit])[1].body as string).output_port).toBe("first");
+  view.rerender(panel("second"));
+  resolve(new Response(JSON.stringify({ revision: 1, columns: [], rows: [], total_rows: 0, duration_ms: 1 })));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Preview output" })).toBeEnabled());
+  expect(screen.queryByText("The result is empty.")).toBeNull();
+});
+
 it("discards a late response after the selected parameter changes", async () => {
   let resolve!: (value: Response) => void;
   const fetcher = vi.fn(() => new Promise<Response>(done => { resolve = done; }));

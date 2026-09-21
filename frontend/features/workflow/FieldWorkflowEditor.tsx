@@ -1,0 +1,130 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Background, Controls, ReactFlow, type ReactFlowInstance, type Connection, type Edge, type NodeChange } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import type { DataSource } from "@/features/data-sources/api";
+import { useI18n } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme-provider";
+import { WorkflowAutosave, type GraphDraft, type SaveState } from "./autosave";
+import { getWorkflowSchema, saveWorkflow } from "./api";
+import { GraphHistory } from "./graph-history";
+import { FieldNodeCard, type FieldCanvasNode } from "./FieldNodeCard";
+import { connectionError, fieldHandle, renderWire, saveWire } from "./field-wires";
+import { FieldOperationConfiguration, fieldDefaults } from "./FieldOperationConfiguration";
+import { NodeConfiguration } from "./NodeConfiguration";
+import { NodeOutputPanel } from "./NodeOutputPanel";
+import { ParametersConfiguration } from "./ParametersConfiguration";
+import type { NodeDefinition, ParameterValues, Workflow } from "./types";
+
+const nodeTypes = { fieldNode: FieldNodeCard };
+const control = "w-full rounded border border-outline bg-control p-2 text-xs";
+type Pin = { id: string; port?: string } | null;
+
+export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { workflow: Workflow; catalog: NodeDefinition[]; sources: DataSource[]; onSaved: () => void }) {
+  const { t, nodeName, errorText } = useI18n();
+  const { theme, palette } = useTheme();
+  const initial: GraphDraft = { format_version: 2, name: workflow.name, nodes: workflow.nodes, edges: workflow.edges, parameters: workflow.parameters ?? [], presentation: workflow.presentation ?? { workbooks: [], blocks: [] } };
+  const [save, setSave] = useState<SaveState>({ status: "saved", revision: workflow.revision, error: null });
+  const [writer] = useState(() => new WorkflowAutosave(workflow.id, workflow.revision, initial, payload => saveWorkflow(workflow.id, payload), state => { setSave(state); if (state.status === "saved") onSaved(); }, window.sessionStorage, "fields-v2"));
+  const [recovered] = useState(() => writer.recover());
+  const incompatible = recovered && recovered.draft.format_version !== 2;
+  const [graph, setGraph] = useState<GraphDraft>(recovered?.draft ?? initial);
+  const [history] = useState(() => new GraphHistory(graph));
+  useSyncExternalStore(history.subscribe, history.getVersion, history.getVersion);
+  const [selected, setSelected] = useState<string | null>(null), [search, setSearch] = useState("");
+  const [wireSearch, setWireSearch] = useState("");
+  const [connectionIssue, setConnectionIssue] = useState<string | null>(null);
+  const [pins, setPins] = useState<[Pin, Pin]>([null, null]);
+  const flow = useRef<ReactFlowInstance<FieldCanvasNode, Edge> | null>(null);
+  const pinCount = pins.filter(Boolean).length;
+  useEffect(() => {
+    const timer = setTimeout(() => { void flow.current?.fitView({ maxZoom: 1, padding: 0.15 }); }, 100);
+    return () => clearTimeout(timer);
+  }, [graph.nodes.length, pinCount]);
+  const [parameters, setParameters] = useState<ParameterValues>({});
+  const dirty = JSON.stringify(graph) !== writer.savedGraph || save.status !== "saved";
+  const schema = useQuery({ queryKey: ["field-schema", workflow.id, save.revision, parameters], queryFn: () => getWorkflowSchema(workflow.id, parameters), enabled: !dirty && !incompatible, placeholderData: keepPreviousData });
+  const currentSchema = !dirty && !schema.isPlaceholderData && schema.data?.revision === save.revision ? schema.data : undefined;
+  // Previous revision fields are labelled stale; the server always validates the saved graph.
+  const choicesSchema = schema.data;
+  useEffect(() => { writer.resume(); return () => writer.dispose(); }, [writer]);
+  useEffect(() => { if (!incompatible) { history.record(graph); writer.change(graph); } }, [graph, writer, history, incompatible]);
+  useEffect(() => {
+    const unload = (event: BeforeUnloadEvent) => { if (writer.dirty) { event.preventDefault(); event.returnValue = ""; } };
+    const navigate = (event: MouseEvent) => { if ((event.target as Element).closest?.("a[href]") && writer.dirty && !window.confirm(t("Changes are not saved yet. Leave and recover this draft later?"))) { event.preventDefault(); event.stopPropagation(); } };
+    window.addEventListener("beforeunload", unload); document.addEventListener("click", navigate, true);
+    return () => { window.removeEventListener("beforeunload", unload); document.removeEventListener("click", navigate, true); };
+  }, [writer, t]);
+  const selectedNode = graph.nodes.find(node => node.id === selected);
+  const definition = catalog.find(item => item.type === selectedNode?.type);
+  const nodes: FieldCanvasNode[] = useMemo(() => graph.nodes.flatMap(node => {
+    const definition = catalog.find(item => item.type === node.type && item.version === node.version);
+    return definition ? [{ id: node.id, type: "fieldNode" as const, position: node.position, selected: node.id === selected, data: { node, definition, schema: choicesSchema?.nodes.find(item => item.node_id === node.id), connected: graph.edges.filter(edge => edge.source_node_id === node.id).map(edge => fieldHandle(edge.source_port, edge.source_column_id)), stale: dirty || !currentSchema } }] : [];
+  }), [graph, catalog, choicesSchema, selected, dirty, currentSchema]);
+  const edges = graph.edges.map(edge => ({ ...renderWire(edge), style: { stroke: palette.accent } }));
+  const connect = (connection: Connection) => {
+    const issue = connectionError(graph, catalog, connection, currentSchema);
+    setConnectionIssue(issue);
+    if (issue) return;
+    setGraph(current => ({ ...current, edges: [...current.edges.filter(edge => !(edge.target_node_id === connection.target && edge.target_port === connection.targetHandle)), saveWire(connection)] }));
+  };
+  const remove = (ids: Set<string>) => setGraph(current => ({ ...current, nodes: current.nodes.filter(node => !ids.has(node.id)), edges: current.edges.filter(edge => !ids.has(edge.source_node_id) && !ids.has(edge.target_node_id)) }));
+  const changeNodes = (changes: NodeChange<FieldCanvasNode>[]) => {
+    const positions = changes.filter(change => change.type === "position");
+    if (positions.some(change => change.position)) setGraph(current => ({ ...current, nodes: current.nodes.map(node => { const next = positions.find(change => change.id === node.id)?.position; return next ? { ...node, position: next } : node; }) }));
+    const deleted = new Set(changes.filter(change => change.type === "remove").map(change => change.id));
+    if (deleted.size) remove(deleted);
+  };
+  const add = (item: NodeDefinition) => {
+    const source = sources[0], sheet = source?.workbook.sheets[0];
+    if (item.type === "excel_source" && !sheet) return;
+    const id = crypto.randomUUID();
+    setGraph(current => ({ ...current, nodes: [...current.nodes, { id, type: item.type, version: item.version, position: { x: 40 + current.nodes.length % 3 * 340, y: 40 + Math.floor(current.nodes.length / 3) * 480 }, config: item.type === "excel_source" ? { source_id: source.id, sheet_name: sheet.name } : { ...(fieldDefaults[item.type] ?? {}) }, ui: {} }] }));
+    setSelected(id);
+  };
+  if (incompatible) return <p role="alert" className="p-6 text-danger">{t("A legacy draft is pending. Restore it in the classic editor first.")}</p>;
+  return <div className="grid h-[calc(100vh-8rem)] grid-cols-[220px_minmax(320px,1fr)_350px] border-t border-outline">
+    <aside className="overflow-auto bg-panel p-3">
+      <p className="mb-3 text-xs text-warning">{t("Field editor preview. Existing projects are not converted.")}</p>
+      <input aria-label={t("Search nodes")} className={control} value={search} onChange={e => setSearch(e.target.value)} />
+      {catalog.filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={item.type} title={t("Add {0}", { 0: nodeName(item.type) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {nodeName(item.type)}</button>)}
+    </aside>
+    <section className="flex min-w-0 flex-col bg-page">
+      <div className="flex flex-wrap items-center gap-3 border-b border-outline p-2 text-xs">
+        <button onClick={() => void flow.current?.fitView({ maxZoom: 1, padding: 0.15 })}>{t("Fit graph")}</button>
+        <span>{t(save.status === "saved" && !dirty ? "Saved" : save.status === "error" ? "Save failed" : "Saving…")}</span>
+        <button disabled={!history.canUndo} onClick={() => { const previous = history.undo(); if (previous) setGraph(previous); }}>{t("Undo")}</button>
+        <button disabled={!history.canRedo} onClick={() => { const next = history.redo(); if (next) setGraph(next); }}>{t("Redo")}</button>
+        <button disabled={!selected} onClick={() => setPins(current => [{ id: selected!, port: definition?.output_ports[0]?.id }, current[1]])}>{t("Pin A")}</button>
+        <button disabled={!selected} onClick={() => setPins(current => [current[0], { id: selected!, port: definition?.output_ports[0]?.id }])}>{t("Pin B")}</button>
+      </div>
+      {save.error && <div role="alert" className="p-2 text-xs text-danger">{errorText(save.error)} <button onClick={() => void writer.flush()}>{t("Retry save")}</button> <button onClick={() => { if (window.confirm(t("Discard this local draft and load the saved workflow?"))) { sessionStorage.removeItem(writer.key); window.location.reload(); } }}>{t("Discard draft and reload")}</button></div>}
+      {connectionIssue && <p role="alert" className="p-2 text-xs text-danger">{t(connectionIssue)}</p>}
+      {schema.error && <p role="alert" className="text-danger">{errorText(schema.error)}</p>}
+      {Boolean(graph.presentation?.blocks?.length || graph.presentation?.workbooks?.length) && <p className="p-2 text-xs text-warning">{t("Containers are preserved; this preview shows their individual nodes.")}</p>}
+      <div className="min-h-64 flex-1"><ReactFlow<FieldCanvasNode, Edge> onInit={instance => { flow.current = instance; }} fitViewOptions={{ maxZoom: 1, padding: 0.15 }} nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={changeNodes} onEdgesChange={changes => { const deleted = new Set(changes.filter(change => change.type === "remove").map(change => change.id)); if (deleted.size) setGraph(current => ({ ...current, edges: current.edges.filter(edge => !deleted.has(edge.id)) })); }} onConnect={connect} isValidConnection={connection => !connectionError(graph, catalog, { source: connection.source, target: connection.target, sourceHandle: connection.sourceHandle ?? null, targetHandle: connection.targetHandle ?? null }, currentSchema)} onNodeClick={(_, node) => setSelected(node.id)} onPaneClick={() => setSelected(null)} colorMode={theme} minZoom={0.05} fitView><Background color={palette.grid} /><Controls /></ReactFlow></div>
+      {pins.some(Boolean) && <div className="grid max-h-72 grid-cols-2 gap-3 overflow-auto border-t border-outline p-3">{pins.map((pin, index) => <section key={index} aria-label={index ? "B" : "A"}>{pin && <><div className="flex gap-2 text-xs"><b>{index ? "B" : "A"}</b><span>{String(graph.nodes.find(node => node.id === pin.id)?.ui?.label || nodeName(graph.nodes.find(node => node.id === pin.id)?.type ?? ""))}</span><button onClick={() => setPins(current => index ? [current[0], null] : [null, current[1]])}>{t("Close")}</button></div>{graph.nodes.some(node => node.id === pin.id) ? <NodeOutputPanel workflowId={workflow.id} nodeId={pin.id} outputPort={pin.port} revision={save.revision} dirty={dirty} parameters={parameters} issues={[]} /> : <p>{t("Selected node is unavailable.")}</p>}</>}</section>)}</div>}
+    </section>
+    <aside className="overflow-auto border-l border-outline bg-panel p-4">
+      <ParametersConfiguration definitions={graph.parameters ?? []} onChange={items => setGraph(current => ({ ...current, parameters: items }))} values={parameters} onValuesChange={setParameters} />
+      {!selectedNode ? <p className="text-sm">{t("Select a node to edit its settings.")}</p> : <>
+        <h2>{nodeName(selectedNode.type)}</h2>
+        <label className="block mt-3 text-xs">{t("Node label")}<input aria-label={t("Node label")} className={control} value={String(selectedNode.ui?.label ?? "")} onChange={e => setGraph(current => ({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, ui: { ...node.ui, label: e.target.value } } : node) }))} /></label>
+        <input aria-label={t("Search connection fields")} placeholder={t("Search connection fields")} className={`${control} mt-3`} value={wireSearch} onChange={e => setWireSearch(e.target.value)} />
+        {definition?.input_ports.map(port => {
+          const connected = graph.edges.find(edge => edge.target_node_id === selected && edge.target_port === port.id);
+          const active = connected ? JSON.stringify([connected.source_node_id, fieldHandle(connected.source_port, connected.source_column_id)]) : "";
+          const options = nodes.flatMap(node => node.data.definition.output_ports.flatMap(output => [{ handle: output.id, label: t(output.display_name) }, ...(node.data.schema?.outputs?.[output.id]?.columns ?? []).map(column => ({ handle: fieldHandle(output.id, column.column_id), label: column.display_name }))].map(value => ({ value: JSON.stringify([node.id, value.handle]), label: `${String(node.data.node.ui?.label || nodeName(node.data.node.type))} / ${value.label}`, connection: { source: node.id, sourceHandle: value.handle, target: selectedNode.id, targetHandle: port.id } }))));
+          const available = options.filter(option => option.value !== active && option.label.toLowerCase().includes(wireSearch.toLowerCase()) && !connectionError(graph, catalog, option.connection, currentSchema)).slice(0, 100);
+          const pinned = options.find(option => option.value === active);
+          return <label key={port.id} className="mt-3 block text-xs">{t("Input:")} {t(port.display_name)}<select aria-label={t("Input {0}", { 0: port.id })} className={control} value={active} onChange={e => { if (!e.target.value) setGraph(current => ({ ...current, edges: current.edges.filter(edge => !(edge.target_node_id === selected && edge.target_port === port.id)) })); else { const [source, sourceHandle] = JSON.parse(e.target.value); connect({ source, sourceHandle, target: selectedNode.id, targetHandle: port.id }); } }}><option value="">{t("Disconnected")}</option>{active && <option value={active}>{pinned?.label ?? t("Unavailable connection")}</option>}{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
+        })}
+        {(() => { const onChange = (config: Record<string, unknown>) => setGraph(current => ({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, config } : node) })); const incoming = graph.edges.filter(edge => edge.target_node_id === selected); const inputColumns = Object.fromEntries(incoming.map(edge => [edge.target_port, choicesSchema?.nodes.find(node => node.node_id === edge.source_node_id)?.columns ?? null])); return selectedNode.type in fieldDefaults ? <FieldOperationConfiguration type={selectedNode.type} config={selectedNode.config ?? {}} onChange={onChange} parameters={graph.parameters ?? []} /> : <NodeConfiguration type={selectedNode.type} config={selectedNode.config ?? {}} sources={sources} columns={Object.values(inputColumns)[0] ?? null} inputColumns={inputColumns} onChange={onChange} parameters={graph.parameters ?? []} issues={currentSchema?.issues.filter(issue => issue.node_id === selected)} validationPending={!currentSchema} />; })()}
+        <NodeOutputPanel workflowId={workflow.id} nodeId={selectedNode.id} outputPort={definition?.output_ports[0]?.id} revision={save.revision} dirty={dirty} parameters={parameters} issues={currentSchema?.issues.filter(issue => issue.node_id === selected) ?? []} />
+        <button className="mt-4 text-xs text-danger" onClick={() => { remove(new Set([selectedNode.id])); setSelected(null); }}>{t("Delete selected node")}</button>
+      </>}
+    </aside>
+  </div>;
+}

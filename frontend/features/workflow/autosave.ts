@@ -21,13 +21,14 @@ export class WorkflowAutosave {
     private readonly persist: (payload: WorkflowSave) => Promise<Workflow>,
     private readonly notify: (state: SaveState) => void,
     private readonly storage: Storage,
+    private readonly namespace = "",
   ) {
     this.revision = revision;
     this.initialRevision = revision;
     this.acknowledged = JSON.stringify(initial);
   }
 
-  get key() { return `nodebi:workflow-draft:${this.id}`; }
+  get key() { return `nodebi:workflow-draft:${this.id}${this.namespace ? `:${this.namespace}` : ""}`; }
   get dirty() { return this.pending !== null || this.running !== null; }
   get savedGraph() { return this.acknowledged; }
 

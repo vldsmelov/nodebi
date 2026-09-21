@@ -27,16 +27,43 @@ def resolve_typed_schema(
     from app.services.execution import ExecutionFailure, WorkflowExecutionService
 
     validation = WorkflowGraphValidator(registry).validate(graph)
-    if not validation.valid:
+    fatal = {
+        "DUPLICATE_NODE_ID",
+        "DUPLICATE_EDGE_ID",
+        "MISSING_EDGE_NODE",
+        "UNKNOWN_NODE_TYPE",
+        "INVALID_EDGE_PORT",
+        "INCOMPATIBLE_PORTS",
+        "INVALID_FIELD_PROJECTION",
+        "MAX_INPUT_CONNECTIONS",
+        "MAX_OUTPUT_CONNECTIONS",
+        "CYCLE_DETECTED",
+    }
+    if any(issue.code in fatal for issue in validation.issues):
         return SchemaResolutionResult((), validation.issues)
     nodes = {node.id: node for node in graph.nodes}
     resolved: dict[UUID, dict[str, ValueSchema]] = {}
     results: list[NodeSchemaResult] = []
+    all_issues = list(validation.issues)
     for node_id in topological_order(graph.nodes, graph.edges):
         node = nodes[node_id]
         definition = registry.get(node.type, node.version)
+        existing = tuple(issue for issue in validation.issues if issue.node_id == node_id)
+        if existing:
+            results.append(NodeSchemaResult(node_id, None, existing))
+            continue
         inbound = [edge for edge in graph.edges if edge.target_node_id == node_id]
+        if any(edge.source_node_id not in resolved for edge in inbound):
+            issue = GraphIssue(
+                "UPSTREAM_SCHEMA_UNAVAILABLE",
+                "Connect and configure upstream nodes first.",
+                node_id=node_id,
+            )
+            all_issues.append(issue)
+            results.append(NodeSchemaResult(node_id, None, (issue,)))
+            continue
         inputs: dict[str, ValueSchema] = {}
+        input_failed = False
         for edge in inbound:
             try:
                 value = resolved[edge.source_node_id][edge.source_port]
@@ -54,7 +81,12 @@ def resolve_typed_schema(
                     edge_id=edge.id,
                     field=edge.target_port,
                 )
-                return SchemaResolutionResult(tuple(results), (issue,))
+                all_issues.append(issue)
+                results.append(NodeSchemaResult(node_id, None, (issue,)))
+                input_failed = True
+                break
+        if input_failed:
+            continue
         try:
             if isinstance(definition.executor, TypedNodeExecutor):
                 outputs = definition.executor.infer_outputs(node, inputs, context)
@@ -73,7 +105,9 @@ def resolve_typed_schema(
                         GraphIssue(i.code, i.message, node_id=node_id, field=i.field)
                         for i in checked.issues
                     )
-                    return SchemaResolutionResult(tuple(results), issues)
+                    all_issues.extend(issues)
+                    results.append(NodeSchemaResult(node_id, None, issues))
+                    continue
                 if definition.schema_inference_mode == SchemaInferenceMode.DATA_DEPENDENT:
                     # All ancestors and this node's inputs/configuration have now
                     # passed schema validation. Execute only this prefix, without
@@ -101,7 +135,8 @@ def resolve_typed_schema(
             results.append(NodeSchemaResult(node_id, schema, outputs=outputs))
         except ExecutionFailure as exc:
             issues = exc.issues or (GraphIssue(exc.code, str(exc), node_id=exc.node_id or node_id),)
-            return SchemaResolutionResult(tuple(results), issues)
+            all_issues.extend(issues)
+            results.append(NodeSchemaResult(node_id, None, issues))
         except (ValueError, KeyError, StopIteration) as exc:
             issue = GraphIssue(
                 "INVALID_TYPED_NODE",
@@ -109,5 +144,6 @@ def resolve_typed_schema(
                 node_id=node_id,
                 field="config",
             )
-            return SchemaResolutionResult(tuple(results), (issue,))
-    return SchemaResolutionResult(tuple(results), ())
+            all_issues.append(issue)
+            results.append(NodeSchemaResult(node_id, None, (issue,)))
+    return SchemaResolutionResult(tuple(results), tuple(all_issues))

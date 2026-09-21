@@ -146,5 +146,56 @@ def test_real_excel_field_wires_schema_preview_and_restore(
         assert result.status_code == 200, result.text
         assert result.json()["rows"] == [{"value": 60.0}]
         assert result.json()["revision"] == 4
+        # Parameterized schema requests validate context without changing revision.
+        parameterized = client.post(path + "/schema", json={"parameters": {}})
+        assert parameterized.status_code == 200 and parameterized.json()["valid"]
+        assert parameterized.json()["revision"] == 4
+        invalid = client.post(path + "/schema", json={"parameters": {"undeclared": 10}})
+        assert invalid.status_code == 422
+        assert client.get(path).json() == saved.json()
+        filtered = str(uuid4())
+        nodes.append(
+            {
+                "id": filtered,
+                "type": "filter",
+                "version": 1,
+                "position": {"x": 0, "y": 0},
+                "config": {
+                    "conditions": [
+                        {"column_id": "col_2", "operator": "equals", "parameter": "price"}
+                    ]
+                },
+            }
+        )
+        for wire in edges:
+            if wire["target_node_id"] == pivot:
+                wire["source_node_id"] = filtered
+        edges.append(
+            {
+                "id": str(uuid4()),
+                "source_node_id": append,
+                "source_port": "dataset",
+                "target_node_id": filtered,
+                "target_port": "input",
+            }
+        )
+        payload.update(
+            expected_revision=4,
+            parameters=[{"name": "price", "logical_type": "integer", "default": 20}],
+        )
+        saved = client.put(path, json=payload)
+        assert saved.status_code == 200, saved.text
+        for price in (20, 10, 20):
+            response = client.post(path + "/schema", json={"parameters": {"price": price}})
+            assert response.status_code == 200, response.text
+            body = response.json()
+            output = next(item for item in body["nodes"] if item["node_id"] == pivot)
+            assert [item["engine_name"] for item in output["columns"]] == [
+                "Quantity",
+                f"pivot_{price}",
+            ]
+            assert body["valid"] is (price == 20)
+            assert body["revision"] == 5
+        assert client.get(path).json() == saved.json()
     finally:
         app.dependency_overrides.clear()

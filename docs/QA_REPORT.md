@@ -1,5 +1,33 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F2 first field-authoring UI - 2026-09-21
+
+Full backend suite: 328 passed, six SQLite matrix skips. Partial-draft regression verifies
+unconnected operations do not erase source schemas. Parameterized schema API is additionally
+tested on SQLite/PostgreSQL: a Filter parameter changes Pivot categories without changing graph
+revision, removed projected fields become explicit issues, defaults/repeated contexts remain valid.
+Legacy workflow/schema and new API focused regression: 23 passed after the API addition.
+
+89 frontend tests pass. They cover canonical handle serialization, context/type/cycle rejection, translated
+form values, explicit null policy, stale named-output responses and editor-specific recovery
+keys. Literal translation completeness covers new messages/node labels. Ruff lint/format, mypy,
+TypeScript/ESLint, OpenAPI drift and production Docker builds pass.
+
+All nine browser scenarios pass after the final recovery-key and missing-handle fixes.
+Browser acceptance authors Excel -> multiply -> append field -> sum entirely through UI, using
+one mouse-drag connection and named input selectors, previews both A/B, undoes/redoes and reloads.
+Scalar total is independently compared with the field preview values. Language/theme changes
+preserve the graph. Another scenario gates a save response, checks later edits and rejects a
+stale second tab without losing its recovered draft. Classic editor/format/chart regressions run.
+Initial deployment check raced startup (connection refused); after Compose health it passed.
+A test alert locator was narrowed to exclude Next's empty route announcer, without changing
+conflict expectations. Visual inspection caught oversized initial canvas zoom; fit controls and
+bounded automatic fitting were added and the UI rechecked.
+
+Original and UX-copy graph/dashboard snapshots match six endpoints after deployment. No new
+migration/reset/conversion. This accepts an initial F2 slice, not workbook/composite UI, direct
+chart bindings, final dashboard journey, 164-slice parity, large-graph usability or operator timing.
+
 ## F1 container persistence - 2026-09-21
 
 327 backend tests pass with PostgreSQL enabled; six skips apply only to the SQLite matrix.

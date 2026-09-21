@@ -115,9 +115,36 @@ def resolve_workflow_schema(
     settings: AppSettings,
     cache: ExecutionCache,
 ) -> WorkflowSchemaRead:
+    return _resolve_schema(
+        workflow_id, session, registry, storage, settings, cache, PreviewRequest()
+    )
+
+
+@router.post("/api/v1/workflows/{workflow_id}/schema", response_model=WorkflowSchemaRead)
+def resolve_parameterized_schema(
+    workflow_id: uuid.UUID,
+    payload: PreviewRequest,
+    session: DatabaseSession,
+    registry: Registry,
+    storage: Storage,
+    settings: AppSettings,
+    cache: ExecutionCache,
+) -> WorkflowSchemaRead:
+    return _resolve_schema(workflow_id, session, registry, storage, settings, cache, payload)
+
+
+def _resolve_schema(
+    workflow_id: uuid.UUID,
+    session: DatabaseSession,
+    registry: Registry,
+    storage: Storage,
+    settings: AppSettings,
+    cache: ExecutionCache,
+    payload: PreviewRequest,
+) -> WorkflowSchemaRead:
     workflow = _workflow(session, workflow_id)
     graph = _domain_graph(session, workflow)
-    context = _execution_context(workflow, session, storage, settings, cache)
+    context = _execution_context(workflow, session, storage, settings, cache, payload.parameters)
     result = WorkflowSchemaResolver(registry).resolve(graph, context)
     return WorkflowSchemaRead(
         revision=workflow.revision,

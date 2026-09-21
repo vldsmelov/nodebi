@@ -32,6 +32,9 @@ export function formatCell(locale: Locale, value: unknown, type?: string): strin
   return String(value);
 }
 export const nodeNames: Record<string, string> = {
+  scalar_constant: "Constant", scalar_parameter: "Parameter", field_arithmetic: "Field arithmetic",
+  field_compare: "Field comparison", field_logical: "Field logic", append_field: "Append field",
+  field_filter: "Filter by field", field_sum: "Sum field",
   convert_types: "Convert Types", unpivot: "Unpivot", window: "Window",
   excel_source: "Excel Source", select_columns: "Select Columns", rename_columns: "Rename Columns",
   filter: "Filter", sort: "Sort", limit: "Limit", calculated_column: "Calculated Column", group_by: "Group By",

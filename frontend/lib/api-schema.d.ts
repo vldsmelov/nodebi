@@ -185,7 +185,8 @@ export interface paths {
         /** Resolve Workflow Schema */
         get: operations["resolve_workflow_schema_api_v1_workflows__workflow_id__schema_get"];
         put?: never;
-        post?: never;
+        /** Resolve Parameterized Schema */
+        post: operations["resolve_parameterized_schema_api_v1_workflows__workflow_id__schema_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1870,6 +1871,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowSchemaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_parameterized_schema_api_v1_workflows__workflow_id__schema_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
