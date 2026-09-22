@@ -30,13 +30,17 @@ composite block rendering/packing is not yet implemented (block members are show
 Canvas handles encode port+column only for display; field-wires serializes explicit source_port
 and source_column_id. Connections can be dragged or selected by node/field label. Input replacement
 is one draft/history action. Local checks cover port kinds, cycles, capacity and known row context;
-backend validation remains authoritative. Cards bound unconnected field rendering to 20 search
-results and retain connected ports. Drag hints reuse normalized connection validation and require
+backend validation remains authoritative. Cards retain connected/focused ports outside a scroll
+window of at most 16 unconnected fields (24px rows, 240px viewport). Search resets the scroll.
+Graphs over 40 nodes default to compact cards; selection reveals fields unless explicitly hidden.
+NodeFinder navigates to real nodes or their workbook container. Field mode uses its parameter-aware
+POST schema query without the unused classic GET query (ADR-097).
+Drag hints reuse normalized connection validation and require
 a current output schema before showing compatibility. Known arithmetic/boolean/comparison types
 are checked locally; backend remains authoritative. fieldPath follows exact projected endpoints
 and expression wires, stops at table-producing transformations and never invents column lineage.
 Path selection and drag state are local (no save/revision); unrelated wires are dimmed. Full
-virtualization remains open (ADR-095).
+financial-project/operator acceptance remains open.
 
 Output drops on blank canvas open a registry-driven operation/input chooser (ADR-096). It uses
 only current schema and the common validator; selection is revalidated before committing one

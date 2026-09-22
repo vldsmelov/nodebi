@@ -5,6 +5,22 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F2 bounded field rendering and large-graph navigation (ADR-097, 2026-09-22).
+Scrollable unconnected fields mount at most 16 rows; connected/focused ports remain pinned.
+Graphs over 40 nodes default compact; node search reveals and navigates to nodes/workbooks.
+Removed the unused classic schema GET in field mode. Backend/API/DB unchanged.
+Synthetic 168-node graph with a real generated 1024-column Excel: initial handles 3695 -> 335,
+canvas elements 15303 -> 4887, schema requests 2 -> 1. Observed readiness 3173 -> 1852 ms;
+navigation 525 ms (single local runs, not a productivity claim). No eager previews/view saves.
+Checks: 104 frontend tests, TypeScript, ESLint, production Docker build and 14 focused browser
+scenarios pass. Frontend deployed healthy; six original/UX-copy snapshot endpoints unchanged.
+No full backend/PostgreSQL/private 164-slice parity rerun for this frontend-only slice.
+Next: remaining F1 diagnostic field paths, F3 composite UI/direct chart bindings, then F4 and
+retained financial-copy/operator acceptance. F2 remains open for that acceptance. No known
+P0/P1 in this slice; no blocker to implementation of the next task.
+
+Previous operation chooser slice:
+
 Latest slice: F2 operation chooser on output drop (ADR-096, 2026-09-22). Dragging a real or workbook
 output to blank canvas opens compatible registry operation/input choices with search. Selecting
 an output and using Add operation to output offers a keyboard alternative. Current schema is

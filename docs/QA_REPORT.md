@@ -1,5 +1,22 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F2 large graph and field virtualization - 2026-09-22
+
+Reproduced excessive DOM on the preceding deployment: generated real Excel with 1024 columns,
+one source and 167 Select Columns branches (64 fields each), 168 nodes/167 edges. Initial canvas
+had 3695 handles/15303 elements and made two schema requests. Same browser fixture after the fix:
+335 handles/4887 elements, one schema request. Observed readiness 3173 -> 1852 ms; navigation to
+Branch 167 took 525 ms. These are individual local measurements, not operator productivity data.
+The test reaches field 1023 by scrolling, keeps selected output visible during another search,
+checks bounded ports, no eager previews and unchanged persisted revision/node/edge counts.
+Temporary project is deleted in finally; workbook is generated in memory without user data.
+
+104 frontend tests, TypeScript, ESLint, production Docker build and 14 focused browser scenarios
+pass, including existing field/workbook drags, undo, reload, themes/locales and save conflicts.
+Six original/UX-copy snapshots remain unchanged. Frontend deployed healthy. Backend/DB/API are
+unchanged; full backend/PostgreSQL/private 164-slice parity were not rerun. Financial-copy and
+operator large-graph acceptance remain open; this synthetic benchmark does not replace them.
+
 ## F2 operation drop menu - 2026-09-22
 
 103 frontend tests pass; focused operation tests pass after fixing optional composite outputs.

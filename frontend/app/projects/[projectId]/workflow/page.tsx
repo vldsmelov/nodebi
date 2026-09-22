@@ -26,7 +26,7 @@ function WorkflowPageContent() {
   const invalidWorkflow = Boolean(selectedWorkflowId && workflows.data && !workflows.data.some(item => item.id === selectedWorkflowId));
   const effectiveWorkflowId = selectedWorkflowId ? (workflows.data?.some(item => item.id === selectedWorkflowId) ? selectedWorkflowId : "") : workflows.data?.[0]?.id || "";
   const workflow = useQuery({ queryKey: ["workflow", effectiveWorkflowId], queryFn: () => getWorkflow(effectiveWorkflowId), enabled: Boolean(effectiveWorkflowId) });
-  const resolvedSchema = useQuery({ queryKey: ["workflow-schema", effectiveWorkflowId], queryFn: () => getWorkflowSchema(effectiveWorkflowId), enabled: Boolean(effectiveWorkflowId) });
+  const resolvedSchema = useQuery({ queryKey: ["workflow-schema", effectiveWorkflowId], queryFn: () => getWorkflowSchema(effectiveWorkflowId), enabled: Boolean(effectiveWorkflowId) && (!fieldMode || workflow.data?.version === 1) });
   const catalogVersion = fieldMode && workflow.data?.version === 2 ? 2 : 1;
   const catalog = useQuery({ queryKey: ["node-catalog", catalogVersion], queryFn: () => getNodeCatalog(catalogVersion) });
   const sources = useQuery({ queryKey: ["sources", projectId], queryFn: () => listSources(projectId) });

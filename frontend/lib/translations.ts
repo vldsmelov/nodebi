@@ -1,5 +1,7 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Scrollable fields": ["Прокручиваемый список полей", "Әйләндерелә торган кырлар исемлеге"],
+  "Scroll or search for more fields.": ["Прокрутите список или найдите поле поиском.", "Исемлекне әйләндерегез яки кырны эзләгез."],
   "For field-to-table operations, the exact source table is connected when known.": ["Для операций поля с таблицей подключается его исходная таблица, если она известна.", "Кыр һәм таблица операцияләре өчен билгеле булса, аның чыганак таблицасы тоташтырыла."],
   "Add connected operation": ["Добавить связанную операцию", "Бәйле операция өстәргә"],
   "Choose an input. Finish the remaining settings in the inspector.": ["Выберите вход. Остальные настройки задайте в инспекторе.", "Керешне сайлагыз. Калган көйләүләрне инспекторда бирегез."],

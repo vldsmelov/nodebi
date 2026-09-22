@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# ADR-097 - Bounded field rendering and large-graph navigation
+
+Date: 2026-09-22. Status: ACCEPTED; financial-copy/operator acceptance remains open.
+
+Context: a generated 1024-column Excel source and 167 Select Columns branches rendered
+3695 handles and 15303 canvas elements; field mode also requested the unused classic schema.
+The old first-20 search cutoff could not scroll through all matching fields.
+
+Decision: virtualize only unconnected fields (24px rows, 240px viewport, at most 16 mounted).
+Connected, selected-path and declared output handles stay pinned outside the scroll area.
+Graphs over 40 nodes open compact; selection reveals fields, with an explicit manual override.
+Reuse NodeFinder for navigation to a node or its workbook. Suppress classic GET schema in v2
+field mode, retaining its parameter-aware POST query. View changes do not save graph revisions.
+
+Alternatives: hiding connected handles would destabilize visible wires; full graph virtualization
+would complicate workbook endpoints without evidence it is needed. No dependency was added.
+Consequences: heavily connected nodes intentionally retain all connected ports. The synthetic
+benchmark protects bounded DOM and navigation, but does not measure operator productivity or
+replace financial-project acceptance. Backend execution and persistence are unchanged.
+
 # ADR-096 - Registry-driven operation creation from an output
 
 Date: 2026-09-22. Status: ACCEPTED; remaining F2 performance acceptance stays open.

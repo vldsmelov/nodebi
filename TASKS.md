@@ -20,7 +20,9 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
   * [x] Workbook canvas cards with projected real field endpoints, persistent collapse/movement, sheet selection, drag/button detach/return, ungroup and atomic membership repair on deletion/source change (ADR-094).
   * [x] Drag-time compatible/blocked/pending input hints and conservative explicit field paths through expression nodes, with workbook proxy normalization and local-only selection (ADR-095).
   * [x] Registry-based compatible operation/input chooser on blank-canvas output drop, keyboard alternative, exact row-context table wiring and atomic node/wire undo (ADR-096).
-  * [ ] Complete large-graph/virtualization acceptance.
+  * [x] Virtualize unconnected fields, keep connected/focused ports pinned, compact large graphs, navigate by node search and eliminate duplicate schema GET (ADR-097).
+  * [x] Browser acceptance on a synthetic 168-node graph and real generated 1024-column workbook; no eager previews or view-only revision changes.
+  * [ ] Complete retained financial-copy/operator large-graph acceptance.
 * [ ] F3: Atomic one-level composite blocks, navigation/public ports, field Bar Chart and scalar KPI.
 * [ ] F4: UI-built end-to-end scenario, restart/compatibility/164-slice parity and operator evaluation.
 

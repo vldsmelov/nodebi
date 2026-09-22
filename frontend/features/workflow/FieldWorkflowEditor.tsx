@@ -23,6 +23,7 @@ import { attachedBook, bookCanvasId, detachWorkbookSheet, groupWorkbook, reconci
 import { fieldPath, inputHint, type FieldEndpoint } from "./field-interaction";
 import { appendOperation, operationChoices, type OperationChoice } from "./operation-drop";
 import { OperationDropMenu } from "./OperationDropMenu";
+import { NodeFinder } from "./NodeFinder";
 import type { NodeDefinition, ParameterValues, Workflow } from "./types";
 
 const nodeTypes = { fieldNode: FieldNodeCard, workbookNode: WorkbookNodeCard };
@@ -96,6 +97,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
   const nodes: FieldCanvasNode[] = useMemo(() => graph.nodes.flatMap(node => {
     const definition = catalog.find(item => item.type === node.type && item.version === node.version);
     return definition ? [{ id: node.id, type: "fieldNode" as const, position: node.position, selected: node.id === selected, data: { node, definition, schema: choicesSchema?.nodes.find(item => item.node_id === node.id), connected: graph.edges.filter(edge => edge.source_node_id === node.id).map(edge => fieldHandle(edge.source_port, edge.source_column_id)), stale: dirty || !currentSchema,
+      largeGraph: graph.nodes.length > 40,
       focusedHandle: activeFocus?.nodeId === node.id ? activeFocus.handle : undefined,
       onFocusOutput: (handle: string) => focusOutput(node.id, handle),
       inputHints: dragSource ? Object.fromEntries(definition.input_ports.map(port => [port.id, inputHint(graph, catalog, dragSource, node.id, port.id, currentSchema)])) : undefined,
@@ -153,6 +155,11 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
     {operationMenu && <OperationDropMenu choices={offeredOperations} catalog={catalog} sourceLabel={menuLabel} pending={!currentSchema} onChoose={chooseOperation} onClose={() => setOperationMenu(null)} />}
     <aside className="overflow-auto bg-panel p-3">
       <p className="mb-3 text-xs text-warning">{t("Field editor preview. Existing projects are not converted.")}</p>
+      <NodeFinder nodes={graph.nodes.map(node => ({ id: node.id, label: `${String(node.ui?.label || node.config?.sheet_name || node.config?.name || nodeName(node.type))} · ${nodeName(node.type)}` }))} selected={selected} onSelect={id => {
+        setSelected(id);
+        const book = attachedBook(graph, id);
+        requestAnimationFrame(() => { void flow.current?.fitView({ nodes: [{ id: book ? bookCanvasId(book.id) : id }], maxZoom: 1, padding: 0.3 }); });
+      }} />
       <WorkbookBrowser sources={sources} nodes={graph.nodes} onOpen={openSheet} />
       <input aria-label={t("Search nodes")} className={control} value={search} onChange={e => setSearch(e.target.value)} />
       {catalog.filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={item.type} title={t("Add {0}", { 0: nodeName(item.type) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {nodeName(item.type)}</button>)}
