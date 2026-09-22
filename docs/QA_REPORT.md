@@ -1,5 +1,21 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F2 operation drop menu - 2026-09-22
+
+103 frontend tests pass; focused operation tests pass after fixing optional composite outputs.
+TypeScript, ESLint and Docker production build pass. Unit coverage checks numeric/string/table
+suggestions, exact row-context wiring from expressions, missing endpoints/schemas, output capacity,
+composite public boundaries and one-step undo of the whole node-plus-wires change.
+Twelve existing focused browser scenarios pass. New menu acceptance passes after correcting its
+array-order assumption: graph nodes/edges are compared by stable ID with all attributes retained.
+It creates Sum field by dragging a workbook field onto blank canvas, compares the scalar result
+against source rows, undoes/redoes both wires and the node, opens the menu without dragging,
+verifies string fields exclude arithmetic/sum, cancels with Escape (also during dragging), and
+restores after reload. Selection/cancellation leave revision unchanged. Menu screenshot reviewed.
+Frontend deployed healthy; six original/UX-copy snapshot endpoints remain unchanged. No backend,
+API or migration changes; full backend and private 164-slice parity not rerun. Large-graph
+acceptance and composite UI remain open. Runtime computations still use ordinary graph nodes.
+
 ## F2 input hints and explicit field paths - 2026-09-22
 
 99 frontend tests, TypeScript, ESLint and production Docker build pass. Unit regressions verify

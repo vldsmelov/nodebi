@@ -1,5 +1,23 @@
 # DECISIONS.md
 
+# ADR-096 - Registry-driven operation creation from an output
+
+Date: 2026-09-22. Status: ACCEPTED; remaining F2 performance acceptance stays open.
+Context: dropping a field onto blank canvas should offer usable operations without requiring a
+separate node-add and manual wire step. This must remain ordinary editable graph configuration.
+Decision: use the current saved schema and node catalog to enumerate compatible operation/input
+pairs through the existing connection validator. Resolve book proxy handles before opening the
+menu. Construct the chosen node and wire in one draft/history update; revalidate on selection.
+For append_field, field_filter and field_sum value inputs, connect the precise table identified
+by row_context when it is available. Never infer another table by matching names or row counts.
+Show that rule in the menu and leave other required settings to the inspector. Respect output
+capacity and declared composite public boundaries. Missing current schema disables suggestions.
+Use a modal searchable chooser and an output-selection toolbar action as the keyboard alternative.
+Menu cancellation and Escape during dragging create no nodes, edges or revisions. No server-side
+special operations or computation shortcuts are introduced; no new API or persistence contract.
+Alternatives: a separate hard-coded operation list duplicates the registry; creating a node before
+selection leaves orphan drafts; wiring a convenient table can silently mix incompatible rows.
+
 # ADR-095 - Connection hints and conservative field-path tracing
 
 Date: 2026-09-22. Status: ACCEPTED; F2 operation menus and large-graph acceptance remain open.

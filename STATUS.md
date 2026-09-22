@@ -5,6 +5,22 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F2 operation chooser on output drop (ADR-096, 2026-09-22). Dragging a real or workbook
+output to blank canvas opens compatible registry operation/input choices with search. Selecting
+an output and using Add operation to output offers a keyboard alternative. Current schema is
+required; applying the choice revalidates it. Node plus wires is one undo/save action. Typed
+value/table operations connect the exact row_context table when available; no table is guessed.
+Capacity and declared composite public boundaries are respected. Escape/cancel do not mutate
+the graph. Other required settings remain visible in the inspector. No API/DB/backend change.
+Checks: 103 frontend tests pass; targeted operation tests rerun after optional-port handling fix.
+TypeScript/ESLint and production Docker build pass. Twelve existing browser scenarios pass;
+the new operation scenario passes after comparing graph arrays by stable ID (API order is not
+semantic). Six original/UX-copy snapshots remain unchanged. Frontend deployed healthy.
+Next: F2 large-graph/virtualization acceptance and remaining F1 diagnostic fields; then F3
+composite UI/direct chart bindings and F4. No known P0/P1 in this slice; F2 is not complete.
+
+Previous connection-hints slice:
+
 Latest slice: F2 connection hints and explicit field paths (ADR-095, 2026-09-22).
 Dragging an output highlights compatible/blocked/pending inputs with localized text and symbols,
 using the same validator as connection creation and normalized workbook endpoints. Known numeric,

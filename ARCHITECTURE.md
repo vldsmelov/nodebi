@@ -36,7 +36,13 @@ a current output schema before showing compatibility. Known arithmetic/boolean/c
 are checked locally; backend remains authoritative. fieldPath follows exact projected endpoints
 and expression wires, stops at table-producing transformations and never invents column lineage.
 Path selection and drag state are local (no save/revision); unrelated wires are dimmed. Full
-virtualization and operation drop menus remain open (ADR-095).
+virtualization remains open (ADR-095).
+
+Output drops on blank canvas open a registry-driven operation/input chooser (ADR-096). It uses
+only current schema and the common validator; selection is revalidated before committing one
+node-plus-edges history action. Typed value/table operations may additionally connect the exact
+table named by row_context. Capacity and composite public-port boundaries remain enforced.
+Cancellation and output-selection/menu state do not save. No hidden data transforms are added.
 
 Named-output preview is shared with the classic panel. A/B pins are local view state and request
 separate previews; they do not infer row equivalence or trigger whole-graph thumbnail execution.

@@ -1,5 +1,11 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "For field-to-table operations, the exact source table is connected when known.": ["Для операций поля с таблицей подключается его исходная таблица, если она известна.", "Кыр һәм таблица операцияләре өчен билгеле булса, аның чыганак таблицасы тоташтырыла."],
+  "Add connected operation": ["Добавить связанную операцию", "Бәйле операция өстәргә"],
+  "Choose an input. Finish the remaining settings in the inspector.": ["Выберите вход. Остальные настройки задайте в инспекторе.", "Керешне сайлагыз. Калган көйләүләрне инспекторда бирегез."],
+  "Search operations": ["Поиск операций", "Операцияләр эзләү"],
+  "No compatible operations found.": ["Совместимые операции не найдены.", "Ярашлы операцияләр табылмады."],
+  "Add operation to output": ["Добавить операцию к выходу", "Чыгышка операция өстәргә"],
   "Show connections for {0}": ["Показать связи поля {0}", "{0} кыры бәйләнешләрен күрсәтергә"],
   "Clear field path": ["Снять выделение пути", "Юлны аеруны бетерергә"],
   "Explicit connections; tracing stops at table transformations.": ["Показаны явные связи; путь заканчивается на табличном преобразовании.", "Ачык бәйләнешләр күрсәтелгән; юл таблица үзгәртүендә туктый."],
