@@ -2,6 +2,11 @@
 
 ## Approved extension: functional nodes and field connections (2026-09-21)
 
+Priority clarification (2026-09-22): the owner requests a newly assembled financial dashboard
+using field nodes; maintaining the old dashboard implementation is not an acceptance objective.
+Use existing results as a numerical oracle. Do not infer permission to reset user data. Judge
+usability separately from correctness; automated assembly is not a human timing experiment.
+
 Implement the opt-in field editor specified in docs/FIELD_EDITOR_PLAN.md: expandable workbook
 cards, real typed table/field/scalar connections, explicit calculations, A/B previews and one-level
 composite blocks. Preserve stable node/field identities, dashboard links, three languages and

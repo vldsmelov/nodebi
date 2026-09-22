@@ -1,5 +1,10 @@
 # Node BI
 
+Field-node authoring: [operator guide](docs/FIELD_EDITOR_GUIDE.md).
+The local six-screen financial project has been assembled with field expressions, explicit scalars,
+bound charts and composite blocks: [results and impartial UX review](docs/FIELD_FINANCIAL_REVIEW.md).
+It uses private workbook data and is stored in the local database, not bundled as a public fixture.
+
 Editable reference overview and reproduction instructions: [constructor overview](docs/REFERENCE_OVERVIEW.md).
 
 Workflow parameters can be declared in the editor and selected as Filter values. Defaults
@@ -11,7 +16,7 @@ parameter controls, data choices and navigation are described in [dashboard navi
 ## Constructor extensions for dashboard parity
 
 The approved six-screen migration is tracked in `docs/OPOP_CONSTRUCTOR_PLAN.md`;
-it is not complete yet. General preparation controls are available in the workflow
+its new field-node project passes the 164-slice numerical comparison. General preparation controls are available in the workflow
 editor: Excel Source header row/count and source row number, Convert Types,
 Unpivot and Window. For the supplied reference workbook select header row **3**,
 header count **2**, and enable source row number. Formatting-only tails are ignored.

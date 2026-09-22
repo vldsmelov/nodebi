@@ -72,10 +72,10 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
   const path = useMemo(() => activeFocus ? fieldPath(graph, catalog, activeFocus) : null, [graph, catalog, activeFocus]);
   const [pins, setPins] = useState<[Pin, Pin]>([null, null]);
   const flow = useRef<ReactFlowInstance<CanvasNode, Edge> | null>(null);
-  const toggleBlock = (id: string, collapsed: boolean) => {
+  const toggleBlock = (id: string, collapsed: boolean, focusNode?: string) => {
     setGraph(current => ({ ...current, presentation: { ...current.presentation, blocks: current.presentation?.blocks?.map(block => block.id === id ? { ...block, collapsed } : block) } }));
     setOpenBlock(collapsed ? null : id);
-    setTimeout(() => { void flow.current?.fitView({ maxZoom: 1, padding: 0.15 }); }, 100);
+    setTimeout(() => { void flow.current?.fitView({ ...(focusNode ? { nodes: [{ id: focusNode }] } : {}), maxZoom: 1, padding: 0.15 }); }, 100);
   };
   const pinCount = pins.filter(Boolean).length;
   useEffect(() => {
@@ -196,7 +196,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
       <NodeFinder nodes={graph.nodes.map(node => ({ id: node.id, label: `${String(node.ui?.label || node.config?.sheet_name || node.config?.name || nodeName(node.type))} · ${nodeName(node.type)}` }))} selected={selected} onSelect={id => {
         setSelected(id);
         const block = memberBlock(graph, id);
-        if (block?.collapsed) toggleBlock(block.id, false);
+        if (block?.collapsed) { toggleBlock(block.id, false, id); return; }
         const book = attachedBook(graph, id);
         requestAnimationFrame(() => { void flow.current?.fitView({ nodes: [{ id: book ? bookCanvasId(book.id) : id }], maxZoom: 1, padding: 0.3 }); });
       }} />

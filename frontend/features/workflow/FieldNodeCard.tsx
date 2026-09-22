@@ -29,7 +29,7 @@ export function FieldNodeCard({ id, data, selected, compact = false, handleFor =
   const layout = JSON.stringify([[...pinned, ...visible].map(item => item.handle), scrollTop]);
   useEffect(() => { refresh(id); }, [id, layout, refresh]);
   const Icon = data.definition.category === "source" ? Database : data.definition.category === "visualization" ? ChartColumn : Calculator;
-  const summary = data.node.config?.operation ?? data.node.config?.sheet_name ?? data.node.config?.name;
+  const summary = data.node.config?.expression ?? data.node.config?.operation ?? data.node.config?.sheet_name ?? data.node.config?.name;
   const row = (item: typeof outputs[number]) => <div key={item.handle} className="relative h-6 px-4 py-1 text-right text-xs"><button className={`nodrag nopan block w-full truncate text-right ${data.focusedHandle === item.handle ? "font-bold text-accent underline" : ""}`} aria-label={t("Show connections for {0}", { 0: item.label })} aria-pressed={data.focusedHandle === item.handle} title={item.label} onClick={event => { event.stopPropagation(); data.onFocusOutput?.(item.handle); }}>{item.label} · {t(item.kind)} →</button><Handle type="source" position={Position.Right} id={handleFor(item.handle)} title={item.label} /></div>;
   return <div className={`w-72 rounded-xl border bg-control shadow-lg ${selected ? "border-accent" : "border-outline"}`}>
     <div className="flex items-center gap-2 border-b border-outline p-3"><Icon size={18} /><div className="min-w-0"><strong className="block truncate text-sm">{String(data.node.ui?.label || nodeName(data.node.type))}</strong><span className="text-xs text-muted">{typeof summary === "string" ? t(summary) : nodeName(data.node.type)}</span></div></div>

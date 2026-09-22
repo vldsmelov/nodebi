@@ -29,11 +29,13 @@ from app.domain.values import (
     ValueSchema,
     append_field,
     arithmetic,
+    combine,
     compare,
     filter_rows,
     logical,
     parameter_scalar,
     require_context,
+    single_value,
     sum_field,
 )
 from app.domain.workflows import NodeInstance
@@ -55,6 +57,10 @@ class ParameterConfig(StrictConfig):
 class ArithmeticConfig(StrictConfig):
     operation: Literal["add", "subtract", "multiply", "divide"]
     zero_policy: Literal["error", "null"] = "error"
+
+
+class ExpressionConfig(StrictConfig):
+    expression: str = Field(min_length=1, max_length=4096)
 
 
 class CompareConfig(StrictConfig):
@@ -90,6 +96,8 @@ def scalar(node: NodeInstance, context: ExecutionContext) -> ScalarValue:
 
 
 def expression(node: NodeInstance) -> str:
+    if node.type == "field_formula":
+        return ExpressionConfig.model_validate(node.config).expression
     if node.type == "field_arithmetic":
         operation = ArithmeticConfig.model_validate(node.config).operation
         return {"add": "a + b", "subtract": "a - b", "multiply": "a * b", "divide": "a / b"}[
@@ -121,7 +129,12 @@ class FieldOperationExecutor(TypedNodeExecutor):
             return self._infer_outputs(node, inputs, context)
         except FormulaValidationError as exc:
             raise ValueConnectionError(
-                str(exc), field="b" if node.type == "field_compare" else "config.operation"
+                str(exc),
+                field="config.expression"
+                if node.type == "field_formula"
+                else "b"
+                if node.type == "field_compare"
+                else "config.operation",
             ) from exc
 
     def _infer_outputs(
@@ -134,21 +147,23 @@ class FieldOperationExecutor(TypedNodeExecutor):
                     "scalar", logical_type=constant.logical_type, nullable=constant.value is None
                 )
             }
-        if node.type in {"field_arithmetic", "field_compare", "field_logical"}:
+        if node.type in {"field_arithmetic", "field_compare", "field_logical", "field_formula"}:
             expr = expression(node)
             expected = {"a"} if expr == "not a" else {"a", "b"}
-            if inputs.keys() != expected:
+            if node.type != "field_formula" and inputs.keys() != expected:
                 raise ValueConnectionError(
                     "Connect exactly the operands required by this operation.",
                     field=sorted(inputs.keys() ^ expected)[0],
                 )
             fields = [value for value in inputs.values() if value.kind == "field"]
-            for value in fields[1:]:
+            for port, value in inputs.items():
+                if value.kind != "field":
+                    continue
                 assert fields[0].context is not None and value.context is not None
                 try:
                     require_context(fields[0].context, value.context)
                 except ValueConnectionError as exc:
-                    raise ValueConnectionError(str(exc), field="b") from exc
+                    raise ValueConnectionError(str(exc), field=port) from exc
             for port, value in inputs.items():
                 if node.type == "field_arithmetic" and value.logical_type not in {
                     LogicalType.INTEGER,
@@ -168,7 +183,7 @@ class FieldOperationExecutor(TypedNodeExecutor):
             ):
                 raise ValueConnectionError("Connect a field or an explicit scalar.")
             complexity = 1 + sum(value.complexity for value in inputs.values())
-            depth = 1 + max(value.depth for value in inputs.values())
+            depth = 1 + max((value.depth for value in inputs.values()), default=0)
             if complexity > 256 or depth > 64:
                 raise ValueConnectionError(
                     "Field expression is too complex; add a table output first."
@@ -191,6 +206,7 @@ class FieldOperationExecutor(TypedNodeExecutor):
                 "value": ValueSchema(
                     "field" if fields else "scalar",
                     logical_type=compiled.logical_type,
+                    nullable=compiled.nullable,
                     context=fields[0].context if fields else None,
                     referenced_columns=compiled.referenced_columns,
                     complexity=complexity,
@@ -210,6 +226,12 @@ class FieldOperationExecutor(TypedNodeExecutor):
             raise ValueConnectionError(
                 "This operation requires a field from the connected table.", field="value"
             )
+        if node.type == "field_scalar":
+            return {
+                "value": ValueSchema(
+                    "scalar", logical_type=value.logical_type, nullable=value.nullable
+                )
+            }
         if node.type == "field_sum":
             if value.logical_type not in {LogicalType.INTEGER, LogicalType.FLOAT}:
                 raise ValueConnectionError(
@@ -252,9 +274,11 @@ class FieldOperationExecutor(TypedNodeExecutor):
         except ValueConnectionError as exc:
             default_field = (
                 "value"
-                if node.type in {"append_field", "field_filter", "field_sum"}
+                if node.type in {"append_field", "field_filter", "field_sum", "field_scalar"}
                 else "config.zero_policy"
                 if node.type == "field_arithmetic" and node.config.get("operation") == "divide"
+                else "config.expression"
+                if node.type == "field_formula"
                 else "config.operation"
             )
             raise ValueConnectionError(str(exc), field=exc.field or default_field) from exc
@@ -264,8 +288,10 @@ class FieldOperationExecutor(TypedNodeExecutor):
     ) -> dict[str, ExecutionValue]:
         if node.type in {"scalar_constant", "scalar_parameter"}:
             return {"value": scalar(node, context)}
-        if node.type in {"field_arithmetic", "field_compare", "field_logical"}:
+        if node.type in {"field_arithmetic", "field_compare", "field_logical", "field_formula"}:
             operands = cast(dict[str, Operand], inputs)
+            if node.type == "field_formula":
+                return {"value": combine(expression(node), operands)}
             if node.type == "field_arithmetic":
                 config = ArithmeticConfig.model_validate(node.config)
                 return {
@@ -283,6 +309,8 @@ class FieldOperationExecutor(TypedNodeExecutor):
             return {"value": logical(logical_config.operation, operands["a"], operands.get("b"))}
         table = cast(TableValue, inputs["table"])
         value = cast(Operand, inputs["value"])
+        if node.type == "field_scalar":
+            return {"value": single_value(table, cast(FieldValue, value))}
         if node.type == "field_sum":
             return {"value": sum_field(table, cast(FieldValue, value))}
         output_context = RowContext(context.workflow_id, node.id, "dataset")
@@ -350,6 +378,14 @@ def field_definitions() -> tuple[NodeDefinition, ...]:
         ),
         ("field_filter", "Filter by field", MaskConfig, (table_input, field_input), table_output),
         ("field_sum", "Sum field", StrictConfig, (table_input, field_input), scalar_output),
+        ("field_scalar", "Single value", StrictConfig, (table_input, field_input), scalar_output),
+        (
+            "field_formula",
+            "Field expression",
+            ExpressionConfig,
+            (operand("a", False), operand("b", False), operand("c", False)),
+            value_output,
+        ),
     ]
     return tuple(
         NodeDefinition(

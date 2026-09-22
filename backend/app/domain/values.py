@@ -209,6 +209,8 @@ def combine(expression: str, operands: dict[str, Operand]) -> Operand:
         raise ValueConnectionError(str(exc)) from exc
     if fields:
         checks = tuple(check for value in fields for check in value.checks)
+        if formula.logical_type == LogicalType.FLOAT:
+            checks = (*checks, ~formula.expression.is_finite())
         return FieldValue(fields[0].context, formula, complexity, depth, checks)
     result = pl.select(formula.expression.alias("value")).item()
     if isinstance(result, float) and not math.isfinite(result):
@@ -334,3 +336,18 @@ def validate_field(table: TableValue, value: FieldValue) -> None:
 def dataset_outputs(dataset: Dataset, context: RowContext) -> dict[str, ExecutionValue]:
     """Adapt a legacy executor result to a named table output without copying data."""
     return {context.output_port: TableValue(context, dataset)}
+
+
+def single_value(table: TableValue, value: FieldValue) -> ScalarValue:
+    """Explicit cardinality boundary; never silently sum or choose a first row."""
+    require_context(table.context, value.context)
+    if table.dataset.row_count != 1:
+        raise ValueConnectionError(
+            "Single value requires exactly one row. Filter or aggregate the table explicitly.",
+            field="table",
+        )
+    validate_field(table, value)
+    result = table.dataset.frame.select(value.formula.expression.alias("value")).item()
+    if isinstance(result, (date, datetime)):
+        result = result.isoformat()
+    return ScalarValue(result, value.formula.logical_type)

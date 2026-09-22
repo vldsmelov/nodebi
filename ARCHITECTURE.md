@@ -1,5 +1,11 @@
 # ARCHITECTURE.md
 
+Field expression/scalar boundaries (ADR-105): field_formula compiles expressions over a/b/c through
+the shared safe compiler, with identical-context field operands or explicit scalars. field_scalar
+materializes exactly one selected field value from exactly one row and preserves type/null.
+KPI@2 may receive a separate one-row table solely for explicit navigation context. No new financial
+service or alternate execution path exists. Field expression checks propagate non-finite failures.
+
 ## Opt-in field editor foundation (ADR-093)
 
 Bound visualizations (ADR-104): bar_chart@2 consumes table/category/value with identical row context;

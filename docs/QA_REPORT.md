@@ -1,5 +1,27 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## New financial field project — 2026-09-22 (ADR-105)
+
+Six saved dashboards now use an ordinary format-v2 workflow: 225 nodes / 321 edges,
+27 field expressions/appends, 30 strict single-value extractions, 10 Bar Chart@2 and 30 KPI@2.
+No project-specific executor was introduced. All 164 slices / 1551 widget-result pages match
+reference values, rows, series, formats and highlight identities. The numerical comparison
+normalizes the explicitly changed chart role IDs/engine aliases, not the analytical values.
+PostgreSQL/backend restart preserves all graph/dashboard records and 55 representative results.
+
+360 backend tests pass with SQLite/PostgreSQL (six PostgreSQL-only skips on SQLite), 121 frontend
+tests pass, plus Ruff/format/mypy, TypeScript/ESLint, OpenAPI consistency and production builds.
+Eight distinct browser scenarios pass, including all six financial screens, named connections,
+table/KPI transitions, both themes and RU/EN/TT, formula edit/undo, workbook/composite behavior,
+slow save and two tabs. Corrected a test assumption about unordered persisted node-list order.
+Fixed a real P2: node-finder block opening overwrote focused zoom with full-graph zoom; the
+regression checks the located card is visible and wider than 200 px.
+
+Private source/results/screenshots and restart/assembly evidence stay in ignored .backups.
+Browser test artifacts are excluded from frontend Docker context. No known P0/P1 in this slice.
+Remaining P2: dense graphs and full-fit labels still need UX work. Human authoring speed has
+not been measured; docs/FIELD_FINANCIAL_REVIEW.md distinguishes facts from expected benefits.
+
 ## F3 typed visualizations and initial F4 acceptance - 2026-09-22
 
 349 backend tests pass in the SQLite/PostgreSQL matrix (six SQLite-only skips for checks executed

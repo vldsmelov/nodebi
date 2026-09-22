@@ -5,6 +5,35 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Current slice (2026-09-22, ADR-105): new financial dashboard assembled with field nodes.
+Owner priority is new constructor capability, not preserving the old dashboard implementation.
+Project 908f1522-f6cd-42e4-93e0-0a59ae0749e8; workflow b5daab58-f13b-4de1-bf90-980060fb919a.
+225 nodes / 321 wires, six dashboards / 55 widgets, seven composites and a workbook container.
+All 27 calculated columns use field_formula + append_field; all 10 bars/30 KPI use v2 bindings.
+Generic field_scalar requires exactly one row and preserves type/null; KPI optional context
+table preserves navigation explicitly. No financial execution service or DB schema change.
+
+Numerical checks: 164 slices / 1551 widget pages match the reference values, rows, series,
+formats and highlighting. PostgreSQL/backend restart restores graph/boards and 55 exact sample
+results. Full checks: 360 backend tests passed, six PostgreSQL-only SQLite skips; 121 frontend
+tests passed; Ruff/format/mypy, TS/ESLint, OpenAPI consistency and Docker production builds pass.
+Eight distinct browser scenarios pass: the real six-screen financial project, named typed
+authoring/visualizations, workbook operations, composite editing, slow save and two tabs. Real
+table/KPI transitions, both themes/three locales, formula edit/undo and full node/edge preservation
+pass. Fixed a reproduced P2: block expansion reset the found-node zoom to the entire graph.
+The regression now requires the found card to be visible and over 200 px wide. An initial test
+assertion incorrectly relied on SQL node-list order; full records are now compared by ID.
+
+Next: human operator measurements / one-action authoring UX (see the proposed review priorities).
+No known P0/P1. P2 usability limitation: full graph fit makes labels too small, and the 80-node
+preparation block still requires search/panning. Human speed is unmeasured; the new graph adds
+34% nodes and 87% wires. See docs/FIELD_FINANCIAL_REVIEW.md for the candid assessment.
+Private .backups/field-financial-project.json records API assembly/remappings; parity JSON records
+all cases/comparisons; field-financial-restart.json verified=true records restoration evidence.
+Private assembly/verification scripts, workbook, screenshots and DB dump remain ignored.
+
+Previous completed slice:
+
 Latest slice: F3 field-bound Bar Chart/scalar KPI and initial F4 acceptance (ADR-104, 2026-09-22).
 bar_chart@2 uses explicit table/category/value wires; kpi@2 uses a scalar. Common typed execution
 validates row context/types, preserves null/text/order/cardinality, rejects non-finite values and

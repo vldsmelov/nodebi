@@ -1,5 +1,12 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Navigation context": ["Контекст перехода", "Күчеш контексты"],
+  "Field expression": ["Выражение над полями", "Кырлар өстендә аңлатма"],
+  "Single value": ["Единственное значение", "Бердәнбер кыйммәт"],
+  "Use connected inputs a, b, c. Functions: trim, lower, coalesce, nullif, safe_divide.": ["Используйте подключённые входы a, b, c. Функции: trim, lower, coalesce, nullif, safe_divide.", "Тоташтырылган a, b, c керешләрен кулланыгыз. Функцияләр: trim, lower, coalesce, nullif, safe_divide."],
+  "Requires exactly one row. Filter or aggregate upstream; null remains null.": ["Требуется ровно одна строка. Сначала отфильтруйте или агрегируйте таблицу; null остаётся null.", "Нәкъ бер юл кирәк. Башта таблицаны фильтрлагыз яки агрегатлагыз; null үзгәрми."],
+  "Single value requires exactly one row. Filter or aggregate the table explicitly.": ["Для единственного значения нужна ровно одна строка. Явно отфильтруйте или агрегируйте таблицу.", "Бердәнбер кыйммәт өчен нәкъ бер юл кирәк. Таблицаны ачык итеп фильтрлагыз яки агрегатлагыз."],
+  "KPI context requires exactly one row.": ["Контекст перехода KPI должен содержать ровно одну строку.", "KPI күчеше контекстында нәкъ бер юл булырга тиеш."],
   "Preview visualization": ["Просмотр визуализации", "Визуализацияне карау"],
   "Connect a numeric or text scalar to Value. Use Sum field for a total.": ["Подключите число или текст к входу «Значение». Для итога используйте «Сумма поля».", "«Кыйммәт» керешенә сан яки текст тоташтырыгыз. Йомгак өчен «Кыр суммасы»н кулланыгыз."],
   "Connect Table, Category and Value from the same table output. Aggregate upstream.": ["Подключите таблицу, категорию и значение из одного выхода таблицы. Агрегацию выполните перед диаграммой.", "Таблицаны, категорияне һәм кыйммәтне бер таблица чыгышыннан тоташтырыгыз. Агрегацияне диаграмма алдыннан башкарыгыз."],

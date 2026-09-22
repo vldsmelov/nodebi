@@ -44,7 +44,7 @@ class BoundVisualizationExecutor(TypedNodeExecutor):
         ports = ("category", "value") if node.type == "bar_chart" else ("value",)
         columns: list[ColumnSchema] = []
         table = inputs.get("table")
-        if node.type == "bar_chart":
+        if node.type == "bar_chart" or table is not None:
             if table is None or table.kind != "dataset" or table.table is None:
                 raise ValueConnectionError(
                     "Connect the table used by the chart fields.", field="table"
@@ -141,7 +141,17 @@ class BoundVisualizationExecutor(TypedNodeExecutor):
             scalar = inputs["value"]
             assert isinstance(scalar, ScalarValue)
             column = output.table.by_id(bound_column_id(node, "value"))
-            frame = pl.select(scalar.formula.expression.alias(column.engine_name))
+            context_table = inputs.get("table")
+            if isinstance(context_table, TableValue):
+                if context_table.dataset.row_count != 1:
+                    raise ValueConnectionError(
+                        "KPI context requires exactly one row.", field="table"
+                    )
+                frame = context_table.dataset.frame.with_columns(
+                    scalar.formula.expression.alias(column.engine_name)
+                )
+            else:
+                frame = pl.select(scalar.formula.expression.alias(column.engine_name))
         dataset = Dataset(frame, output.table)
         try:
             dataset = VisualizationExecutor().execute(
@@ -168,7 +178,10 @@ def bound_visualization_definitions() -> tuple[NodeDefinition, ...]:
                 PortDefinition("value", "Value", PortKind.FIELD),
             )
             if kind == "bar_chart"
-            else (PortDefinition("value", "Value", PortKind.SCALAR),),
+            else (
+                PortDefinition("value", "Value", PortKind.SCALAR),
+                PortDefinition("table", "Navigation context", PortKind.DATASET, required=False),
+            ),
             output_ports=(
                 PortDefinition("dataset", "Dataset", PortKind.DATASET, max_connections=None),
             ),

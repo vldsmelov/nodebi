@@ -59,7 +59,7 @@ export function connectionError(graph: GraphDraft, catalog: NodeDefinition[], co
     const value = schema?.nodes.find(node => node.node_id === nodeId)?.outputs?.[port];
     return (column || value?.kind === "field" || value?.kind === "dataset") && value?.row_context ? JSON.stringify(value.row_context) : null;
   };
-  if (["field_arithmetic", "field_compare", "field_logical", "append_field", "field_filter", "field_sum"].includes(target.type) || (target.type === "bar_chart" && target.version === 2)) {
+  if (["field_formula", "field_arithmetic", "field_compare", "field_logical", "append_field", "field_filter", "field_sum", "field_scalar"].includes(target.type) || (target.type === "bar_chart" && target.version === 2)) {
     const context = rowContext(source.id, endpoint.port, endpoint.column);
     if (context && remaining.some(edge => edge.target_node_id === target.id && (() => { const other = rowContext(edge.source_node_id, edge.source_port, edge.source_column_id); return other && other !== context; })())) return "Fields use different rows. Join the tables first.";
   }

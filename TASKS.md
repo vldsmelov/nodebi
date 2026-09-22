@@ -33,7 +33,11 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
 * [~] F4: UI-built end-to-end scenario, restart/compatibility/164-slice parity and operator evaluation.
   * [x] Build Excel → arithmetic → append → Filter → Group By → field Bar Chart + scalar KPI → dashboard using named UI controls; edit/copy/reload and verify both themes/three languages.
   * [x] Verify a saved typed graph, composite block, dashboard and both chart results after PostgreSQL/backend restart on disposable synthetic data.
-  * [ ] Complete retained financial-copy 164-slice parity and operator evaluation.
+  * [x] Assemble a new financial field-node project (owner priority clarification, 2026-09-22): 27 field expressions/appends, 30 explicit scalar boundaries, 10 Bar Chart@2, 30 KPI@2, six dashboards and seven blocks (ADR-105).
+  * [x] Compare all 164 slices / 1551 widget pages; verify the real saved graph, six dashboards and 55 representative results after PostgreSQL/backend restart.
+  * [x] Complete real-project browser editing/navigation checks and document the impartial usability review; fix readable node-search focus inside large blocks.
+  * [ ] Run the human operator protocol; do not claim measured authoring speed without participants/results.
+  * [ ] Next UX priority: one-action computed-field and explicit KPI authoring, then large-block overview/path layout. See docs/FIELD_FINANCIAL_REVIEW.md; these improvements are not implemented by this slice.
 
 ## Manual-authoring UX review and proposed redesign (2026-09-15)
 

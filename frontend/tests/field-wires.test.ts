@@ -12,6 +12,11 @@ const catalog: NodeDefinition[] = [
 const graph: GraphDraft = { format_version: 2, name: "Test", nodes: ["one", "two", "math"].map(id => ({ id, type: id === "math" ? "field_arithmetic" : "table", version: 1, position: { x: 0, y: 0 } })), edges: [] };
 const schema: WorkflowSchemaResult = { revision: 1, valid: true, issues: [], nodes: ["one", "two"].map(id => ({ node_id: id, columns: null, issues: [], outputs: { data: { kind: "dataset", nullable: false, columns: [{ column_id: "q", engine_name: "q", display_name: "Same name", logical_type: "integer", nullable: false, metadata: {} }], row_context: { workflow_id: "workflow", node_id: id, output_port: "data" } } } })) };
 describe("typed field connections", () => {
+  it.each(["field_formula", "field_scalar"])("rejects foreign row contexts for %s", type => {
+    const localCatalog = [...catalog, { ...catalog[1], type }];
+    const localGraph = { ...graph, nodes: graph.nodes.map(node => node.id === "math" ? { ...node, type } : node), edges: [{ id: "first", source_node_id: "one", source_port: "data", source_column_id: "q", target_node_id: "math", target_port: "a" }] };
+    expect(connectionError(localGraph, localCatalog, { source: "two", sourceHandle: fieldHandle("data", "q"), target: "math", targetHandle: "b" }, schema)).toContain("different rows");
+  });
   it("uses exact source and target versions regardless of catalog order", () => {
     const newer = [
       { ...catalog[0], version: 2, output_ports: [port("data", "scalar")] },

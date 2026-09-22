@@ -18,7 +18,7 @@ export function appendOperation(graph: GraphDraft, catalog: NodeDefinition[], sc
   if (connectionError(next, catalog, connection, schema)) return null;
   next.edges.push(saveWire(connection));
   // The exact row context is an explicit dependency, never a guessed matching table.
-  if ((endpoint.column || output.kind === "field") && ((choice.port === "value" && ["append_field", "field_filter", "field_sum"].includes(choice.type)) || (choice.type === "bar_chart" && choice.version === 2 && ["category", "value"].includes(choice.port))) && output.row_context) {
+  if ((endpoint.column || output.kind === "field") && ((choice.port === "value" && ["append_field", "field_filter", "field_sum", "field_scalar"].includes(choice.type)) || (choice.type === "bar_chart" && choice.version === 2 && ["category", "value"].includes(choice.port))) && output.row_context) {
     const context = output.row_context;
     const table = schema?.nodes.find(node => node.node_id === context.node_id)?.outputs?.[context.output_port];
     if (table?.kind === "dataset") {

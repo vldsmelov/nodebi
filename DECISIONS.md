@@ -1,5 +1,32 @@
 # DECISIONS.md
 
+# ADR-105 - General field expressions and explicit single-value boundaries
+
+Date: 2026-09-22. Status: ACCEPTED. Extends ADR-090/104.
+
+Context: assembling financial dashboards with field nodes exposed missing text/null handling,
+safe division with fallback, and extraction of text leaders from an explicitly selected record.
+Sum is not a substitute for scalar extraction; silently selecting a first row is ambiguous.
+
+Decision: field_formula exposes optional named inputs a/b/c and an expression compiled through
+the existing allowlisted formula compiler. Schema inference and execution share its type rules.
+Field operands require one row context; all-scalar expressions return a scalar. Existing expression
+size/depth limits apply. Non-finite intermediate field results retain deferred validation even if a
+downstream comparison masks their numeric value. Invalid formulas identify config.expression.
+field_scalar takes table/value, requires identical row context and exactly one row, preserves
+logical type and null, and never implicitly aggregates or chooses a record. Both have ordinary
+registry contracts, named ports, forms, translations, undo and revision-safe persistence.
+
+KPI@2 gains an optional table input for explicitly selected navigation context. It must contain
+exactly one row; the scalar remains its only displayed measure. No implicit scalar-to-record
+matching occurs. This preserves links from leader KPI without hidden lookups. No DB migration
+or public response-shape change is needed: registry contracts describe the additional ports.
+
+Alternatives: financial services violate the constructor requirement; retaining calculated-column
+selectors would not exercise field authoring; expanding each trim/coalesce/safe_divide into many
+primitive nodes further increases complexity. Consequences: named wires help trace inputs, but
+expressions still require formula literacy. Capability is not evidence of faster human authoring.
+
 # ADR-104 - Explicit field-bound Bar Chart and scalar KPI
 
 Date: 2026-09-22. Status: ACCEPTED.
