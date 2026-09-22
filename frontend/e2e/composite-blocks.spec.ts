@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
+const byId = (items: { id: string }[]) => [...items].sort((a, b) => a.id.localeCompare(b.id));
 
 test("pack, connect, edit, undo and restore a composite without replacing calculation identities", async ({ page, request }) => {
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Composite acceptance" } })).json();
@@ -71,6 +72,43 @@ test("pack, connect, edit, undo and restore a composite without replacing calcul
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.reload();
     await expect(card.getByLabel("Block name", { exact: true })).toHaveValue("Adjusted revenue");
+    expect(await value()).toBe(4);
+    const beforeSettings = await (await request.get(path)).json();
+    await card.getByRole("button", { name: "Edit block", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "Edit composite block", exact: true });
+    await settings.getByLabel("Revenue", { exact: true }).uncheck();
+    await settings.getByRole("button", { name: "Cancel", exact: true }).click();
+    expect((await (await request.get(path)).json()).revision).toBe(beforeSettings.revision);
+    await card.getByRole("button", { name: "Edit block", exact: true }).click();
+    const outputs = settings.getByRole("region", { name: "Public outputs", exact: true });
+    await expect(outputs.getByRole("button", { name: "Hide port", exact: true }).first()).toBeDisabled();
+    await outputs.getByLabel("Public port name", { exact: true }).first().fill("Net revenue");
+    await outputs.getByRole("button", { name: "Hide port", exact: true }).nth(1).click();
+    await settings.getByLabel("Revenue", { exact: true }).uncheck();
+    await settings.getByLabel("Total", { exact: true }).check();
+    await settings.getByLabel("Port direction", { exact: true }).selectOption("outputs");
+    await settings.getByLabel("Available endpoint", { exact: true }).selectOption({ label: "Total / Value" });
+    await settings.getByRole("button", { name: "Expose port", exact: true }).click();
+    await settings.getByLabel("Port direction", { exact: true }).selectOption("inputs");
+    await settings.getByLabel("Available endpoint", { exact: true }).selectOption({ label: "Total / a" });
+    await settings.getByRole("button", { name: "Expose port", exact: true }).click();
+    await settings.getByRole("button", { name: "Apply block changes", exact: true }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const configured = await (await request.get(path)).json();
+    expect(configured.revision).toBe(beforeSettings.revision + 1);
+    expect(configured.presentation.blocks[0].node_ids.sort()).toEqual([nodes[3].id, nodes[4].id].sort());
+    expect(configured.presentation.blocks[0].outputs).toContainEqual({ ...block.outputs[0], label: "Net revenue" });
+    expect(configured.presentation.blocks[0].outputs).toHaveLength(2);
+    expect(configured.presentation.blocks[0].inputs).toContainEqual(expect.objectContaining({ node_id: nodes[4].id, port: "a", column_id: null }));
+    expect(byId(configured.nodes)).toEqual(byId(beforeSettings.nodes)); expect(byId(configured.edges)).toEqual(byId(beforeSettings.edges));
+    expect(await value()).toBe(4);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    expect((await (await request.get(path)).json()).presentation).toEqual(beforeSettings.presentation);
+    await page.getByRole("button", { name: "Redo", exact: true }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(card.getByText(/^Net revenue/)).toBeVisible();
     expect(await value()).toBe(4);
     for (const [locale, open] of [["ru", "Открыть блок"], ["tt", "Блокны ачарга"], ["en", "Open block"]]) {
       await page.locator("#interface-language").selectOption(locale);

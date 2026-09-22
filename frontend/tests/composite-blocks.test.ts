@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { GraphDraft } from "@/features/workflow/autosave";
-import { blockCanvasId, packBlock, publishOutput, reconcileBlocks, renderBlockWire, resolveBlockConnection } from "@/features/workflow/composite-blocks";
+import { blockCanvasId, editBlock, requiredPublicPort, packBlock, publishOutput, reconcileBlocks, renderBlockWire, resolveBlockConnection } from "@/features/workflow/composite-blocks";
 import { fieldHandle, renderWire, saveWire } from "@/features/workflow/field-wires";
 import { GraphHistory } from "@/features/workflow/graph-history";
 
@@ -9,6 +9,23 @@ const graph: GraphDraft = { name: "Blocks", format_version: 2, nodes: ["source",
   { id: "inner", source_node_id: "a", source_port: "dataset", target_node_id: "b", target_port: "input" },
   { id: "out", source_node_id: "b", source_port: "dataset", source_column_id: "field", target_node_id: "sink", target_port: "input" },
 ] };
+
+it("edits membership and port labels atomically, retaining connected endpoints and computation", () => {
+  const packed = publishOutput(packBlock(graph, ["a", "b"], "Calculation"), "a", "dataset", "Extra");
+  const original = packed.presentation!.blocks![0];
+  expect(requiredPublicPort(packed, original, "outputs", original.outputs![0])).toBe(true);
+  expect(requiredPublicPort(packed, original, "outputs", original.outputs![1])).toBe(false);
+  const changed = editBlock(packed, { ...original, node_ids: ["b", "sink"], outputs: original.outputs!.map(port => ({ ...port, label: "Renamed" })) });
+  expect(changed.nodes).toBe(graph.nodes); expect(changed.edges).toBe(graph.edges);
+  const block = changed.presentation!.blocks![0];
+  expect(block.inputs!.some(port => port.node_id === "b" && port.port === "input")).toBe(true);
+  expect(block.outputs).toEqual([{ ...original.outputs![0], label: "Renamed" }]);
+  const protectedGraph = editBlock(packed, { ...original, outputs: [] });
+  expect(protectedGraph.presentation!.blocks![0].outputs).toEqual([original.outputs![0]]);
+  expect(editBlock(packed, { ...original, node_ids: [] })).toBe(packed);
+  const history = new GraphHistory(packed); history.record(changed);
+  expect(history.undo()).toEqual(packed); expect(history.redo()).toEqual(changed);
+});
 
 it("packs atomically without rewriting computation and maps both public wire directions", () => {
   const packed = packBlock(graph, ["a", "b"], "Calculation"), block = packed.presentation!.blocks![0];

@@ -44,6 +44,11 @@ wires remain saved but are visually hidden. Opening reveals unchanged members on
 reconcileBlocks preserves public IDs, removes deleted members/references and exports explicit new
 crossing connections. Packing/unpacking and extra output publication are one graph/history action.
 Nested/workbook membership is excluded; source and visualization identities are never rewritten.
+BlockSettings (ADR-102) stages metadata locally. editBlock validates nonempty/exclusive membership,
+preserves existing endpoint IDs and restores required boundary ports before reconciliation.
+Apply is one history/CAS change; cancel leaves revisions unchanged. Optional public ports can be
+hidden and named real inputs/outputs/fields exposed. Card labels use the saved public alias;
+tooltips retain endpoint names. Member removal never deletes the calculation node or its edges.
 
 Canvas handles encode port+column only for display; field-wires serializes explicit source_port
 and source_column_id. Connections can be dragged or selected by node/field label. Input replacement

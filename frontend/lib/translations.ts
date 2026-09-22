@@ -1,5 +1,17 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Edit block": ["Настроить блок", "Блокны көйләргә"],
+  "Edit composite block": ["Настройка составного блока", "Составлы блокны көйләү"],
+  "Removing a member keeps its node and connections in the workflow.": ["Исключение из блока сохраняет узел и его связи в графе.", "Блоктан чыгару төенне һәм аның бәйләнешләрен графта саклый."],
+  "Public inputs": ["Публичные входы", "Ачык керешләр"],
+  "Public outputs": ["Публичные выходы", "Ачык чыгышлар"],
+  "Public port name": ["Название публичного порта", "Ачык порт исеме"],
+  "Hide port": ["Скрыть порт", "Портны яшерергә"],
+  "Connected boundary ports cannot be hidden.": ["Порты с внешними связями нельзя скрыть.", "Тышкы бәйләнешле портларны яшереп булмый."],
+  "Port direction": ["Направление порта", "Порт юнәлеше"],
+  "Available endpoint": ["Доступный вход или выход", "Мөмкин булган кереш яки чыгыш"],
+  "Expose port": ["Вывести порт", "Портны чыгарырга"],
+  "Apply block changes": ["Применить настройки блока", "Блок көйләүләрен кулланырга"],
   "Block name": ["Название блока", "Блок исеме"],
   "Nodes in block: {0}": ["Узлов в блоке: {0}", "Блоктагы төеннәр: {0}"],
   "Open block": ["Открыть блок", "Блокны ачарга"],

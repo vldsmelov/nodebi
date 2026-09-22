@@ -1,5 +1,20 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F3 block settings - 2026-09-22
+
+112 frontend tests pass. New unit regression checks membership edits without node/edge rewriting,
+retained endpoint IDs/labels, required-port protection, optional hiding and atomic undo/redo.
+TypeScript/ESLint and production Docker build pass. Six field-editor/scale regressions pass.
+Composite browser acceptance passes after adapting its exact-text query to the rendered output
+arrow. It cancels a staged removal without revision change, then renames a connected public port,
+hides an optional output, swaps a member, exposes an output and an input, and applies once.
+Saved revision increases by exactly one; full nodes/edges (compared by stable ID) and result 4
+remain unchanged. Undo restores prior presentation, redo/reload preserve the alias and members.
+Connected-port hiding is disabled; helper also protects it independently. Public aliases are
+bounded to the persistence label limit when generated from long node/field names.
+Six retained snapshots unchanged. Backend/API/DB unchanged; full backend/PostgreSQL/private
+164-slice matrix not rerun for this frontend-only slice. Direct chart/KPI bindings remain open.
+
 ## F3 initial composite-block UI - 2026-09-22
 
 111 frontend tests, TypeScript/ESLint and Docker production build pass. Unit checks cover

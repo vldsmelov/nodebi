@@ -24,8 +24,9 @@ import { fieldPath, inputHint, type FieldEndpoint } from "./field-interaction";
 import { appendOperation, operationChoices, type OperationChoice } from "./operation-drop";
 import { OperationDropMenu } from "./OperationDropMenu";
 import { CompositeBlockCard, type CompositeCanvasNode } from "./CompositeBlockCard";
+import { BlockSettings } from "./BlockSettings";
 import { BlockComposer } from "./BlockComposer";
-import { blockCanvasId, memberBlock, packBlock, publishOutput, reconcileBlocks, renderBlockWire, resolveBlockConnection } from "./composite-blocks";
+import { blockCanvasId, editBlock, memberBlock, packBlock, publishOutput, reconcileBlocks, renderBlockWire, resolveBlockConnection } from "./composite-blocks";
 import { NodeFinder } from "./NodeFinder";
 import type { GraphIssue, NodeDefinition, ParameterValues, Workflow } from "./types";
 
@@ -46,6 +47,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
   const [graph, updateGraph] = useState<GraphDraft>(recovered?.draft ?? initial);
   const setGraph = useCallback((next: SetStateAction<GraphDraft>) => updateGraph(current => reconcileBlocks(typeof next === "function" ? next(current) : next)), []);
   const [composeBlock, setComposeBlock] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [openBlock, setOpenBlock] = useState<string | null>(null);
   const [history] = useState(() => new GraphHistory(graph));
   useSyncExternalStore(history.subscribe, history.getVersion, history.getVersion);
@@ -168,6 +170,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
         const definition = [...(node?.data.definition.input_ports ?? []), ...(node?.data.definition.output_ports ?? [])].find(item => item.id === port.port);
         return [port.id, `${String(node?.data.node.ui?.label || nodeName(node?.data.node.type ?? ""))} / ${column?.display_name ?? t(definition?.display_name ?? port.label)}`];
       })),
+      onEdit: () => setEditingBlock(block.id),
       onToggle: () => toggleBlock(block.id, !block.collapsed),
       onUnpack: () => { remove(new Set([blockCanvasId(block.id)])); setOpenBlock(null); },
       onRename: (label: string) => setGraph(current => ({ ...current, presentation: { ...current.presentation, blocks: current.presentation?.blocks?.map(item => item.id === block.id ? { ...item, label } : item) } })),
@@ -182,6 +185,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
   ];
   if (incompatible) return <p role="alert" className="p-6 text-danger">{t("A legacy draft is pending. Restore it in the classic editor first.")}</p>;
   return <div className="grid h-[calc(100vh-8rem)] grid-cols-[220px_minmax(320px,1fr)_350px] border-t border-outline" onKeyDown={event => { if (event.key === "Escape") { cancelledDrag.current = Boolean(dragSource); setFocusedOutput(null); setDragSource(null); setOperationMenu(null); } }}>
+    {editingBlock && graph.presentation?.blocks?.some(block => block.id === editingBlock) && <BlockSettings key={editingBlock} graph={graph} block={graph.presentation.blocks.find(block => block.id === editingBlock)!} catalog={catalog} schema={currentSchema} onClose={() => setEditingBlock(null)} onApply={block => { setGraph(current => editBlock(current, block)); setEditingBlock(null); }} />}
     {composeBlock && <BlockComposer graph={graph} onClose={() => setComposeBlock(false)} onPack={(ids, name) => { setGraph(current => packBlock(current, ids, name)); setComposeBlock(false); setSelected(null); }} />}
     {operationMenu && <OperationDropMenu choices={offeredOperations} catalog={catalog} sourceLabel={menuLabel} pending={!currentSchema} onChoose={chooseOperation} onClose={() => setOperationMenu(null)} />}
     <aside className="overflow-auto bg-panel p-3">

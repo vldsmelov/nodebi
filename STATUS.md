@@ -5,6 +5,21 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F3 block membership and public-port settings (ADR-102, 2026-09-22).
+Edit block stages membership, names and public inputs/outputs/fields; Apply is one history/CAS
+operation. Cancel/Escape do not save. Removed members remain in the graph with all wires.
+Required boundary ports cannot be hidden; surviving endpoint IDs are retained. Public aliases
+appear on the card, with named endpoints in tooltips. No backend/API/DB changes.
+Checks: 112 frontend tests, TypeScript/ESLint and production Docker build pass. Six existing
+field-editor/scale browser scenarios pass; expanded composite acceptance passes after correcting
+an exact-text selector to include the output arrow. It verifies cancellation, one-revision Apply,
+unchanged nodes/edges/result, mandatory-port protection, optional hide, input/output exposure,
+rename, membership change, undo/redo and reload. Six retained snapshots unchanged.
+Next: direct field Bar Chart and scalar KPI bindings. F3/F4 and F2 operator acceptance remain
+open. No known P0/P1 or blocker in this slice. Full backend/private 164-slice parity not rerun.
+
+Previous initial composite slice:
+
 Latest slice: F3 first composite-block UI (ADR-101, 2026-09-22).
 Named checklist packs ordinary nodes; collapsed cards expose real boundary endpoints. Opening
 reveals members on the shared canvas; return collapses the block. Rename, move, unpack, extra

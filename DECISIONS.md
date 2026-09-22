@@ -1,5 +1,22 @@
 # DECISIONS.md
 
+# ADR-102 - Atomic block membership and public-port settings
+
+Date: 2026-09-22. Status: ACCEPTED; visualization bindings remain F3 work.
+
+Context: blocks could be packed/unpacked but their membership and public interface were fixed.
+Decision: a modal stages membership, label and public-port edits, committing once through shared
+history/CAS. Removing a member does not delete its node or wires. New boundary endpoints are
+exported in that same operation, existing surviving endpoint IDs are retained, and workbook/other
+block members are excluded. Empty membership requires explicit unpacking rather than silent deletion.
+Required boundary ports cannot be hidden, including at the pure edit helper boundary. Optional
+ports may be hidden; existing inputs/outputs/fields can be explicitly exposed through named choices.
+Public labels are now rendered on the card; underlying named endpoints remain in tooltips.
+Reasoning: calculation graph remains authoritative; no edge rewriting, duplicate inner graph,
+database migration or alternate save route. Cancel and Escape leave the saved revision untouched.
+Consequences: labels are independent of field names; two labels may match but identities do not.
+Blocks still expand on the shared canvas; nested blocks and template libraries remain deferred.
+
 # ADR-101 - Composite cards project the existing graph
 
 Date: 2026-09-22. Status: ACCEPTED; F3 remains in progress.
