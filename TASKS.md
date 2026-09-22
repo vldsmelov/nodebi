@@ -16,6 +16,7 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
 * [~] F2: Opt-in editor, workbook/sheets, interactive fields/cards, compatible wires and A/B previews.
   * [x] Explicit new-v2 mode, shared autosave/history, typed field cards and eight operation forms, drag/list connections, bounded field search and A/B named-output previews (ADR-093).
   * [x] Preserve usable schemas in partial drafts; parameter-aware schema requests and revision/output-aware preview handling.
+  * [x] Workbook browser with lazy bounded sheet lists, search, named click/drag insertion and identity-preserving reopening of configured instances. Uses ordinary source nodes and shared undo/save.
   * [ ] Workbook/sheet container UI, compatible drop menus/highlighting, selected field path and complete large-graph/virtualization acceptance.
 * [ ] F3: Atomic one-level composite blocks, navigation/public ports, field Bar Chart and scalar KPI.
 * [ ] F4: UI-built end-to-end scenario, restart/compatibility/164-slice parity and operator evaluation.

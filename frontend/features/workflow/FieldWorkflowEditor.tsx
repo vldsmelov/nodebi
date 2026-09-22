@@ -16,6 +16,8 @@ import { FieldOperationConfiguration, fieldDefaults } from "./FieldOperationConf
 import { NodeConfiguration } from "./NodeConfiguration";
 import { NodeOutputPanel } from "./NodeOutputPanel";
 import { ParametersConfiguration } from "./ParametersConfiguration";
+import { WorkbookBrowser } from "./WorkbookBrowser";
+import { openWorkbookSheet, readSheetDrag, sheetDragType, type SheetSelection } from "./workbook-navigation";
 import type { NodeDefinition, ParameterValues, Workflow } from "./types";
 
 const nodeTypes = { fieldNode: FieldNodeCard };
@@ -84,14 +86,29 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
     setGraph(current => ({ ...current, nodes: [...current.nodes, { id, type: item.type, version: item.version, position: { x: 40 + current.nodes.length % 3 * 340, y: 40 + Math.floor(current.nodes.length / 3) * 480 }, config: item.type === "excel_source" ? { source_id: source.id, sheet_name: sheet.name } : { ...(fieldDefaults[item.type] ?? {}) }, ui: {} }] }));
     setSelected(id);
   };
+  const openSheet = (selection: SheetSelection, position = { x: 40 + graph.nodes.length % 3 * 340, y: 40 + Math.floor(graph.nodes.length / 3) * 480 }) => {
+    const sourceDefinition = catalog.find(item => item.type === "excel_source");
+    if (!sourceDefinition) return;
+    const result = openWorkbookSheet(graph, sources, selection, position, sourceDefinition.version);
+    if (!result) return;
+    setGraph(result.graph);
+    setSelected(result.nodeId);
+    requestAnimationFrame(() => { void flow.current?.fitView({ nodes: [{ id: result.nodeId }], maxZoom: 1, padding: 0.3 }); });
+  };
   if (incompatible) return <p role="alert" className="p-6 text-danger">{t("A legacy draft is pending. Restore it in the classic editor first.")}</p>;
   return <div className="grid h-[calc(100vh-8rem)] grid-cols-[220px_minmax(320px,1fr)_350px] border-t border-outline">
     <aside className="overflow-auto bg-panel p-3">
       <p className="mb-3 text-xs text-warning">{t("Field editor preview. Existing projects are not converted.")}</p>
+      <WorkbookBrowser sources={sources} nodes={graph.nodes} onOpen={openSheet} />
       <input aria-label={t("Search nodes")} className={control} value={search} onChange={e => setSearch(e.target.value)} />
       {catalog.filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={item.type} title={t("Add {0}", { 0: nodeName(item.type) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {nodeName(item.type)}</button>)}
     </aside>
-    <section className="flex min-w-0 flex-col bg-page">
+    <section className="flex min-w-0 flex-col bg-page" onDragOver={event => { if (event.dataTransfer.types.includes(sheetDragType)) { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; } }} onDrop={event => {
+      const selection = readSheetDrag(event.dataTransfer.getData(sheetDragType));
+      if (!selection || !flow.current || !(event.target as Element).closest(".react-flow")) return;
+      event.preventDefault();
+      openSheet(selection, flow.current.screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+    }}>
       <div className="flex flex-wrap items-center gap-3 border-b border-outline p-2 text-xs">
         <button onClick={() => void flow.current?.fitView({ maxZoom: 1, padding: 0.15 })}>{t("Fit graph")}</button>
         <span>{t(save.status === "saved" && !dirty ? "Saved" : save.status === "error" ? "Save failed" : "Saving…")}</span>

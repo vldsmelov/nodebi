@@ -1,5 +1,19 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F2 workbook navigation - 2026-09-22
+
+93 frontend tests pass; TypeScript, ESLint and production Docker build pass. Full default browser
+suite: 38 passed, 13 opt-in private-project scenarios skipped. New unit/component
+coverage verifies same-sheet reopening preserves the exact graph object and settings, same sheet
+names in different books create independent sources, stale drag identities are rejected, several
+configured instances remain individually selectable, and search reaches beyond 50 visible sheets.
+The added browser scenario uploads two books, adds a named sheet, reopens its configured node,
+drags the second book's sheet onto the canvas, checks both source identities, undoes/redoes and
+restores after reload. Existing field-authoring and concurrent-save browser scenarios pass too.
+Docker frontend rebuilt and deployed healthy; six original/UX-copy snapshots match. No migration,
+conversion or backend change; backend tests and private 164-slice parity not rerun this session.
+This delivers the sidebar navigator, not persistent canvas workbook containers or detach/reveal.
+
 ## F2 first field-authoring UI - 2026-09-21
 
 Full backend suite: 328 passed, six SQLite matrix skips. Partial-draft regression verifies

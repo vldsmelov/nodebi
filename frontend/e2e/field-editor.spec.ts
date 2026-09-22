@@ -3,6 +3,47 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
 
+test("choose workbook sheets by name, drag to canvas and reopen without duplicates", async ({ page, request }) => {
+  const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Workbook browser acceptance" } })).json();
+  try {
+    for (const name of ["first.xlsx", "second.xlsx"]) {
+      const upload = await request.post(`${api}/api/v1/projects/${project.id}/sources/excel`, { multipart: { file: { name, mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: readFileSync(resolve("../fixtures/excel/sales.xlsx")) } } });
+      expect(upload.ok()).toBe(true);
+    }
+    await page.goto(`/projects/${project.id}/workflow`);
+    await page.getByRole("button", { name: "New field workflow", exact: true }).click();
+    const browser = page.getByRole("region", { name: "Workbook browser", exact: true });
+    await browser.getByRole("button", { name: /first.xlsx/ }).click();
+    await browser.getByTitle("Add sheet to graph").first().click();
+    await expect(page.locator(".react-flow__node")).toHaveCount(1);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.getByLabel("Node label", { exact: true }).fill("Configured source");
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const workflowId = new URL(page.url()).searchParams.get("workflow");
+    const before = await (await request.get(`${api}/api/v1/workflows/${workflowId}`)).json();
+    await browser.getByTitle("Open existing sheet node").click();
+    await expect(page.locator(".react-flow__node")).toHaveCount(1);
+    await browser.getByRole("button", { name: /first.xlsx/ }).click();
+    await browser.getByRole("button", { name: /second.xlsx/ }).click();
+    await browser.getByTitle("Add sheet to graph").first().dragTo(page.locator(".react-flow__pane"), { targetPosition: { x: 400, y: 300 } });
+    await expect(page.locator(".react-flow__node")).toHaveCount(2);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const after = await (await request.get(`${api}/api/v1/workflows/${workflowId}`)).json();
+    expect(after.nodes.find((node: { id: string }) => node.id === before.nodes[0].id)).toEqual(before.nodes[0]);
+    expect(new Set(after.nodes.map((node: { config: { source_id: string } }) => node.config.source_id)).size).toBe(2);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".react-flow__node")).toHaveCount(1);
+    await page.getByRole("button", { name: "Redo", exact: true }).click();
+    await expect(page.locator(".react-flow__node")).toHaveCount(2);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.locator(".react-flow__node")).toHaveCount(2);
+    await browser.getByRole("button", { name: /first.xlsx/ }).click();
+    await browser.getByTitle("Open existing sheet node").click();
+    await expect(page.getByLabel("Node label", { exact: true })).toHaveValue("Configured source");
+  } finally { await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
+});
+
 test("author typed Excel calculation using named fields, pin A/B and restore v2", async ({ page, request }) => {
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Field editor acceptance" } })).json();
   try {

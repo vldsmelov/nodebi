@@ -2,6 +2,14 @@
 
 ## Opt-in field editor foundation (ADR-093)
 
+WorkbookBrowser is a source navigator beside the canvas, not an alternative execution graph.
+It lists uploaded metadata without extra dataset execution, mounts at most 50 matching sheets
+per expanded book and opens actual excel_source nodes. Selection validates source/sheet/node
+identities against current project state. Reopening an instance preserves its config, position,
+edges and ID; adding a sheet uses the ordinary draft/history/save operation. Drag payloads carry
+only identities and screen coordinates are converted by React Flow. Browser expansion/search
+are local view state; persistent canvas workbook containers/detach remain pending.
+
 The workflow page creates a new explicit v2 workflow from the New field workflow action; existing
 v1 workflows are not upgraded. mode=fields opens FieldWorkflowEditor with the v2 catalog. Classic
 editor remains the default and retains its old-client format guard. Both editors reuse the same

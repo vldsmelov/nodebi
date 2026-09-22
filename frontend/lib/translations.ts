@@ -1,5 +1,12 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Workbook browser": ["Книги и листы", "Китаплар һәм битләр"],
+  "Search books and sheets": ["Поиск книг и листов", "Китаплар һәм битләр эзләү"],
+  "Upload a workbook on the Sources page first.": ["Сначала загрузите книгу на странице источников.", "Башта чыганаклар битендә китап йөкләгез."],
+  "Open a sheet or drag it onto the canvas.": ["Откройте лист или перетащите его на холст.", "Битне ачыгыз яки киндергә күчерегез."],
+  "Open existing sheet node": ["Открыть существующий узел листа", "Битнең булган төенен ачарга"],
+  "Add sheet to graph": ["Добавить лист в схему", "Битне схемага өстәргә"],
+  "Search to show more sheets.": ["Используйте поиск, чтобы найти остальные листы.", "Калган битләрне табу өчен эзләүне кулланыгыз."],
   "Fit graph": ["Показать весь граф", "Бөтен графны күрсәтергә"],
   "Undo": ["Отменить", "Кире кайтарырга"],
   "Redo": ["Повторить", "Кабатларга"],

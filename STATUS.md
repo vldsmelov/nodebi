@@ -1,9 +1,23 @@
 # Node BI Development Status
 
-Last updated: 2026-09-21
+Last updated: 2026-09-22
 Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
+
+Current session: F2 workbook navigation (2026-09-22). Added a searchable, expandable source
+browser with bounded sheet lists, click and native drag insertion into the canvas. Existing
+configured sheet instances reopen by ID without changes to config/position/wires; different
+books with matching sheet names remain separate. Creation uses ordinary source nodes and
+shared history/autosave. Browser expansion/search are local view state. No backend/API/DB changes.
+Next: actual canvas workbook containers with persistent collapse/detach/reveal; then compatible
+drop menus/highlighting and field dependency focus. F2 is not complete; F3/F4 remain pending.
+Checks so far: 93 frontend tests, TypeScript, ESLint and production Docker build pass; new
+image deployed healthy. Six original/UX-copy snapshot endpoints match. Browser suite: 38 passed,
+13 opt-in private-project scenarios skipped.
+Backend suite not rerun for this frontend-only change. No known P0/P1 in the added navigator.
+
+Previous F2 slice (2026-09-21):
 
 Current milestone: F2 opt-in field editor, IN PROGRESS (ADR-093); F1 diagnostics remain open.
 Latest completed slice: explicit new-v2 editor with field cards, eight operation forms, drag/list
