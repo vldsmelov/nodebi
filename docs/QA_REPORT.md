@@ -1,5 +1,19 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F1 runtime diagnostics and inspector controls - 2026-09-22
+
+338 backend tests pass in the SQLite/PostgreSQL matrix (6 SQLite-only skips). New checks cover
+comparison operand attribution and null-filter runtime policy; existing division regression now
+asserts the materializing consumer input and actual wire ID. Final targeted execution rerun:
+29 pass after restricting zero-policy attribution to division. Ruff/format/mypy pass.
+105 existing frontend tests plus the new control component regression pass; TypeScript/ESLint
+and production builds pass after fixing missing nullable node/edge fields in the new test fixture.
+Six diagnostic/field-editor browser scenarios pass. Invalid input b is marked, a remains valid,
+messages survive three locales, and replacing b with a valid source clears diagnostics.
+Six retained project snapshots match. No API/DB change or private 164-slice parity rerun.
+Remaining work: direct named-output error audit and runtime-to-control highlighting; runtime
+messages already appear in preview. No claim of complete F1/F2/F3 acceptance.
+
 ## F1 typed schema diagnostic locations - 2026-09-22
 
 Regression cases verify input/config paths and wire IDs for nonnumeric sum, nonboolean filter,

@@ -17,7 +17,7 @@ export function localizeError(locale: Locale, error: unknown): string {
   return result;
 }
 
-const configurationLabels: Record<string, string> = { conditions: "Filter", column_id: "Select field", operator: "Operator", value: "Value", expression: "Expression", name: "Output field name", limit: "Maximum rows", keys: "Sort", dimensions: "Group By", aggregations: "Aggregation", source_id: "Source", sheet_name: "Worksheet" };
+const configurationLabels: Record<string, string> = { zero_policy: "Division by zero", null_policy: "Null predicate", operation: "Operation", logical_type: "Value type", conditions: "Filter", column_id: "Select field", operator: "Operator", value: "Value", expression: "Expression", name: "Output field name", limit: "Maximum rows", keys: "Sort", dimensions: "Group By", aggregations: "Aggregation", source_id: "Source", sheet_name: "Worksheet" };
 function configurationField(locale: Locale, path: string): string {
   if (["a", "b", "table", "value"].includes(path)) return translate(locale, "Input: {0}", { 0: translate(locale, { a: "a", b: "b", table: "Table", value: "Value" }[path]!) });
   if (!path.startsWith("config.")) return path;

@@ -17,9 +17,15 @@ test("typed input diagnostics survive API and appear in the inspector in three l
     expect(schema.issues).toContainEqual(expect.objectContaining({ code: "INVALID_TYPED_NODE", node_id: nodes[2].id, edge_id: edges[1].id, field: "b" }));
     await page.goto(`/projects/${project.id}/workflow?workflow=${workflow.id}&mode=fields`);
     await page.getByLabel("Edit workflow node", { exact: true }).selectOption(nodes[2].id);
+    await expect(page.getByLabel("Input b", { exact: true })).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByLabel("Input a", { exact: true })).toHaveAttribute("aria-invalid", "false");
     for (const [locale, expected] of [["en", "Input: b"], ["ru", "Вход: b"], ["tt", "Кереш: b"]]) {
       await page.locator("#interface-language").selectOption(locale);
       await expect(page.getByText(expected, { exact: false }).filter({ hasText: "INVALID_TYPED_NODE" })).toBeVisible();
     }
+    await page.locator("#interface-language").selectOption("en");
+    await page.getByLabel("Input b", { exact: true }).selectOption(JSON.stringify([nodes[0].id, "value"]));
+    await expect(page.getByLabel("Input b", { exact: true })).toHaveAttribute("aria-invalid", "false");
+    await expect(page.getByText("INVALID_TYPED_NODE", { exact: false })).toHaveCount(0);
   } finally { await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
 });

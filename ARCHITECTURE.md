@@ -6,7 +6,11 @@ Typed schema diagnostics (ADR-098): ValueConnectionError may carry a port or con
 The schema resolver preserves it in GraphIssue and finds the offending inbound edge by port.
 Preflight execution rejection retains these issues; existing inspector error rendering labels
 input paths and localizes repair instructions. Generic compiler/runtime errors remain separate
-follow-up work. No API shape or database change is needed.
+follow-up work. ADR-099 preserves typed executor runtime issues at the execution boundary and
+attributes comparison compiler errors to operand b. Deferred field checks identify the consumer
+input at materialization, without guessing the originating arithmetic node. Current schema issues
+mark inspector controls with aria-invalid, localized title and border. Runtime issues remain in
+preview; propagating them to controls and direct named-output paths are pending. No API/DB change.
 
 WorkbookBrowser is a source navigator beside the canvas, not an alternative execution graph.
 It lists uploaded metadata without extra dataset execution, mounts at most 50 matching sheets

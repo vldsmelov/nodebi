@@ -5,6 +5,21 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F1 comparison/runtime diagnostics and inspector highlighting (ADR-099, 2026-09-22).
+Comparison failures identify operand b. Typed execution failures retain structured paths/wires;
+null predicates identify their policy and deferred arithmetic identifies the materializing input.
+Current schema errors mark only matching controls with aria-invalid, border and localized title;
+editing clears stale highlights. Runtime errors remain in preview, not control highlights yet.
+Checks: 338 backend tests pass with SQLite/PostgreSQL (6 SQLite-only skips); final targeted
+execution rerun 29 pass. Ruff/format/mypy pass. Existing 105 frontend tests plus new component
+test pass; TypeScript/ESLint and production builds pass. Six browser scenarios pass, including
+repairing an invalid connection and clearing its highlight in the three-language diagnostic flow.
+Six retained project snapshots unchanged. No API/DB change; no private 164-slice parity rerun.
+Next: audit direct named-output errors, runtime-to-inspector highlighting and remaining locale
+coverage, then F3 composite UI/direct charts. F1 remains open; no known P0/P1 or blocker.
+
+Previous schema diagnostic slice:
+
 Latest slice: F1 typed schema diagnostic locations (ADR-098, 2026-09-22).
 Typed operand/context, sum/filter and scalar/name errors preserve input/config paths and wire IDs.
 Inspector error messages identify inputs and provide RU/EN/TT repair instructions. Public API

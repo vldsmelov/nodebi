@@ -7,7 +7,7 @@ import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.datasets import ColumnSchema, DatasetSchema, LogicalType
-from app.domain.formulas import CompiledFormula, compile_formula
+from app.domain.formulas import CompiledFormula, FormulaValidationError, compile_formula
 from app.domain.nodes import (
     ExecutionContext,
     NodeCategory,
@@ -115,6 +115,16 @@ def expression(node: NodeInstance) -> str:
 
 class FieldOperationExecutor(TypedNodeExecutor):
     def infer_outputs(
+        self, node: NodeInstance, inputs: dict[str, ValueSchema], context: ExecutionContext
+    ) -> dict[str, ValueSchema]:
+        try:
+            return self._infer_outputs(node, inputs, context)
+        except FormulaValidationError as exc:
+            raise ValueConnectionError(
+                str(exc), field="b" if node.type == "field_compare" else "config.operation"
+            ) from exc
+
+    def _infer_outputs(
         self, node: NodeInstance, inputs: dict[str, ValueSchema], context: ExecutionContext
     ) -> dict[str, ValueSchema]:
         if node.type in {"scalar_constant", "scalar_parameter"}:
@@ -235,6 +245,21 @@ class FieldOperationExecutor(TypedNodeExecutor):
         }
 
     def execute_outputs(
+        self, node: NodeInstance, inputs: dict[str, ExecutionValue], context: ExecutionContext
+    ) -> dict[str, ExecutionValue]:
+        try:
+            return self._execute_outputs(node, inputs, context)
+        except ValueConnectionError as exc:
+            default_field = (
+                "value"
+                if node.type in {"append_field", "field_filter", "field_sum"}
+                else "config.zero_policy"
+                if node.type == "field_arithmetic" and node.config.get("operation") == "divide"
+                else "config.operation"
+            )
+            raise ValueConnectionError(str(exc), field=exc.field or default_field) from exc
+
+    def _execute_outputs(
         self, node: NodeInstance, inputs: dict[str, ExecutionValue], context: ExecutionContext
     ) -> dict[str, ExecutionValue]:
         if node.type in {"scalar_constant", "scalar_parameter"}:

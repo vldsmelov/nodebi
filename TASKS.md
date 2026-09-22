@@ -13,7 +13,8 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
   * [x] Named field/scalar preview and output/column/parameter-aware cache; API persistence/execution regression on SQLite/PostgreSQL.
   * [x] Adapt DATA_DEPENDENT legacy schemas in mixed typed branches through validated prefix execution; Pivot field IDs, parameter changes, cache, limits and error attribution verified (ADR-091).
   * [x] Preserve precise input/configuration paths and offending wire IDs for typed arithmetic/logic, row-context, sum/filter and scalar/name schema errors; localize repair messages (ADR-098).
-  * [ ] Complete comparison/compiler and runtime-boundary diagnostic paths, inline control highlighting and remaining RU/EN/TT error coverage.
+  * [x] Attribute comparison compiler and typed execution-boundary errors; retain runtime issues/wires, identify null policy and highlight current schema controls with accessible invalid state (ADR-099).
+  * [ ] Audit direct named-output failure paths, runtime-to-inspector highlighting and remaining RU/EN/TT error coverage.
 * [~] F2: Opt-in editor, workbook/sheets, interactive fields/cards, compatible wires and A/B previews.
   * [x] Explicit new-v2 mode, shared autosave/history, typed field cards and eight operation forms, drag/list connections, bounded field search and A/B named-output previews (ADR-093).
   * [x] Preserve usable schemas in partial drafts; parameter-aware schema requests and revision/output-aware preview handling.

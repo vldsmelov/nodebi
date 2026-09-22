@@ -1,5 +1,22 @@
 # DECISIONS.md
 
+# ADR-099 - Runtime issues and schema-driven inspector highlighting
+
+Date: 2026-09-22. Status: ACCEPTED; final diagnostic audit remains open.
+
+Context: execution exceptions discarded the structured path supplied by typed operations;
+comparison compiler errors pointed only to config. Inspector controls did not indicate invalidity.
+Decision: typed executors wrap safe domain failures with operation-specific repair locations;
+comparison compiler failures identify operand b. The common execution boundary retains structured
+issues and matching inbound edge IDs, without exposing unexpected exception text. Null-filter
+policy errors identify config.null_policy. Delayed field arithmetic failures identify the consumer
+input where materialization failed, not an invented origin inside a composed expression.
+Schema issues mark matching inspector controls using aria-invalid, a border and a localized title.
+Only current schema issues are used, so edits/parameter changes clear stale highlights.
+Alternatives: parsing message strings or guessing upstream origins was rejected. No API/DB change.
+Consequences: direct named-output errors and runtime-to-inspector highlighting still require an
+audit; runtime messages are already visible in preview. Existing calculation policies are retained.
+
 # ADR-098 - Preserve typed schema diagnostic locations
 
 Date: 2026-09-22. Status: ACCEPTED; remaining F1 runtime/compiler diagnostics stay open.

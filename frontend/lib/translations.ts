@@ -1,5 +1,7 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Filter predicate contains null values.": ["Условие фильтра содержит пропуски. Выберите, сохранять или удалять такие строки.", "Фильтр шартында буш кыйммәтләр бар. Мондый юлларны саклауны яки бетерүне сайлагыз."],
+  "Arithmetic produced a non-finite value; check division by zero.": ["Расчёт дал бесконечное или неопределённое значение. Проверьте деление на ноль и исходные числа.", "Исәпләү чиксез яки билгесез кыйммәт бирде. Нульгә бүлүне һәм башлангыч саннарны тикшерегез."],
   "Input: {0}": ["Вход: {0}", "Кереш: {0}"],
   "Workflow parameter '{0}' is not declared.": ["Параметр графа «{0}» не объявлен.", "Графның «{0}» параметры игълан ителмәгән."],
   "Connected field {0} no longer exists.": ["Подключённое поле {0} больше не существует.", "Тоташтырылган {0} кыры бүтән юк."],

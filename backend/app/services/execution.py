@@ -406,6 +406,25 @@ class WorkflowExecutionService:
                         category=category,
                         execution_id=context.execution_id,
                         node_id=node_id,
+                        issues=(
+                            GraphIssue(
+                                "NODE_EXECUTION_FAILED",
+                                str(exc),
+                                node_id=node_id,
+                                field=exc.field,
+                                edge_id=next(
+                                    (
+                                        edge.id
+                                        for edge in graph.edges
+                                        if edge.target_node_id == node_id
+                                        and edge.target_port == exc.field
+                                    ),
+                                    None,
+                                ),
+                            ),
+                        )
+                        if isinstance(exc, ValueConnectionError) and exc.field
+                        else (),
                     ) from exc
                 if not typed and not isinstance(output, Dataset):
                     raise ExecutionFailure(

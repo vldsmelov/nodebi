@@ -150,7 +150,10 @@ def test_mixed_execution_field_preview_scalar_and_cache() -> None:
     assert failure.value.issues[0].code == "INVALID_OUTPUT_PORT"
 
 
-@pytest.mark.parametrize("kind,operation", [("field_arithmetic", "add"), ("field_logical", "and")])
+@pytest.mark.parametrize(
+    "kind,operation",
+    [("field_arithmetic", "add"), ("field_logical", "and"), ("field_compare", "greater")],
+)
 def test_operand_type_error_identifies_wire(kind: str, operation: str) -> None:
     graph, context, access = setup()
     left = node("scalar_constant", value=True if kind == "field_logical" else 2)
@@ -377,6 +380,8 @@ def test_division_error_and_explicit_null_survive_wiring() -> None:
     with pytest.raises(ExecutionFailure, match="division by zero") as failure:
         WorkflowExecutionService(get_node_registry()).execute(graph, append.id, context)
     assert failure.value.node_id == append.id
+    assert failure.value.issues[0].field == "value"
+    assert failure.value.issues[0].edge_id == graph.edges[3].id
     safe = replace(division, config={"operation": "divide", "zero_policy": "null"})
     graph = replace(graph, nodes=(source, safe, append, total, zero))
     assert (
@@ -385,6 +390,29 @@ def test_division_error_and_explicit_null_survive_wiring() -> None:
         .output.frame.item()
         == 0
     )
+
+
+def test_null_filter_runtime_error_points_to_policy() -> None:
+    graph, context, _ = setup()
+    source = graph.nodes[0]
+    zero = node("scalar_constant", value=0)
+    compare = node("field_compare", operation="greater")
+    mask = node("field_filter", null_policy="error")
+    graph = replace(
+        graph,
+        nodes=(source, zero, compare, mask),
+        edges=(
+            edge(source, compare, "a", "q"),
+            edge(zero, compare, "b", output="value"),
+            edge(source, mask, "table"),
+            edge(compare, mask, "value", output="value"),
+        ),
+    )
+    with pytest.raises(ExecutionFailure, match="null values") as failure:
+        WorkflowExecutionService(get_node_registry()).execute(graph, mask.id, context)
+    issue = failure.value.issues[0]
+    assert issue.node_id == mask.id and issue.field == "config.null_policy"
+    assert issue.edge_id is None
 
 
 def test_changed_field_projection_cannot_reuse_previous_calculation() -> None:

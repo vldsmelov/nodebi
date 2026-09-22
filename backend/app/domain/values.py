@@ -263,7 +263,9 @@ def filter_rows(
     validate_field(table, predicate)
     expression = predicate.formula.expression
     if null_policy == "error" and table.dataset.frame.select(expression.is_null().any()).item():
-        raise ValueConnectionError("Filter predicate contains null values.")
+        raise ValueConnectionError(
+            "Filter predicate contains null values.", field="config.null_policy"
+        )
     frame = table.dataset.frame.filter(expression.fill_null(null_policy == "keep"))
     return TableValue(
         output_context, Dataset(frame, table.dataset.schema, dict(table.dataset.metadata))
