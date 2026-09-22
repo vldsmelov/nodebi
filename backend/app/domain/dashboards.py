@@ -47,6 +47,7 @@ class DashboardLink(BaseModel):
 
 
 class DashboardConfiguration(BaseModel):
+    period_enabled: bool = False
     parameters: list[DashboardParameter] = Field(default_factory=list, max_length=64)
     bindings: list[ParameterBinding] = Field(default_factory=list, max_length=256)
     links: list[DashboardLink] = Field(default_factory=list, max_length=32)

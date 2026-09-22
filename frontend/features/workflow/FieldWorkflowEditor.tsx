@@ -1,4 +1,5 @@
 "use client";
+import { PublishedResults } from "./PublishedResults";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type SetStateAction } from "react";
 import { Background, Controls, ReactFlow, type ReactFlowInstance, type Connection, type Edge, type NodeChange } from "@xyflow/react";
@@ -41,13 +42,13 @@ type Pin = { id: string; port?: string } | null;
 export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targetNodeId }: { targetNodeId?: string | null; workflow: Workflow; catalog: NodeDefinition[]; sources: DataSource[]; onSaved: () => void }) {
   const { t, nodeName, errorText } = useI18n();
   const { theme, palette } = useTheme();
-  const initial: GraphDraft = { format_version: 2, name: workflow.name, nodes: workflow.nodes, edges: workflow.edges, parameters: workflow.parameters ?? [], presentation: workflow.presentation ?? { workbooks: [], blocks: [] } };
+  const initial: GraphDraft = { format_version: workflow.version >= 3 ? 3 : 2, result_catalog: workflow.result_catalog, name: workflow.name, nodes: workflow.nodes, edges: workflow.edges, parameters: workflow.parameters ?? [], presentation: workflow.presentation ?? { workbooks: [], blocks: [] } };
   const [save, setSave] = useState<SaveState>({ status: "saved", revision: workflow.revision, error: null });
   const [writer] = useState(() => new WorkflowAutosave(workflow.id, workflow.revision, initial, payload => saveWorkflow(workflow.id, payload), state => { setSave(state); if (state.status === "saved") onSaved(); }, window.sessionStorage, "fields-v2"));
   const [recovered] = useState(() => writer.recover());
-  const incompatible = recovered && recovered.draft.format_version !== 2;
+  const incompatible = recovered && (recovered.draft.format_version ?? 1) < 2;
   const [graph, updateGraph] = useState<GraphDraft>(recovered?.draft ?? initial);
-  const setGraph = useCallback((next: SetStateAction<GraphDraft>) => updateGraph(current => reconcileBlocks(typeof next === "function" ? next(current) : next)), []);
+  const setGraph = useCallback((next: SetStateAction<GraphDraft>) => updateGraph(current => reconcileBlocks((() => { const value = typeof next === "function" ? next(current) : next; return current.format_version === 3 ? { ...value, format_version: 3, result_catalog: value.result_catalog ?? { outputs: [], contexts: [] } } : value; })())), []);
   const [composeBlock, setComposeBlock] = useState(false);
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [openBlock, setOpenBlock] = useState<string | null>(null);
@@ -92,7 +93,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
     setRuntime({ graph, revision: save.revision, parameters: parameterKey, issues });
   }, [graph, save.revision, parameterKey]);
   const inspectorIssues = [...(currentSchema?.issues ?? []), ...(!dirty && runtime?.graph === graph && runtime.revision === save.revision && runtime.parameters === parameterKey ? runtime.issues : [])];
-  const offeredOperations = useMemo(() => operationMenu ? operationChoices(graph, catalog, currentSchema, operationMenu.source) : [], [operationMenu, graph, catalog, currentSchema]);
+  const offeredOperations = useMemo(() => operationMenu ? operationChoices(graph, catalog.filter(item => graph.format_version !== 3 || item.category !== "visualization"), currentSchema, operationMenu.source) : [], [operationMenu, graph, catalog, currentSchema]);
   const chooseOperation = (choice: OperationChoice) => {
     if (!operationMenu) return;
     const next = appendOperation(graph, catalog, currentSchema, operationMenu.source, choice, operationMenu.position);
@@ -192,7 +193,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
     {composeBlock && <BlockComposer graph={graph} onClose={() => setComposeBlock(false)} onPack={(ids, name) => { setGraph(current => packBlock(current, ids, name)); setComposeBlock(false); setSelected(null); }} />}
     {operationMenu && <OperationDropMenu choices={offeredOperations} catalog={catalog} sourceLabel={menuLabel} pending={!currentSchema} onChoose={chooseOperation} onClose={() => setOperationMenu(null)} />}
     <aside className="overflow-auto bg-panel p-3">
-      <p className="mb-3 text-xs text-warning">{t("Field editor preview. Existing projects are not converted.")}</p>
+      <p className="mb-3 text-xs text-muted">{t(graph.format_version === 3 ? "Prepare data here, publish results, then create visualizations on the dashboard." : "Field editor preview. Existing projects are not converted.")}</p>
       <NodeFinder nodes={graph.nodes.map(node => ({ id: node.id, label: `${String(node.ui?.label || node.config?.sheet_name || node.config?.name || nodeName(node.type))} · ${nodeName(node.type)}` }))} selected={selected} onSelect={id => {
         setSelected(id);
         const block = memberBlock(graph, id);
@@ -200,9 +201,9 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
         const book = attachedBook(graph, id);
         requestAnimationFrame(() => { void flow.current?.fitView({ nodes: [{ id: book ? bookCanvasId(book.id) : id }], maxZoom: 1, padding: 0.3 }); });
       }} />
-      <WorkbookBrowser sources={sources} nodes={graph.nodes} onOpen={openSheet} />
+      <PublishedResults graph={graph} schema={currentSchema} onChange={setGraph} /><WorkbookBrowser sources={sources} nodes={graph.nodes} onOpen={openSheet} />
       <input aria-label={t("Search nodes")} className={control} value={search} onChange={e => setSearch(e.target.value)} />
-      {catalog.filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: definitionLabel(catalog, item, nodeName(item.type)) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {definitionLabel(catalog, item, nodeName(item.type))}</button>)}
+      {catalog.filter(item => item.type !== "context_filter" && (graph.format_version !== 3 || item.category !== "visualization")).filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: definitionLabel(catalog, item, nodeName(item.type)) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {definitionLabel(catalog, item, nodeName(item.type))}</button>)}
     </aside>
     <section className="flex min-w-0 flex-col bg-page" onDragOver={event => { if (event.dataTransfer.types.includes(sheetDragType)) { event.preventDefault(); event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === "move" ? "move" : "copy"; } }} onDrop={event => {
       const selection = readSheetDrag(event.dataTransfer.getData(sheetDragType));

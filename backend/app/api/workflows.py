@@ -316,6 +316,7 @@ def node_catalog(
         items=[
             _definition_read(item)
             for item in registry.catalog()
+            if item.type != "context_filter"
             if item.workflow_format <= format_version
         ]
     )

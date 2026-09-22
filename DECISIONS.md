@@ -1,5 +1,39 @@
 # DECISIONS.md
 
+# ADR-106 - Published data outputs and independent visualizations
+
+Date: 2026-09-22. Status: ACCEPTED. Supersedes chart-configuration ownership in ADR-104 for
+the new primary workflow; retains the typed calculation contracts of ADR-090/105.
+
+Context: chart nodes and scalar extraction helpers made dashboard assembly require unnecessary
+graph wiring. The owner approved separate chart documents, a common period and navigation,
+while keeping all analytical calculations editable in the constructor.
+
+Decision: workflow format 3 adds a revisioned publication/context catalog. Visualization owns
+its configuration and CAS revision and references a publication UUID. Dashboard widgets reference
+visualizations without duplicating their chart configuration. Common context predicates compile
+into ordinary execution steps at explicit authored boundaries. Row selections never implicitly
+move before Window/Group By; highlight-only omits that role's context predicates. No arbitrary
+aggregation, first-row picking or domain-specific financial service is introduced.
+
+Alternative rejected: independent copies of configuration in chart nodes and database rows.
+Alternative rejected: automatically inferring filter placement from chart categories or formula
+text. Both approaches create ambiguous ownership or incorrect analytical denominators.
+
+Consequences: migration 0009 and OpenAPI contracts; separate visualization conflicts/deletion
+protection; transient preview without persistence; reusable source cache. New workflows use v3.
+The conversion service locks/checks workflow and dashboard revisions, preserves visualization
+and widget IDs, remaps field actions and commits together. A dry run rolls the transaction back.
+Supported v2 field bindings must already project fields from their chart's table; expressions
+must be appended explicitly before conversion. An equality parameter Filter becomes a retained
+table boundary with compiled context selection, keeping its ID and downstream row semantics.
+These constraints avoid hidden computation during migration. Backup is taken before conversion.
+
+Financial conversion: 225 → 142 nodes, 321 → 187 edges, 28 publications, 53 independent
+visualizations, 55 placements, six dashboards. All 164 slices/1551 result pages match the oracle.
+Structural reductions are evidence of fewer editable graph elements, not a human speed estimate.
+Operator guidance and limitations: docs/PUBLISHED_DASHBOARDS.md.
+
 # ADR-105 - General field expressions and explicit single-value boundaries
 
 Date: 2026-09-22. Status: ACCEPTED. Extends ADR-090/104.

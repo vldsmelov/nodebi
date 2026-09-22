@@ -1,0 +1,277 @@
+"""Revisioned visualization documents; graph persistence never owns their config."""
+
+import uuid
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.config import Settings
+from app.domain.errors import ApplicationError
+from app.domain.nodes import NodeRegistry
+from app.domain.publications import PublishedOutput, ResultCatalog
+from app.domain.visualizations import VisualizationConfig
+from app.infrastructure.storage import StorageProvider
+from app.models import Dashboard, DashboardWidget, Visualization, Workflow
+from app.schemas.dashboards import (
+    IndependentVisualizationSave,
+    PublicationSchema,
+    VisualizationRead,
+)
+from app.schemas.workflows import ResolvedColumnRead
+from app.services.execution import ExecutionPlanner, InMemoryExecutionCache
+from app.services.projects import ProjectService
+from app.services.workflow_validation import WorkflowSchemaResolver
+
+
+def publication(workflow: Workflow, identity: uuid.UUID) -> PublishedOutput:
+    result = next(
+        (
+            item
+            for item in ResultCatalog.model_validate(workflow.result_catalog).outputs
+            if item.id == identity
+        ),
+        None,
+    )
+    if result is None:
+        raise ApplicationError("PUBLICATION_NOT_FOUND", "Published result is unavailable.", 404)
+    return result
+
+
+def read_visualization(row: Visualization) -> VisualizationRead:
+    return VisualizationRead(
+        id=row.id,
+        workflow_id=row.workflow_id,
+        node_id=row.source_node_id,
+        name=row.name,
+        type=row.type,
+        publication_id=row.publication_id,
+        revision=row.revision,
+        config=VisualizationConfig.model_validate(row.config) if row.publication_id else None,
+    )
+
+
+class IndependentVisualizationService:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def get(self, identity: uuid.UUID) -> Visualization:
+        row = self.session.scalar(
+            select(Visualization)
+            .where(Visualization.id == identity)
+            .execution_options(populate_existing=True)
+        )
+        if row is None:
+            raise ApplicationError("VISUALIZATION_NOT_FOUND", "Visualization does not exist.", 404)
+        return row
+
+    def save(
+        self,
+        project_id: uuid.UUID,
+        payload: IndependentVisualizationSave,
+        identity: uuid.UUID | None = None,
+        *,
+        copy_from: uuid.UUID | None = None,
+    ) -> VisualizationRead:
+        ProjectService(self.session).lock(project_id)
+        if copy_from:
+            original = self.get(copy_from)
+            if original.project_id != project_id or original.publication_id is None:
+                raise ApplicationError(
+                    "INVALID_VISUALIZATION", "Select an independent visualization."
+                )
+            if original.revision != payload.expected_revision:
+                raise ApplicationError(
+                    "VISUALIZATION_CONFLICT",
+                    "Visualization changed elsewhere. Reload before copying.",
+                    409,
+                )
+        row = self.get(identity) if identity else None
+        if row and (row.project_id != project_id or row.publication_id is None):
+            raise ApplicationError(
+                "INVALID_VISUALIZATION", "Select an independent visualization in this project."
+            )
+        if row and row.revision != payload.expected_revision:
+            raise ApplicationError(
+                "VISUALIZATION_CONFLICT",
+                "Visualization changed elsewhere. Reload before saving.",
+                409,
+            )
+        workflow = self.session.scalar(
+            select(Workflow)
+            .where(Workflow.id == payload.workflow_id)
+            .execution_options(populate_existing=True)
+        )
+        if workflow is None or workflow.project_id != project_id:
+            raise ApplicationError(
+                "INVALID_PUBLICATION", "Select a published result in this project."
+            )
+        if workflow.revision != payload.expected_workflow_revision:
+            raise ApplicationError(
+                "WORKFLOW_CONFLICT", "Published data changed elsewhere. Reload before saving.", 409
+            )
+        output = publication(workflow, payload.publication_id)
+        if output.kind == "scalar" and payload.type != "kpi":
+            raise ApplicationError(
+                "INVALID_VISUALIZATION", "A scalar result can only be displayed as KPI."
+            )
+        if row is None:
+            row = Visualization(project_id=project_id, workflow_id=workflow.id)
+            self.session.add(row)
+            row.revision = 1
+        else:
+            row.revision += 1
+        row.workflow_id = workflow.id
+        row.publication_id = output.id
+        row.source_node_id = output.node_id
+        row.name = payload.name.strip()
+        if not row.name:
+            raise ApplicationError("INVALID_VISUALIZATION", "Enter a visualization name.")
+        row.type = payload.type
+        row.config = payload.config.model_dump(mode="json")
+        self.session.flush()
+        result = read_visualization(row)
+        self.session.commit()
+        return result
+
+    def draft(self, project_id: uuid.UUID, payload: IndependentVisualizationSave) -> Visualization:
+        workflow = self.session.get(Workflow, payload.workflow_id)
+        if workflow is None or workflow.project_id != project_id:
+            raise ApplicationError(
+                "INVALID_PUBLICATION", "Select a published result in this project."
+            )
+        if workflow.revision != payload.expected_workflow_revision:
+            raise ApplicationError(
+                "WORKFLOW_CONFLICT",
+                "Published data changed elsewhere. Reload before previewing.",
+                409,
+            )
+        output = publication(workflow, payload.publication_id)
+        if output.kind == "scalar" and payload.type != "kpi":
+            raise ApplicationError(
+                "INVALID_VISUALIZATION", "A scalar result can only be displayed as KPI."
+            )
+        return Visualization(
+            id=uuid.uuid4(),
+            project_id=project_id,
+            workflow_id=workflow.id,
+            publication_id=output.id,
+            source_node_id=output.node_id,
+            name=payload.name,
+            type=payload.type,
+            revision=1,
+            config=payload.config.model_dump(mode="json"),
+        )
+
+    def delete(self, identity: uuid.UUID, expected_revision: int) -> None:
+        project_id = self.get(identity).project_id
+        ProjectService(self.session).lock(project_id)
+        row = self.get(identity)
+        # Dashboard saves take shared row locks before attaching a visualization.
+        self.session.scalar(
+            select(Visualization).where(Visualization.id == identity).with_for_update()
+        )
+        if row.revision != expected_revision:
+            raise ApplicationError(
+                "VISUALIZATION_CONFLICT",
+                "Visualization changed elsewhere. Reload before saving.",
+                409,
+            )
+        if self.session.scalar(
+            select(DashboardWidget.id).where(DashboardWidget.visualization_id == identity).limit(1)
+        ):
+            raise ApplicationError(
+                "VISUALIZATION_IN_USE",
+                "Remove this visualization from dashboards before deleting it.",
+                409,
+            )
+        self.session.delete(row)
+        self.session.commit()
+
+    def uses(self, identity: uuid.UUID) -> list[dict[str, str]]:
+        self.get(identity)
+        return [
+            {"dashboard_id": str(dashboard.id), "name": dashboard.name, "widget_id": str(widget.id)}
+            for dashboard, widget in self.session.execute(
+                select(Dashboard, DashboardWidget)
+                .join(DashboardWidget, DashboardWidget.dashboard_id == Dashboard.id)
+                .where(DashboardWidget.visualization_id == identity)
+            )
+        ]
+
+
+def published_schema(
+    session: Session,
+    workflow_id: uuid.UUID,
+    publication_id: uuid.UUID,
+    registry: NodeRegistry,
+    storage: StorageProvider,
+    settings: Settings,
+    cache: InMemoryExecutionCache,
+) -> PublicationSchema:
+    from app.services.workflows import domain_graph, execution_context, get_workflow
+
+    workflow = get_workflow(session, workflow_id)
+    published = publication(workflow, publication_id)
+    context = execution_context(workflow, session, storage, settings, cache)
+    branch = (
+        ExecutionPlanner(registry).plan(domain_graph(session, workflow), published.node_id).graph
+    )
+    resolved = WorkflowSchemaResolver(registry).resolve(branch, context)
+    result = next((item for item in resolved.nodes if item.node_id == published.node_id), None)
+    value = result.outputs.get(published.port) if result and result.outputs else None
+    if value is None or value.kind != published.kind:
+        raise ApplicationError(
+            "PUBLICATION_UNAVAILABLE", "Configure the published output and its upstream nodes."
+        )
+    catalog = ResultCatalog.model_validate(workflow.result_catalog)
+    contexts = [item for item in catalog.contexts if item.id in published.context_ids]
+    for data_context in contexts:
+        for point in data_context.points:
+            point_result = next(
+                (item for item in resolved.nodes if item.node_id == point.node_id), None
+            )
+            if point_result is None:
+                continue
+            table = point_result.outputs.get(point.port) if point_result.outputs else None
+            if table is None or table.table is None:
+                raise ApplicationError(
+                    "INVALID_CONTEXT",
+                    "Choose a table output for the view restriction.",
+                    node_id=str(point.node_id),
+                )
+            try:
+                column = table.table.by_id(point.column_id)
+                expected = (
+                    {"date", "datetime"}
+                    if point.role == "period"
+                    else {
+                        next(
+                            role.logical_type
+                            for role in data_context.roles
+                            if role.name == point.role
+                        )
+                    }
+                )
+                if column.logical_type.value not in expected:
+                    raise ValueError(
+                        "Context field has an incompatible type. Convert it explicitly."
+                    )
+            except (ValueError, StopIteration) as exc:
+                raise ApplicationError(
+                    "INVALID_CONTEXT",
+                    str(exc) or "The context field is unavailable.",
+                    node_id=str(point.node_id),
+                ) from exc
+    return PublicationSchema(
+        workflow_revision=workflow.revision,
+        kind=value.kind,
+        columns=[ResolvedColumnRead(**column.to_dict()) for column in value.table.columns]
+        if value.table
+        else [],
+        roles=list({role.name: role for item in contexts for role in item.roles}.values()),
+        period_supported=any(
+            point.role == "period" and point.node_id in {node.id for node in branch.nodes}
+            for item in contexts
+            for point in item.points
+        ),
+    )

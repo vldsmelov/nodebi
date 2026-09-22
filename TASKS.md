@@ -1,5 +1,17 @@
 # TASKS.md
 
+## Independent visualizations and shared dashboard context (authorized 2026-09-22)
+
+* [x] D1: Format-v3 published table/scalar outputs, shared context declarations, standalone revisioned visualization CRUD/schema/preview/copy and authoring UI.
+* [x] D2: Shared date period, explicit compiled context restrictions before totals, selective caching and coverage diagnostics; no financial-specific executor.
+* [x] D3: Dashboard placement/search/preview, inherited period/context transitions, highlight-only exceptions, URL restoration and stale-result protection.
+* [x] D4: Back up and atomically convert the field financial project; remove display nodes and unused helpers, preserve six screens and 164 slices.
+* [x] D5: Synthetic date workbook, UI authoring, SQLite/PostgreSQL/concurrency/restart/browser checks, both themes and three languages; update docs and candid operator evidence.
+
+Defaults: period/navigation only; no categorical filter panels or chart cross-filtering. One-time
+data contract setup; visualizations shared across placements, with explicit independent copy.
+No data reset or invented dates for the financial workbook. Human speed remains unmeasured.
+
 ## Functional nodes and field connections (authorized 2026-09-21)
 
 Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retained below.

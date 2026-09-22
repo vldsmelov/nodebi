@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import replace
 
 from sqlalchemy.orm import Session
 
@@ -6,9 +7,17 @@ from app.config import Settings
 from app.domain.errors import ApplicationError
 from app.domain.nodes import NodeRegistry
 from app.domain.parameters import ParameterValue
-from app.domain.visualizations import CHART_TYPES, TITLE_PARAMETER, effective_visualization_config
+from app.domain.publications import ResultCatalog, ViewContext
+from app.domain.visualizations import (
+    CHART_TYPES,
+    TITLE_PARAMETER,
+    VisualizationConfig,
+    effective_visualization_config,
+)
+from app.domain.workflows import NodeInstance, Position
 from app.infrastructure.storage import StorageProvider
 from app.models import Visualization, Workflow
+from app.nodes.visualization import VisualizationExecutor
 from app.schemas.dashboards import VisualizationResult
 from app.schemas.workflows import ResolvedColumnRead
 from app.services.execution import (
@@ -16,6 +25,9 @@ from app.services.execution import (
     InMemoryExecutionCache,
     WorkflowExecutionService,
 )
+from app.services.independent_visualizations import publication
+from app.services.publication_execution import compile_publication
+from app.services.workflow_validation import InvalidWorkflowError
 from app.services.workflows import domain_graph, execution_context
 
 
@@ -29,8 +41,10 @@ def render_visualization(
     offset: int = 0,
     limit: int = 100,
     parameters: dict[str, ParameterValue] | None = None,
+    view: ViewContext | None = None,
+    draft: Visualization | None = None,
 ) -> VisualizationResult:
-    visualization = session.get(Visualization, visualization_id)
+    visualization = draft or session.get(Visualization, visualization_id)
     if visualization is None:
         raise ApplicationError("VISUALIZATION_NOT_FOUND", "Visualization does not exist.", 404)
     workflow = session.get(Workflow, visualization.workflow_id)
@@ -39,12 +53,90 @@ def render_visualization(
             "VISUALIZATION_NOT_FOUND", "Visualization workflow is unavailable.", 404
         )
     graph = domain_graph(session, workflow)
-    node = next((n for n in graph.nodes if n.id == visualization.source_node_id), None)
-    if node is None or node.type not in CHART_TYPES:
-        raise ApplicationError("VISUALIZATION_NOT_FOUND", "Visualization node is unavailable.", 404)
+    node: NodeInstance | None
+    applied: list[str] = []
+    unsupported: list[str] = []
     context = execution_context(workflow, session, storage, settings, cache, parameters)
     try:
-        result = WorkflowExecutionService(registry).execute(graph, node.id, context)
+        if visualization.publication_id:
+            published = publication(workflow, visualization.publication_id)
+            catalog = ResultCatalog.model_validate(workflow.result_catalog)
+            view = view or ViewContext()
+            view = view.model_copy(update={"values": {**(parameters or {}), **view.values}})
+            roles = {
+                role.name: role
+                for item in catalog.contexts
+                if item.id in published.context_ids
+                for role in item.roles
+            }
+            context.parameter_definitions = (
+                *context.parameter_definitions,
+                *(
+                    role
+                    for name, role in roles.items()
+                    if name not in {p.name for p in context.parameter_definitions}
+                ),
+            )
+            context.parameters.update(
+                {name: role.checked(view.values.get(name)) for name, role in roles.items()}
+            )
+            graph, target, applied, unsupported = compile_publication(
+                graph, published, catalog, view, registry
+            )
+            result = WorkflowExecutionService(registry).execute(
+                graph,
+                target,
+                context,
+                output_port=published.port if target == published.node_id else "dataset",
+            )
+            if result.value_kind != published.kind:
+                raise ValueError("Published output type has changed. Review its visualizations.")
+            config = VisualizationConfig.model_validate(visualization.config)
+            visible_ids = (
+                set(
+                    config.column_ids
+                    if config.column_ids is not None
+                    else [c.column_id for c in result.schema.columns]
+                )
+                if visualization.type == "table"
+                else {config.category_column_id, config.value_column_id}
+            )
+            config.context_column_ids = list(
+                dict.fromkeys(
+                    [
+                        *config.context_column_ids,
+                        *(
+                            identity
+                            for identity in published.semantic_fields.values()
+                            if identity not in visible_ids
+                        ),
+                    ]
+                )
+            )
+            if published.kind == "scalar":
+                config.value_column_id = result.schema.columns[0].column_id
+            for role in view.highlight_only:
+                if role in published.semantic_fields:
+                    config.highlight_column_id = published.semantic_fields[role]
+                    config.highlight_parameter = role
+                    break
+            node = NodeInstance(
+                visualization.id, visualization.type, 1, Position(0, 0), config.model_dump()
+            )
+            executor = VisualizationExecutor()
+            if node.type == "kpi" and result.output.row_count == 0:
+                executor.infer_schema(node, {"input": result.schema}, context)
+            else:
+                output = executor.execute(node, {"input": result.output}, context)
+                result = replace(result, output=output, schema=output.schema)
+        else:
+            node = next((n for n in graph.nodes if n.id == visualization.source_node_id), None)
+            if node is None or node.type not in CHART_TYPES:
+                raise ApplicationError(
+                    "VISUALIZATION_NOT_FOUND", "Visualization node is unavailable.", 404
+                )
+            result = WorkflowExecutionService(registry).execute(graph, node.id, context)
+            config = effective_visualization_config(node)
     except ExecutionFailure as exc:
         raise ApplicationError(
             exc.code,
@@ -62,7 +154,24 @@ def render_visualization(
                 for i in exc.issues
             ],
         ) from exc
-    config = effective_visualization_config(node)
+    except InvalidWorkflowError as exc:
+        raise ApplicationError(
+            "INVALID_PUBLICATION",
+            str(exc),
+            issues=[
+                {
+                    "code": issue.code,
+                    "message": issue.message,
+                    "node_id": str(issue.node_id) if issue.node_id else None,
+                    "field": issue.field,
+                }
+                for issue in exc.issues
+            ],
+        ) from exc
+    except (ValueError, StopIteration) as exc:
+        raise ApplicationError(
+            "INVALID_VISUALIZATION", str(exc) or "A selected visualization field is unavailable."
+        ) from exc
     fields = (
         list(result.schema.columns)
         if node.type == "table"
@@ -97,6 +206,9 @@ def render_visualization(
     else:
         offset, limit = 0, result.output.row_count
     return VisualizationResult(
+        visualization_revision=visualization.revision,
+        applied_context=applied,
+        unsupported_filters=unsupported,
         highlight_field=result.schema.by_id(config.highlight_column_id).engine_name
         if config.highlight_column_id
         else None,

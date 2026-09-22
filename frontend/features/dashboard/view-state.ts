@@ -1,7 +1,7 @@
 import type { ParameterValues, WorkflowParameter } from "@/features/workflow/types";
 import type { Dashboard, DashboardConfiguration, NavigationAction } from "./api";
 
-export const emptyConfiguration: DashboardConfiguration = { parameters: [], bindings: [], links: [] };
+export const emptyConfiguration: DashboardConfiguration = { period_enabled: false, parameters: [], bindings: [], links: [] };
 
 export function checkedValue(definition: WorkflowParameter, value: unknown): string | number | boolean | null {
   if (value === null || value === undefined) return null;
@@ -47,11 +47,13 @@ export function navigationValues(action: NavigationAction, dashboards: Dashboard
     if (mapping.source !== "constant" && (!source || !Object.hasOwn(source, mapping.name ?? ""))) throw new Error("The navigation field or parameter is unavailable.");
     return [name, mapping.source === "constant" ? mapping.value : source![mapping.name!]];
   }));
-  return resolveViewValues(target.configuration ?? emptyConfiguration, mapped);
+  const inherited = Object.fromEntries((target.configuration?.parameters ?? []).filter(item => Object.hasOwn(values, item.name)).flatMap(item => { try { return [[item.name, checkedValue(item, values[item.name])]]; } catch { return []; } }));
+  return resolveViewValues(target.configuration ?? emptyConfiguration, { ...inherited, ...mapped });
 }
 
-export function dashboardUrl(projectId: string, dashboardId: string, values: ParameterValues = {}, viewOnly = false): string {
+export function dashboardUrl(projectId: string, dashboardId: string, values: ParameterValues = {}, viewOnly = false, period?: string | null): string {
   const query = new URLSearchParams({ dashboard: dashboardId });
+  if (period) query.set("period", period);
   if (viewOnly) query.set("mode", "view");
   if (Object.keys(values).length) query.set("parameters", JSON.stringify(values));
   return `/projects/${encodeURIComponent(projectId)}/dashboard?${query}`;

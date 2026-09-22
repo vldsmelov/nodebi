@@ -76,6 +76,7 @@ def parameterized_visualization_result(
         payload.offset,
         payload.limit,
         payload.parameters,
+        payload.context,
     )
 
 

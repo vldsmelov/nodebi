@@ -146,19 +146,15 @@ class DashboardService:
 
     def visualizations(self, project_id: uuid.UUID) -> list[VisualizationRead]:
         self.project(project_id)
+        from app.services.independent_visualizations import read_visualization
+
         return [
-            VisualizationRead(
-                id=row.id,
-                workflow_id=row.workflow_id,
-                node_id=row.source_node_id,
-                name=row.name,
-                type=row.type,
-            )
+            read_visualization(row)
             for row in self.session.scalars(
                 select(Visualization).where(
                     Visualization.project_id == project_id,
                     Visualization.source_node_id.is_not(None),
                 )
             )
-            if row.source_node_id is not None and row.type in CHART_TYPES
+            if row.type in CHART_TYPES
         ]

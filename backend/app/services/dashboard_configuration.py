@@ -63,7 +63,14 @@ def validate_configuration(
             for name, target in targets.items():
                 value = action.values.get(name)
                 if value is None:
-                    if target.required and target.default is None:
+                    inherited = declared.get(name)
+                    if (
+                        target.required
+                        and target.default is None
+                        and not (
+                            inherited and compatible(inherited.logical_type, target.logical_type)
+                        )
+                    ):
                         raise ValueError("Provide every required destination parameter.")
                     continue
                 if value.source == "parameter":

@@ -7,7 +7,7 @@ import { getWorkflow, getWorkflowSchema, saveWorkflow } from "@/features/workflo
 import { listDashboards } from "@/features/dashboard/api";
 vi.mock("@/features/workflow/api", () => ({ getWorkflow: vi.fn(), getWorkflowSchema: vi.fn(), saveWorkflow: vi.fn() }));
 vi.mock("@/features/dashboard/api", () => ({ listDashboards: vi.fn() }));
-const visualization = { id: "chart", node_id: "chart", workflow_id: "flow", name: "Original", type: "bar_chart" as const };
+const visualization = { id: "chart", revision: 1, node_id: "chart", workflow_id: "flow", name: "Original", type: "bar_chart" as const };
 const workflow = { id: "flow", project_id: "project", created_at: "2026-09-17T00:00:00Z", updated_at: "2026-09-17T00:00:00Z", name: "Flow", version: 1, revision: 3, parameters: [], nodes: [{ id: "chart", type: "bar_chart", version: 1, position: { x: 0, y: 0 }, config: { title: "Original", category_column_id: "category", value_column_id: "value" } }], edges: [] };
 const mount = () => { const close = vi.fn(); render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><VisualizationSettingsDialog visualization={visualization} projectId="project" close={close} /></QueryClientProvider>); return close; };
 beforeEach(() => {

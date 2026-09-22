@@ -75,6 +75,9 @@ class Workflow(TimestampMixin, Base):
     presentation: Mapped[dict[str, Any]] = mapped_column(
         json_type, default=dict, server_default="{}", nullable=False
     )
+    result_catalog: Mapped[dict[str, Any]] = mapped_column(
+        json_type, default=dict, server_default="{}", nullable=False
+    )
 
 
 class WorkflowNode(TimestampMixin, Base):
@@ -141,6 +144,8 @@ class Visualization(TimestampMixin, Base):
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     config: Mapped[dict[str, Any]] = mapped_column(json_type, default=dict)
+    publication_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
 
 
 class Dashboard(TimestampMixin, Base):

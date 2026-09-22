@@ -53,7 +53,7 @@ def test_format_upgrade_is_explicit_and_old_client_cannot_overwrite(db_engine: E
         )
         assert unknown.status_code == 422
         assert client.get(path).json() == saved.json()
-        unsupported = client.put(path, json={**draft, "format_version": 3})
+        unsupported = client.put(path, json={**draft, "format_version": 4})
         assert unsupported.status_code == 422
         assert client.get(path).json() == saved.json()
     finally:

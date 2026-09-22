@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { dashboardUrl, navigationValues, parseViewValues, resolveViewValues, workflowValues } from "@/features/dashboard/view-state";
 import type { Dashboard, DashboardConfiguration } from "@/features/dashboard/api";
 
-const configuration: DashboardConfiguration = {
+const configuration: DashboardConfiguration = { period_enabled: false,
   parameters: [{ name: "service", label: "Service", logical_type: "integer", required: true, default: null }],
   bindings: [{ dashboard_parameter: "service", workflow_id: "workflow", workflow_parameter: "chosen" }],
 };

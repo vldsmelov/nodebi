@@ -1,5 +1,31 @@
 # ARCHITECTURE.md
 
+## Published results and independent visualization documents (ADR-106, 2026-09-22)
+
+For new workflows the primary format is v3. Workflow.result_catalog stores stable named
+table/scalar endpoint references and reusable context profiles in the same CAS operation as
+nodes, edges and presentation. Format acknowledgement prevents a v1/v2 client discarding it.
+Visualization owns type/configuration/publication_id and an independent revision; chart nodes
+are no longer required. Graph saves synchronize the historical chart index only for legacy
+rows, and maintain endpoint references for independent documents. Configurations are not copied
+into widgets. Explicit visualization copy creates a new revisioned document.
+
+View context compiles into internal generic context_filter steps at the author's selected table
+outputs. Execution remains in the common Polars runner. Source and upstream cache entries are
+shared; parameterized predicates invalidate dependent branches through ordinary graph keys.
+The compiler does not guess denominators, reorder calculations or add financial logic. The
+internal predicate is excluded from the public node catalog and cannot be persisted as a node.
+Date/datetime restrictions use inclusive calendar dates and exclusive next-day midnight for
+datetimes in the configured data timezone; null dates are excluded only for an active period.
+
+Dashboard period and selection values live in the URL, not calculation revisions. Placement
+inherits data roles; navigation replaces compatible inherited values with selected fields.
+Highlight-only skips the selected role's context predicates. Schema/preview errors remain local
+to their visualization; a missing period binding is explicit. Full authoring guidance and
+conversion constraints are in docs/PUBLISHED_DASHBOARDS.md. Migration 0009 adds the catalog,
+publication reference and visualization revision. Older architecture entries below describe
+the retained historical implementation; ADR-106 supersedes their chart-config ownership rule.
+
 Field expression/scalar boundaries (ADR-105): field_formula compiles expressions over a/b/c through
 the shared safe compiler, with identical-context field operands or explicit scalars. field_scalar
 materializes exactly one selected field value from exactly one row and preserves type/null.

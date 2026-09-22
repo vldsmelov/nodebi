@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import type { Dashboard, DashboardParameter } from "@/features/dashboard/api";
 import { navigationIssues, suggestNavigation } from "@/features/dashboard/navigation-plan";
 const parameter = (name: string, kind: DashboardParameter["logical_type"] = "integer"): DashboardParameter => ({ name, logical_type: kind, label: "", required: true, default: null });
-const target: Dashboard = { id: "detail", project_id: "project", name: "Detail", revision: 1, widgets: [], configuration: { parameters: [parameter("id"), parameter("region", "string")] } };
+const target: Dashboard = { id: "detail", project_id: "project", name: "Detail", revision: 1, widgets: [], configuration: { period_enabled: false, parameters: [parameter("id"), parameter("region", "string")] } };
 const fields = [{ column_id: "col_id", engine_name: "id", display_name: "Identifier", logical_type: "integer" }, { column_id: "col_text", engine_name: "label", display_name: "Name", logical_type: "string" }];
 it("suggests only unique type-compatible matches and preserves explicit assignments", () => {
   const action = { dashboard_id: target.id, values: { region: { source: "constant" as const, name: "", value: "North" } } };

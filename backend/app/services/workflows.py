@@ -8,6 +8,7 @@ from app.config import Settings
 from app.domain.errors import ApplicationError, GraphOwnershipError, WorkflowConflictError
 from app.domain.nodes import ExecutionContext, NodeRegistry, UnknownNodeTypeError
 from app.domain.parameters import ParameterDefinition, ParameterValue, resolve_parameters
+from app.domain.publications import ResultCatalog
 from app.domain.workflows import (
     NodeInstance,
     Position,
@@ -61,6 +62,10 @@ def delete_workflow(session: Session, workflow_id: uuid.UUID) -> None:
 
 
 def validate_draft(payload: WorkflowSave, registry: NodeRegistry) -> None:
+    if payload.result_catalog is not None and payload.format_version < 3:
+        raise ApplicationError(
+            "WORKFLOW_FORMAT_REQUIRED", "Published results require workflow format v3."
+        )
     if payload.presentation is not None and payload.format_version < 2:
         raise ApplicationError(
             "WORKFLOW_FORMAT_REQUIRED", "Presentation requires workflow format v2."
@@ -71,6 +76,10 @@ def validate_draft(payload: WorkflowSave, registry: NodeRegistry) -> None:
         raise ApplicationError("DUPLICATE_GRAPH_ID", "Node and edge IDs must be unique.")
     known = set(node_ids)
     for node in payload.nodes:
+        if node.type == "context_filter":
+            raise ApplicationError(
+                "INVALID_NODE", "View restrictions belong to published data settings."
+            )
         try:
             definition = registry.get(node.type, node.version)
             if payload.format_version < definition.workflow_format:
@@ -127,6 +136,36 @@ def save_graph(
         else (WorkflowPresentation.model_validate(stored_presentation or {}))
     )
     validate_presentation(presentation, payload, registry)
+    with session.no_autoflush:
+        stored_catalog = session.scalar(
+            select(Workflow.result_catalog).where(Workflow.id == workflow.id)
+        )
+    catalog = payload.result_catalog or ResultCatalog.model_validate(stored_catalog or {})
+    nodes_by_id = {node.id: node for node in payload.nodes}
+    for endpoint in [
+        *catalog.outputs,
+        *(point for item in catalog.contexts for point in item.points),
+    ]:
+        node = nodes_by_id.get(endpoint.node_id)
+        if node is None or not any(
+            port.id == endpoint.port for port in registry.get(node.type, node.version).output_ports
+        ):
+            raise ApplicationError(
+                "INVALID_PUBLICATION", "A published output or context point is unavailable."
+            )
+    from app.models import Visualization
+
+    used = session.scalars(
+        select(Visualization).where(
+            Visualization.workflow_id == workflow.id, Visualization.publication_id.is_not(None)
+        )
+    )
+    if any(row.publication_id not in {item.id for item in catalog.outputs} for row in used):
+        raise ApplicationError(
+            "PUBLICATION_IN_USE",
+            "Reassign visualizations before removing their published result.",
+            409,
+        )
     protect_used_visualizations(session, workflow, payload)
     for node in payload.nodes:
         if node.type != "excel_source" or not node.config.get("source_id"):
@@ -151,6 +190,7 @@ def save_graph(
     workflow.name = payload.name.strip()
     workflow.version = payload.format_version
     workflow.presentation = presentation.model_dump(mode="json", exclude_defaults=True)
+    workflow.result_catalog = catalog.model_dump(mode="json")
     if payload.parameters is not None:
         workflow.parameters = [item.model_dump(mode="json") for item in payload.parameters]
     nodes = [
@@ -182,6 +222,15 @@ def save_graph(
         SqlAlchemyWorkflowRepository(session).save_graph(
             workflow, nodes, edges, expected_revision=payload.expected_revision
         )
+        publications = {item.id: item for item in catalog.outputs}
+        for row in session.scalars(
+            select(Visualization).where(
+                Visualization.workflow_id == workflow.id, Visualization.publication_id.is_not(None)
+            )
+        ):
+            assert row.publication_id is not None
+            row.source_node_id = publications[row.publication_id].node_id
+        session.flush()
         synchronize_visualizations(session, workflow, payload)
         result = read_workflow(session, workflow)
         if commit:
@@ -213,6 +262,9 @@ def read_workflow(session: Session, workflow: Workflow) -> WorkflowRead:
         select(WorkflowEdge).where(WorkflowEdge.workflow_id == workflow.id)
     ).all()
     return WorkflowRead(
+        result_catalog=ResultCatalog.model_validate(workflow.result_catalog)
+        if workflow.version >= 3
+        else None,
         presentation=WorkflowPresentation.model_validate(workflow.presentation)
         if workflow.version >= 2
         else None,

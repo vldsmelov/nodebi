@@ -7,7 +7,7 @@ import { chartOptions, format, isHighlighted, VisualizationView } from "@/featur
 
 const result: VisualizationResult = {
   orientation: "vertical",
-  visualization_id: "chart", revision: 1, type: "line_chart", title: "Revenue", value_field: "total", category_field: "day",
+  visualization_revision: 1, visualization_id: "chart", revision: 1, type: "line_chart", title: "Revenue", value_field: "total", category_field: "day",
   number_format: "number", decimals: 2, currency: "USD", show_labels: false, show_legend: true,
   total_rows: 2, offset: 0, limit: 2, truncated: false,
   columns: [

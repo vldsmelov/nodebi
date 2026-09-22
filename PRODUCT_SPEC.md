@@ -1,5 +1,16 @@
 # PRODUCT_SPEC.md
 
+## Approved primary dashboard workflow (2026-09-22)
+
+Prepare data with nodes, publish a named table/scalar output, create independent visualizations,
+then place them on a dashboard. Visualization owns chart fields and appearance. Calculations,
+aggregations, denominators and ranks remain explicit graph operations. A shared date period and
+dashboard navigation are in scope; category filter panels and click cross-filtering are deferred.
+Data context is configured once and inherited by visualizations. UI and acceptance details:
+docs/PUBLISHED_DASHBOARDS.md; architecture: ADR-106. This supersedes the requirement to create a
+chart node in the original MVP journey. Historical chart nodes remain readable for existing
+projects and numerical reference checks, but are not a second actively developed authoring path.
+
 ## Approved extension: functional nodes and field connections (2026-09-21)
 
 Priority clarification (2026-09-22): the owner requests a newly assembled financial dashboard

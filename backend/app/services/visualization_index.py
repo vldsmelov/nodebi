@@ -15,7 +15,11 @@ def protect_used_visualizations(
     removed = list(
         session.scalars(
             select(Visualization.id)
-            .where(Visualization.workflow_id == workflow.id, Visualization.id.not_in(retained))
+            .where(
+                Visualization.workflow_id == workflow.id,
+                Visualization.publication_id.is_(None),
+                Visualization.id.not_in(retained),
+            )
             .order_by(Visualization.id)
             .with_for_update()
         )
@@ -38,7 +42,9 @@ def synchronize_visualizations(session: Session, workflow: Workflow, payload: Wo
     existing = {
         row.id: row
         for row in session.scalars(
-            select(Visualization).where(Visualization.workflow_id == workflow.id)
+            select(Visualization).where(
+                Visualization.workflow_id == workflow.id, Visualization.publication_id.is_(None)
+            )
         )
     }
     charts = {node.id: node for node in payload.nodes if node.type in CHART_TYPES}

@@ -5,7 +5,46 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Current slice (2026-09-22, ADR-105): new financial dashboard assembled with field nodes.
+Current milestone: independent visualizations and simple interactive dashboards (ADR-106).
+D1-D5 completed. Post-restart browser verification passed. Next: human operator measurements;
+no further feature expansion is part of this completed plan.
+New workflow format 3 is the default. Outputs are published without extra nodes; Visualization
+owns configuration and an independent revision. Separate project Visualizations page supports
+creation before any dashboard. Library placement, independent copy, shared-edit usage review,
+period presets/coverage, named navigation suggestions and highlight-only are available.
+Author-selected context boundaries compile into generic Polars steps; no financial executor.
+
+The financial workflow b5daab58-f13b-4de1-bf90-980060fb919a in project
+908f1522-f6cd-42e4-93e0-0a59ae0749e8 is now revision 19: 142 nodes / 187 edges,
+28 publications / 53 independent visualizations / 55 widgets / six dashboards.
+Removed 53 chart nodes and 30 single-value helpers. Equality parameter filters retain stable
+Select Columns boundaries and apply selections through the context profile. Seven blocks and
+the workbook presentation persist. Backup and dry-run rollback were verified before conversion.
+All 164 slices / 1551 result pages match values, rows, series, formatting and highlighting.
+Backend/PostgreSQL restart restores all documents and 55 exact widget samples.
+
+Checks: 371 backend tests pass with PostgreSQL, seven PostgreSQL-only checks skip on SQLite;
+124 frontend tests pass; Ruff/format/mypy, ESLint/TypeScript/OpenAPI consistency and Docker
+production builds pass. Five distinct browser scenarios cover new authoring, period/navigation,
+financial screens (both themes / three locales), 168-node/1024-column scaling and format guard.
+The extended date scenario includes a UI-configured transition and delayed prior-period responses.
+A test initially timed out because a PowerShell-generated selector corrupted the middle-dot;
+correcting the test selector fixed it, with no application workaround.
+
+Synthetic date demo retained for review: project fc0c9e02-99c7-4827-a852-a0d7d3dbfd07,
+workflow 94cb32cb-532e-4e2e-aebc-debd935e792c. Three visualizations / two dashboards;
+all-time total 210, January 30, February 70, selected service A in January 10.
+Its saved URL/context and data are restored after restart. Financial data has no dates.
+
+Private evidence (ignored): before-publications.dump, before-detach.dump,
+published-financial-before/dryrun/after.json, published-financial-parity.json,
+published-financial-restart.json (verified=true), published-date-demo.json and
+published-date-restart.json (verified=true). Private workbooks/secrets are not staged.
+Guide: docs/PUBLISHED_DASHBOARDS.md. Remaining usability validation: human operator measurements.
+No known P0/P1; elapsed human time/percentage speedup remain unmeasured. Do not infer them from
+83 fewer nodes / 134 fewer wires. Future UX work must retain the explicit data-context boundaries.
+
+Previous slice (2026-09-22, ADR-105): new financial dashboard assembled with field nodes.
 Owner priority is new constructor capability, not preserving the old dashboard implementation.
 Project 908f1522-f6cd-42e4-93e0-0a59ae0749e8; workflow b5daab58-f13b-4de1-bf90-980060fb919a.
 225 nodes / 321 wires, six dashboards / 55 widgets, seven composites and a workbook container.

@@ -4,7 +4,7 @@ import type { Visualization, Widget } from "@/features/dashboard/api";
 import { dashboardUrl } from "@/features/dashboard/view-state";
 
 it("packs mixed widgets within grid bounds without overlap or semantic changes", () => {
-  const visualizations: Visualization[] = ["table", "kpi", "bar_chart"].map((type, i) => ({ id: `${i}`, node_id: `${i}`, workflow_id: "flow", name: type, type: type as Visualization["type"] }));
+  const visualizations: Visualization[] = ["table", "kpi", "bar_chart"].map((type, i) => ({ id: `${i}`, revision: 1, node_id: `${i}`, workflow_id: "flow", name: type, type: type as Visualization["type"] }));
   const widgets: Widget[] = Array.from({ length: 100 }, (_, i) => ({ id: `widget${i}`, visualization_id: `${i % 3}`, title: `Title ${i}`, config: { show_title: true, action: { dashboard_id: "detail", values: {} } }, x: 0, y: i * 20, width: 6, height: 8 }));
   for (const template of ["overview", "report"] as const) {
     const result = arrangeWidgets(widgets, visualizations, template);

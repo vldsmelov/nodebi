@@ -1,5 +1,9 @@
 # Node BI
 
+Primary dashboard workflow: [published results, independent visualizations and shared period](docs/PUBLISHED_DASHBOARDS.md).
+The current financial project uses 28 publications and 53 independent visualizations; its
+calculation graph contains no chart nodes. ADR-106 supersedes the historical bound-chart workflow below.
+
 Field-node authoring: [operator guide](docs/FIELD_EDITOR_GUIDE.md).
 The local six-screen financial project has been assembled with field expressions, explicit scalars,
 bound charts and composite blocks: [results and impartial UX review](docs/FIELD_FINANCIAL_REVIEW.md).

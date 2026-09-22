@@ -21,7 +21,10 @@ from app.nodes.window import window_definition
 
 @lru_cache
 def get_node_registry() -> NodeRegistry:
+    from app.nodes.context_filter import context_filter_definition
+
     registry = NodeRegistry()
+    registry.register(context_filter_definition())
     for definition in field_definitions():
         registry.register(definition)
     registry.register(window_definition())

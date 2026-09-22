@@ -254,7 +254,8 @@ export interface paths {
         /** List Visualizations */
         get: operations["list_visualizations_api_v1_projects__project_id__visualizations_get"];
         put?: never;
-        post?: never;
+        /** Create Visualization */
+        post: operations["create_visualization_api_v1_projects__project_id__visualizations_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -350,6 +351,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflows/{workflow_id}/convert-visualizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Convert Workflow Visualizations */
+        post: operations["convert_workflow_visualizations_api_v1_workflows__workflow_id__convert_visualizations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflows/{workflow_id}/publications/{publication_id}/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Publication Schema */
+        get: operations["publication_schema_api_v1_workflows__workflow_id__publications__publication_id__schema_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/visualizations/{identity}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Visualization */
+        get: operations["get_visualization_api_v1_visualizations__identity__get"];
+        /** Save Visualization */
+        put: operations["save_visualization_api_v1_visualizations__identity__put"];
+        post?: never;
+        /** Delete Visualization */
+        delete: operations["delete_visualization_api_v1_visualizations__identity__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/visualizations/{identity}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy Visualization */
+        post: operations["copy_visualization_api_v1_visualizations__identity__copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/visualizations/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Visualization */
+        post: operations["preview_visualization_api_v1_projects__project_id__visualizations_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/visualizations/{identity}/uses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Visualization Uses */
+        get: operations["visualization_uses_api_v1_visualizations__identity__uses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -403,8 +508,41 @@ export interface components {
             /** Y */
             y: number;
         };
+        /** ContextPoint */
+        ContextPoint: {
+            /**
+             * Node Id
+             * Format: uuid
+             */
+            node_id: string;
+            /** Port */
+            port: string;
+            /** Column Id */
+            column_id: string;
+            /** Role */
+            role: string;
+        };
+        /** ConversionRequest */
+        ConversionRequest: {
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+            /** Expected Revision */
+            expected_revision: number;
+            /** Dashboard Revisions */
+            dashboard_revisions: {
+                [key: string]: number;
+            };
+        };
         /** DashboardConfiguration */
         DashboardConfiguration: {
+            /**
+             * Period Enabled
+             * @default false
+             */
+            period_enabled: boolean;
             /** Parameters */
             parameters?: components["schemas"]["DashboardParameter"][];
             /** Bindings */
@@ -553,6 +691,25 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** DataContext */
+        DataContext: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Timezone
+             * @default Europe/Moscow
+             */
+            timezone: string;
+            /** Roles */
+            roles?: components["schemas"]["ParameterDefinition"][];
+            /** Points */
+            points?: components["schemas"]["ContextPoint"][];
+        };
         /** DataSourceList */
         DataSourceList: {
             /** Items */
@@ -591,6 +748,19 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** DatePeriod */
+        DatePeriod: {
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
         };
         /** EdgePayload */
         EdgePayload: {
@@ -646,6 +816,34 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /** IndependentVisualizationSave */
+        IndependentVisualizationSave: {
+            /**
+             * Workflow Id
+             * Format: uuid
+             */
+            workflow_id: string;
+            /**
+             * Publication Id
+             * Format: uuid
+             */
+            publication_id: string;
+            /** Expected Workflow Revision */
+            expected_workflow_revision: number;
+            /**
+             * Expected Revision
+             * @default 1
+             */
+            expected_revision: number;
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "bar_chart" | "kpi" | "table" | "line_chart" | "area_chart" | "pie_chart" | "donut_chart" | "scatter_chart";
+            config: components["schemas"]["VisualizationConfig"];
         };
         /**
          * LogicalType
@@ -997,6 +1195,49 @@ export interface components {
             /** Column Id */
             column_id?: string | null;
         };
+        /** PublicationSchema */
+        PublicationSchema: {
+            /** Workflow Revision */
+            workflow_revision: number;
+            /** Kind */
+            kind: string;
+            /** Columns */
+            columns: components["schemas"]["ResolvedColumnRead"][];
+            /** Roles */
+            roles: components["schemas"]["ParameterDefinition"][];
+            /** Period Supported */
+            period_supported: boolean;
+        };
+        /** PublishedOutput */
+        PublishedOutput: {
+            /**
+             * Node Id
+             * Format: uuid
+             */
+            node_id: string;
+            /** Port */
+            port: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "dataset" | "scalar";
+            /** Context Ids */
+            context_ids?: string[];
+            /** Ignored Roles */
+            ignored_roles?: string[];
+            /** Semantic Fields */
+            semantic_fields?: {
+                [key: string]: string;
+            };
+        };
         /** ReadinessResponse */
         ReadinessResponse: {
             /**
@@ -1021,6 +1262,13 @@ export interface components {
             metadata: {
                 [key: string]: unknown;
             };
+        };
+        /** ResultCatalog */
+        ResultCatalog: {
+            /** Outputs */
+            outputs?: components["schemas"]["PublishedOutput"][];
+            /** Contexts */
+            contexts?: components["schemas"]["DataContext"][];
         };
         /** RowContextRead */
         RowContextRead: {
@@ -1065,6 +1313,77 @@ export interface components {
             /** Nullable */
             nullable: boolean;
         };
+        /** ViewContext */
+        ViewContext: {
+            period?: components["schemas"]["DatePeriod"] | null;
+            /** Values */
+            values?: {
+                [key: string]: string | number | boolean | null;
+            };
+            /** Highlight Only */
+            highlight_only?: string[];
+        };
+        /** VisualizationConfig */
+        VisualizationConfig: {
+            /**
+             * Number Format
+             * @default number
+             * @enum {string}
+             */
+            number_format: "number" | "currency" | "percent";
+            /**
+             * Decimals
+             * @default 2
+             */
+            decimals: number;
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /**
+             * Title Template
+             * @default false
+             */
+            title_template: boolean;
+            /** Highlight Column Id */
+            highlight_column_id?: string | null;
+            /** Highlight Parameter */
+            highlight_parameter?: string | null;
+            /** Context Column Ids */
+            context_column_ids?: string[];
+            /** Column Formats */
+            column_formats?: {
+                [key: string]: components["schemas"]["NumberFormatConfig"];
+            };
+            /**
+             * Orientation
+             * @default vertical
+             * @enum {string}
+             */
+            orientation: "vertical" | "horizontal";
+            /**
+             * Show Legend
+             * @default true
+             */
+            show_legend: boolean;
+            /**
+             * Show Labels
+             * @default false
+             */
+            show_labels: boolean;
+            /** Value Column Id */
+            value_column_id?: string | null;
+            /** Category Column Id */
+            category_column_id?: string | null;
+            /** Column Ids */
+            column_ids?: string[] | null;
+        };
         /** VisualizationList */
         VisualizationList: {
             /** Items */
@@ -1072,6 +1391,14 @@ export interface components {
         };
         /** VisualizationRead */
         VisualizationRead: {
+            /** Publication Id */
+            publication_id?: string | null;
+            /**
+             * Revision
+             * @default 1
+             */
+            revision: number;
+            config?: components["schemas"]["VisualizationConfig"] | null;
             /**
              * Id
              * Format: uuid
@@ -1097,6 +1424,7 @@ export interface components {
         };
         /** VisualizationRequest */
         VisualizationRequest: {
+            context?: components["schemas"]["ViewContext"];
             /** Parameters */
             parameters?: {
                 [key: string]: string | number | boolean | null;
@@ -1114,6 +1442,15 @@ export interface components {
         };
         /** VisualizationResult */
         VisualizationResult: {
+            /**
+             * Visualization Revision
+             * @default 1
+             */
+            visualization_revision: number;
+            /** Applied Context */
+            applied_context?: string[];
+            /** Unsupported Filters */
+            unsupported_filters?: string[];
             /** Highlight Field */
             highlight_field?: string | null;
             /** Highlight Value */
@@ -1176,8 +1513,19 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /** VisualizationUse */
+        VisualizationUse: {
+            /** Dashboard Id */
+            dashboard_id: string;
+            /** Name */
+            name: string;
+            /** Widget Id */
+            widget_id: string;
+        };
         /** WidgetConfig */
         WidgetConfig: {
+            /** Highlight Only */
+            highlight_only?: string[];
             /**
              * Show Title
              * @default true
@@ -1258,6 +1606,7 @@ export interface components {
         };
         /** WorkflowRead */
         WorkflowRead: {
+            result_catalog?: components["schemas"]["ResultCatalog"] | null;
             presentation?: components["schemas"]["WorkflowPresentation"] | null;
             /** Parameters */
             parameters?: components["schemas"]["ParameterDefinition"][];
@@ -1296,6 +1645,7 @@ export interface components {
         WorkflowSave: {
             /** Name */
             name: string;
+            result_catalog?: components["schemas"]["ResultCatalog"] | null;
             presentation?: components["schemas"]["WorkflowPresentation"] | null;
             /** Expected Revision */
             expected_revision: number;
@@ -1304,7 +1654,7 @@ export interface components {
              * @default 1
              * @enum {integer}
              */
-            format_version: 1 | 2;
+            format_version: 1 | 2 | 3;
             /** Nodes */
             nodes: components["schemas"]["NodePayload"][];
             /** Edges */
@@ -2061,6 +2411,41 @@ export interface operations {
             };
         };
     };
+    create_visualization_api_v1_projects__project_id__visualizations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndependentVisualizationSave"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualizationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     visualization_result_api_v1_visualizations__visualization_id__result_get: {
         parameters: {
             query?: {
@@ -2348,6 +2733,271 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    convert_workflow_visualizations_api_v1_workflows__workflow_id__convert_visualizations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publication_schema_api_v1_workflows__workflow_id__publications__publication_id__schema_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+                publication_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_visualization_api_v1_visualizations__identity__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualizationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_visualization_api_v1_visualizations__identity__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndependentVisualizationSave"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualizationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_visualization_api_v1_visualizations__identity__delete: {
+        parameters: {
+            query: {
+                expected_revision: number;
+            };
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    copy_visualization_api_v1_visualizations__identity__copy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndependentVisualizationSave"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualizationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_visualization_api_v1_projects__project_id__visualizations_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndependentVisualizationSave"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualizationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    visualization_uses_api_v1_visualizations__identity__uses_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualizationUse"][];
                 };
             };
             /** @description Validation Error */

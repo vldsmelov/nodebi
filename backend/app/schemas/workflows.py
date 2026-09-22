@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.domain.parameters import ParameterDefinition, ParameterValue, ParameterValues
+from app.domain.publications import ResultCatalog
 from app.schemas.presentation import WorkflowPresentation
 
 
@@ -46,9 +47,10 @@ class WorkflowCreate(BaseModel):
 
 
 class WorkflowSave(WorkflowCreate):
+    result_catalog: ResultCatalog | None = None
     presentation: WorkflowPresentation | None = None
     expected_revision: int = Field(ge=1)
-    format_version: Literal[1, 2] = 1
+    format_version: Literal[1, 2, 3] = 1
     name: str = Field(min_length=1, max_length=200)
     nodes: list[NodePayload]
     edges: list[EdgePayload]
@@ -59,7 +61,7 @@ class WorkflowSave(WorkflowCreate):
     def preserve_new_format_fields(cls, value: Any) -> Any:
         # v1 retains its historical tolerance for read-response attributes in PUTs.
         # v2 must not silently discard capabilities absent from this server build.
-        if isinstance(value, dict) and value.get("format_version") == 2:
+        if isinstance(value, dict) and value.get("format_version") in (2, 3):
             items = [(value, set(cls.model_fields))]
             for key, model in (("nodes", NodePayload), ("edges", EdgePayload)):
                 if isinstance(value.get(key), list):
@@ -80,6 +82,9 @@ class WorkflowSave(WorkflowCreate):
 
 
 class WorkflowRead(BaseModel):
+    result_catalog: ResultCatalog | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     presentation: WorkflowPresentation | None = Field(
         default=None, exclude_if=lambda value: value is None
     )

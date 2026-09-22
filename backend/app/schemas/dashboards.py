@@ -4,18 +4,23 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, model_validator
 
 from app.domain.dashboards import DashboardConfiguration, NavigationAction
-from app.domain.parameters import ParameterValue, ParameterValues
-from app.domain.visualizations import ChartType, NumberFormatConfig
+from app.domain.parameters import ParameterDefinition, ParameterValue, ParameterValues
+from app.domain.publications import ViewContext
+from app.domain.visualizations import ChartType, NumberFormatConfig, VisualizationConfig
 from app.schemas.workflows import ResolvedColumnRead, WorkflowCreate
 
 
 class VisualizationRequest(BaseModel):
+    context: ViewContext = Field(default_factory=ViewContext)
     parameters: ParameterValues = Field(default_factory=dict)
     offset: int = Field(default=0, ge=0)
     limit: int = Field(default=100, ge=1, le=1000)
 
 
 class VisualizationRead(BaseModel):
+    publication_id: uuid.UUID | None = None
+    revision: int = 1
+    config: VisualizationConfig | None = None
     id: uuid.UUID
     workflow_id: uuid.UUID
     node_id: uuid.UUID
@@ -28,6 +33,9 @@ class VisualizationList(BaseModel):
 
 
 class VisualizationResult(BaseModel):
+    visualization_revision: int = 1
+    applied_context: list[str] = Field(default_factory=list)
+    unsupported_filters: list[str] = Field(default_factory=list)
     highlight_field: str | None = None
     highlight_value: ParameterValue = None
     context_column_ids: list[str] = Field(default_factory=list)
@@ -53,6 +61,7 @@ class VisualizationResult(BaseModel):
 
 
 class WidgetConfig(BaseModel):
+    highlight_only: list[str] = Field(default_factory=list, max_length=1)
     show_title: bool = True
     action: NavigationAction | None = None
 
@@ -105,6 +114,16 @@ class DashboardVisualizationCreate(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
 
 
+class IndependentVisualizationSave(BaseModel):
+    workflow_id: uuid.UUID
+    publication_id: uuid.UUID
+    expected_workflow_revision: int = Field(ge=1)
+    expected_revision: int = Field(default=1, ge=1)
+    name: str = Field(min_length=1, max_length=200)
+    type: ChartType
+    config: VisualizationConfig
+
+
 class DashboardNavigationSave(BaseModel):
     workflow_id: uuid.UUID
     widget_id: uuid.UUID
@@ -115,3 +134,11 @@ class DashboardNavigationSave(BaseModel):
     action: NavigationAction
     parameters: ParameterValues = Field(default_factory=dict)
     acknowledge_shared: bool = False
+
+
+class PublicationSchema(BaseModel):
+    workflow_revision: int
+    kind: str
+    columns: list[ResolvedColumnRead]
+    roles: list[ParameterDefinition]
+    period_supported: bool
