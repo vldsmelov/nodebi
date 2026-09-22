@@ -140,6 +140,24 @@ test("workbook cards retain typed wires through collapse, detach, undo and reloa
     const calculation = original.nodes.find((node: { type: string }) => node.type === "field_arithmetic");
     const preview = async () => { const response = await request.post(`${api}/api/v1/workflows/${workflowId}/nodes/${calculation.id}/preview`, { data: {} }); expect(response.ok()).toBe(true); return (await response.json()).rows; };
     const values = await preview();
+    await book.getByRole("button", { name: "Show connections for quantity", exact: true }).click();
+    await expect(page.locator(".field-path-active")).toHaveCount(1);
+    await expect(page.locator(".field-path-muted")).toHaveCount(1);
+    expect((await getGraph()).revision).toBe(original.revision);
+    await page.getByRole("button", { name: "Clear field path", exact: true }).click();
+    await expect(page.locator(".field-path-muted")).toHaveCount(0);
+    for (const [field, state] of [["country", "blocked"], ["quantity", "compatible"]]) {
+      const handle = await book.locator(`.react-flow__handle[title="${field}"]`).boundingBox();
+      expect(handle).not.toBeNull();
+      await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(handle!.x + 25, handle!.y, { steps: 3 });
+      await expect(arithmetic.locator(`[data-compatibility="${state}"]`)).toHaveCount(2);
+      await page.mouse.move(300, 180);
+      await page.mouse.up();
+      await expect(arithmetic.locator("[data-compatibility]")).toHaveCount(0);
+    }
+    expect((await getGraph()).revision).toBe(original.revision);
     await book.getByRole("button", { name: "Collapse workbook", exact: true }).click();
     await expect(book.locator('.react-flow__handle[title="quantity"]')).toBeVisible();
     await expect(book.locator('.react-flow__handle[title="price"]')).toBeVisible();

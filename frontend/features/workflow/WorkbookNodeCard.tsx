@@ -16,7 +16,7 @@ export function WorkbookNodeCard({ id, data }: NodeProps<WorkbookCanvasNode>) {
   const [search, setSearch] = useState("");
   const refresh = useUpdateNodeInternals();
   const attached = data.sheets.filter(sheet => !data.book.detached_node_ids?.includes(sheet.id));
-  const pinned = attached.filter(sheet => sheet.data.connected.length || sheet.id === data.selectedSheet);
+  const pinned = attached.filter(sheet => sheet.data.connected.length || sheet.data.focusedHandle || sheet.id === data.selectedSheet);
   const others = data.book.collapsed ? [] : attached.filter(sheet => !pinned.includes(sheet) && String(sheet.data.node.config?.sheet_name).toLocaleLowerCase().includes(search.toLocaleLowerCase())).slice(0, 20);
   const shown = [...pinned, ...others];
   const layout = JSON.stringify([shown.map(sheet => [sheet.id, sheet.data.connected]), data.book.collapsed, data.selectedSheet]);

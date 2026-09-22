@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Background, Controls, ReactFlow, type ReactFlowInstance, type Connection, type Edge, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -20,6 +20,7 @@ import { WorkbookBrowser } from "./WorkbookBrowser";
 import { openWorkbookSheet, readSheetDrag, sheetDragType, type SheetSelection } from "./workbook-navigation";
 import { WorkbookNodeCard, type WorkbookCanvasNode } from "./WorkbookNodeCard";
 import { attachedBook, bookCanvasId, detachWorkbookSheet, groupWorkbook, reconcileWorkbooks, renderBookWire, resolveBookConnection } from "./workbook-containers";
+import { fieldPath, inputHint, type FieldEndpoint } from "./field-interaction";
 import type { NodeDefinition, ParameterValues, Workflow } from "./types";
 
 const nodeTypes = { fieldNode: FieldNodeCard, workbookNode: WorkbookNodeCard };
@@ -41,6 +42,11 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
   const [selected, setSelected] = useState<string | null>(null), [search, setSearch] = useState("");
   const [wireSearch, setWireSearch] = useState("");
   const [connectionIssue, setConnectionIssue] = useState<string | null>(null);
+  const [dragSource, setDragSource] = useState<FieldEndpoint | null>(null);
+  const [focusedOutput, setFocusedOutput] = useState<FieldEndpoint | null>(null);
+  const focusOutput = useCallback((nodeId: string, handle: string) => { setFocusedOutput({ nodeId, handle }); setSelected(nodeId); }, []);
+  const activeFocus = focusedOutput && graph.nodes.some(node => node.id === focusedOutput.nodeId) ? focusedOutput : null;
+  const path = useMemo(() => activeFocus ? fieldPath(graph, catalog, activeFocus) : null, [graph, catalog, activeFocus]);
   const [pins, setPins] = useState<[Pin, Pin]>([null, null]);
   const flow = useRef<ReactFlowInstance<CanvasNode, Edge> | null>(null);
   const pinCount = pins.filter(Boolean).length;
@@ -66,9 +72,13 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
   const definition = catalog.find(item => item.type === selectedNode?.type);
   const nodes: FieldCanvasNode[] = useMemo(() => graph.nodes.flatMap(node => {
     const definition = catalog.find(item => item.type === node.type && item.version === node.version);
-    return definition ? [{ id: node.id, type: "fieldNode" as const, position: node.position, selected: node.id === selected, data: { node, definition, schema: choicesSchema?.nodes.find(item => item.node_id === node.id), connected: graph.edges.filter(edge => edge.source_node_id === node.id).map(edge => fieldHandle(edge.source_port, edge.source_column_id)), stale: dirty || !currentSchema } }] : [];
-  }), [graph, catalog, choicesSchema, selected, dirty, currentSchema]);
-  const edges = graph.edges.map(edge => ({ ...renderBookWire(graph, renderWire(edge)), style: { stroke: palette.accent } }));
+    return definition ? [{ id: node.id, type: "fieldNode" as const, position: node.position, selected: node.id === selected, data: { node, definition, schema: choicesSchema?.nodes.find(item => item.node_id === node.id), connected: graph.edges.filter(edge => edge.source_node_id === node.id).map(edge => fieldHandle(edge.source_port, edge.source_column_id)), stale: dirty || !currentSchema,
+      focusedHandle: activeFocus?.nodeId === node.id ? activeFocus.handle : undefined,
+      onFocusOutput: (handle: string) => focusOutput(node.id, handle),
+      inputHints: dragSource ? Object.fromEntries(definition.input_ports.map(port => [port.id, inputHint(graph, catalog, dragSource, node.id, port.id, currentSchema)])) : undefined,
+    } }] : [];
+  }), [graph, catalog, choicesSchema, selected, dirty, currentSchema, activeFocus, focusOutput, dragSource]);
+  const edges = graph.edges.map(edge => ({ ...renderBookWire(graph, renderWire(edge)), className: path ? path.has(edge.id) ? "field-path-active" : "field-path-muted" : undefined, style: { stroke: palette.accent, strokeWidth: path?.has(edge.id) ? 3 : 1, opacity: path && !path.has(edge.id) ? 0.18 : 1 } }));
   const connect = (displayConnection: Connection) => {
     const connection = resolveBookConnection(graph, displayConnection);
     const issue = connectionError(graph, catalog, connection, currentSchema);
@@ -115,7 +125,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
     } })),
   ];
   if (incompatible) return <p role="alert" className="p-6 text-danger">{t("A legacy draft is pending. Restore it in the classic editor first.")}</p>;
-  return <div className="grid h-[calc(100vh-8rem)] grid-cols-[220px_minmax(320px,1fr)_350px] border-t border-outline">
+  return <div className="grid h-[calc(100vh-8rem)] grid-cols-[220px_minmax(320px,1fr)_350px] border-t border-outline" onKeyDown={event => { if (event.key === "Escape") { setFocusedOutput(null); setDragSource(null); } }}>
     <aside className="overflow-auto bg-panel p-3">
       <p className="mb-3 text-xs text-warning">{t("Field editor preview. Existing projects are not converted.")}</p>
       <WorkbookBrowser sources={sources} nodes={graph.nodes} onOpen={openSheet} />
@@ -135,12 +145,25 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
         <button disabled={!history.canRedo} onClick={() => { const next = history.redo(); if (next) setGraph(next); }}>{t("Redo")}</button>
         <button disabled={!selected} onClick={() => setPins(current => [{ id: selected!, port: definition?.output_ports[0]?.id }, current[1]])}>{t("Pin A")}</button>
         <button disabled={!selected} onClick={() => setPins(current => [current[0], { id: selected!, port: definition?.output_ports[0]?.id }])}>{t("Pin B")}</button>
+        {activeFocus && <button onClick={() => setFocusedOutput(null)}>{t("Clear field path")}</button>}
       </div>
+      {activeFocus && <p className="px-2 text-xs text-muted">{t("Explicit connections; tracing stops at table transformations.")}</p>}
       {save.error && <div role="alert" className="p-2 text-xs text-danger">{errorText(save.error)} <button onClick={() => void writer.flush()}>{t("Retry save")}</button> <button onClick={() => { if (window.confirm(t("Discard this local draft and load the saved workflow?"))) { sessionStorage.removeItem(writer.key); window.location.reload(); } }}>{t("Discard draft and reload")}</button></div>}
       {connectionIssue && <p role="alert" className="p-2 text-xs text-danger">{t(connectionIssue)}</p>}
       {schema.error && <p role="alert" className="text-danger">{errorText(schema.error)}</p>}
       {Boolean(graph.presentation?.blocks?.length) && <p className="p-2 text-xs text-warning">{t("Containers are preserved; this preview shows their individual nodes.")}</p>}
-      <div className="min-h-64 flex-1"><ReactFlow<CanvasNode, Edge> onInit={instance => { flow.current = instance; }} fitViewOptions={{ maxZoom: 1, padding: 0.15 }} nodes={canvasNodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={changeNodes} onEdgesChange={changes => { const deleted = new Set(changes.filter(change => change.type === "remove").map(change => change.id)); if (deleted.size) setGraph(current => ({ ...current, edges: current.edges.filter(edge => !deleted.has(edge.id)) })); }} onConnect={connect} isValidConnection={connection => !connectionError(graph, catalog, resolveBookConnection(graph, { source: connection.source, target: connection.target, sourceHandle: connection.sourceHandle ?? null, targetHandle: connection.targetHandle ?? null }), currentSchema)} onNodeClick={(_, node) => { if (node.type === "fieldNode") setSelected(node.id); }} onPaneClick={() => setSelected(null)} colorMode={theme} minZoom={0.05} fitView><Background color={palette.grid} /><Controls /></ReactFlow></div>
+      <div className="min-h-64 flex-1"><ReactFlow<CanvasNode, Edge> onInit={instance => { flow.current = instance; }} fitViewOptions={{ maxZoom: 1, padding: 0.15 }} nodes={canvasNodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={changeNodes} onEdgesChange={changes => { const deleted = new Set(changes.filter(change => change.type === "remove").map(change => change.id)); if (deleted.size) setGraph(current => ({ ...current, edges: current.edges.filter(edge => !deleted.has(edge.id)) })); }} onConnect={connect} onConnectStart={(_, point) => {
+        setConnectionIssue(null);
+        if (point.handleType !== "source" || !point.nodeId || !point.handleId) { setDragSource(null); return; }
+        const actual = resolveBookConnection(graph, { source: point.nodeId, sourceHandle: point.handleId, target: "", targetHandle: "" });
+        setDragSource({ nodeId: actual.source, handle: actual.sourceHandle ?? "" });
+      }} onConnectEnd={(_, state) => {
+        setDragSource(null);
+        if (!state.isValid && state.fromHandle?.type === "source" && state.toNode && state.toHandle) {
+          const actual = resolveBookConnection(graph, { source: state.fromNode.id, sourceHandle: state.fromHandle.id ?? "", target: state.toNode.id, targetHandle: state.toHandle.id ?? "" });
+          setConnectionIssue(connectionError(graph, catalog, actual, currentSchema));
+        }
+      }} isValidConnection={connection => !connectionError(graph, catalog, resolveBookConnection(graph, { source: connection.source, target: connection.target, sourceHandle: connection.sourceHandle ?? null, targetHandle: connection.targetHandle ?? null }), currentSchema)} onNodeClick={(_, node) => { if (node.type === "fieldNode") setSelected(node.id); }} onPaneClick={() => setSelected(null)} colorMode={theme} minZoom={0.05} fitView><Background color={palette.grid} /><Controls /></ReactFlow></div>
       {pins.some(Boolean) && <div className="grid max-h-72 grid-cols-2 gap-3 overflow-auto border-t border-outline p-3">{pins.map((pin, index) => <section key={index} aria-label={index ? "B" : "A"}>{pin && <><div className="flex gap-2 text-xs"><b>{index ? "B" : "A"}</b><span>{String(graph.nodes.find(node => node.id === pin.id)?.ui?.label || nodeName(graph.nodes.find(node => node.id === pin.id)?.type ?? ""))}</span><button onClick={() => setPins(current => index ? [current[0], null] : [null, current[1]])}>{t("Close")}</button></div>{graph.nodes.some(node => node.id === pin.id) ? <NodeOutputPanel workflowId={workflow.id} nodeId={pin.id} outputPort={pin.port} revision={save.revision} dirty={dirty} parameters={parameters} issues={[]} /> : <p>{t("Selected node is unavailable.")}</p>}</>}</section>)}</div>}
     </section>
     <aside className="overflow-auto border-l border-outline bg-panel p-4">

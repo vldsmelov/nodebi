@@ -31,7 +31,12 @@ Canvas handles encode port+column only for display; field-wires serializes expli
 and source_column_id. Connections can be dragged or selected by node/field label. Input replacement
 is one draft/history action. Local checks cover port kinds, cycles, capacity and known row context;
 backend validation remains authoritative. Cards bound unconnected field rendering to 20 search
-results and retain connected ports. Full virtualization and compatibility highlighting remain open.
+results and retain connected ports. Drag hints reuse normalized connection validation and require
+a current output schema before showing compatibility. Known arithmetic/boolean/comparison types
+are checked locally; backend remains authoritative. fieldPath follows exact projected endpoints
+and expression wires, stops at table-producing transformations and never invents column lineage.
+Path selection and drag state are local (no save/revision); unrelated wires are dimmed. Full
+virtualization and operation drop menus remain open (ADR-095).
 
 Named-output preview is shared with the classic panel. A/B pins are local view state and request
 separate previews; they do not infer row equivalence or trigger whole-graph thumbnail execution.

@@ -1,5 +1,23 @@
 # DECISIONS.md
 
+# ADR-095 - Connection hints and conservative field-path tracing
+
+Date: 2026-09-22. Status: ACCEPTED; F2 operation menus and large-graph acceptance remain open.
+Context: users need visible compatible inputs and a legible field path, including workbook
+proxy ports. Stale schemas must not imply verified types, and table transformations do not yet
+publish complete field-to-field lineage.
+Decision: normalize workbook handles before common connection validation. While dragging from
+an output, label inputs compatible/blocked/pending with a symbol and localized reason. Known
+numeric, boolean and comparison constraints complement kind/context/cycle checks; the backend
+remains authoritative. Missing current output schema produces a pending hint, never a green one.
+Clicking an output label traces explicit wires by node/port/column ID. Continue through field
+and scalar expressions, stop at a produced table. Highlight those wires and dim the others;
+do not infer Join/aggregation/rename lineage. Explain this boundary in the editor. Selection,
+drag and path state are local, keyboard-clearable and do not create workflow revisions.
+Alternatives: tracing entire table branches could imply dependencies on unrelated fields;
+using stale schemas as current would give false compatibility feedback. Full lineage inference
+is not needed for this slice and is not claimed. No API, DB or execution changes.
+
 # ADR-094 - Workbook cards project existing sheet endpoints
 
 Date: 2026-09-22. Status: ACCEPTED; remaining F2 interaction/performance work stays open.

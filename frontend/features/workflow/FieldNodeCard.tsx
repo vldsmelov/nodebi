@@ -4,8 +4,9 @@ import { Database, Calculator, ChartColumn } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import type { NodeDefinition, NodeSchemaResult, WorkflowNode } from "./types";
 import { fieldHandle } from "./field-wires";
+import type { InputHint } from "./field-interaction";
 
-export type FieldCanvasNode = Node<{ node: WorkflowNode; definition: NodeDefinition; schema?: NodeSchemaResult; connected: string[]; stale: boolean }, "fieldNode">;
+export type FieldCanvasNode = Node<{ node: WorkflowNode; definition: NodeDefinition; schema?: NodeSchemaResult; connected: string[]; stale: boolean; inputHints?: Record<string, InputHint>; focusedHandle?: string; onFocusOutput?: (handle: string) => void }, "fieldNode">;
 export function FieldNodeCard({ id, data, selected, compact = false, handleFor = (handle: string) => handle }: { id: string; data: FieldCanvasNode["data"]; selected?: boolean; compact?: boolean; handleFor?: (handle: string) => string }) {
   const { t, nodeName } = useI18n();
   const [expanded, setExpanded] = useState(true), [search, setSearch] = useState("");
@@ -17,7 +18,7 @@ export function FieldNodeCard({ id, data, selected, compact = false, handleFor =
   for (const handle of data.connected) {
     if (!outputs.some(item => item.handle === handle)) outputs.push({ handle, label: t("Unavailable connection"), kind: "unknown" });
   }
-  const pinned = outputs.filter(item => data.connected.includes(item.handle) || data.definition.output_ports.some(port => port.id === item.handle));
+  const pinned = outputs.filter(item => data.connected.includes(item.handle) || data.focusedHandle === item.handle || data.definition.output_ports.some(port => port.id === item.handle));
   const remaining = expanded && !compact ? outputs.filter(item => !pinned.includes(item) && item.label.toLowerCase().includes(search.toLowerCase())).slice(0, 20) : [];
   const visible = [...pinned, ...remaining];
   const layout = JSON.stringify(visible.map(item => item.handle));
@@ -29,8 +30,15 @@ export function FieldNodeCard({ id, data, selected, compact = false, handleFor =
     <div className="p-3 text-xs">{!compact && <button className="nodrag nopan underline" onClick={() => setExpanded(!expanded)}>{t(expanded ? "Hide fields" : "Show fields")}</button>}{data.stale && <span className="ml-2 text-warning">{t("Updating fields")}</span>}
       {expanded && !compact && <input aria-label={t("Search fields")} className="nodrag nopan mt-2 w-full rounded border border-outline bg-control p-1" value={search} onChange={e => setSearch(e.target.value)} />}
     </div>
-    {data.definition.input_ports.map(port => <div key={port.id} className="relative px-4 py-1 text-xs"><Handle type="target" position={Position.Left} id={port.id} title={t(port.display_name)} /><span>← {t(port.display_name)} · {t(port.kind)}</span></div>)}
-    {visible.map(item => <div key={item.handle} className="relative px-4 py-1 text-right text-xs"><span className="block truncate" title={item.label}>{item.label} · {t(item.kind)} →</span><Handle type="source" position={Position.Right} id={handleFor(item.handle)} title={item.label} /></div>)}
+    {data.definition.input_ports.map(port => {
+      const hint = data.inputHints?.[port.id];
+      return <div key={port.id} className="relative h-12 px-4 py-1 text-xs" data-compatibility={hint?.state} title={hint ? t(hint.message) : t(port.display_name)}>
+        <Handle type="target" position={Position.Left} id={port.id} title={hint ? t(hint.message) : t(port.display_name)} style={hint ? { width: 11, height: 11, borderWidth: 2, borderStyle: hint.state === "pending" ? "dashed" : "solid", background: hint.state === "blocked" ? "var(--danger)" : "var(--accent)" } : undefined} />
+        <span>← {t(port.display_name)} · {t(port.kind)}</span>
+        {hint && <span className={`block truncate ${hint.state === "blocked" ? "text-danger" : hint.state === "pending" ? "text-warning" : "text-accent"}`}>{hint.state === "blocked" ? "×" : hint.state === "pending" ? "?" : "✓"} {t(hint.message)}</span>}
+      </div>;
+    })}
+    {visible.map(item => <div key={item.handle} className="relative px-4 py-1 text-right text-xs"><button className={`nodrag nopan block w-full truncate text-right ${data.focusedHandle === item.handle ? "font-bold text-accent underline" : ""}`} aria-label={t("Show connections for {0}", { 0: item.label })} aria-pressed={data.focusedHandle === item.handle} title={item.label} onClick={event => { event.stopPropagation(); data.onFocusOutput?.(item.handle); }}>{item.label} · {t(item.kind)} →</button><Handle type="source" position={Position.Right} id={handleFor(item.handle)} title={item.label} /></div>)}
     {outputs.length > visible.length && expanded && !compact && <p className="p-2 text-xs text-muted">{t("Search to show more fields.")}</p>}
   </div>;
 }

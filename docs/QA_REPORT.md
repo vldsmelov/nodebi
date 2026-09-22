@@ -1,5 +1,19 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F2 input hints and explicit field paths - 2026-09-22
+
+99 frontend tests, TypeScript, ESLint and production Docker build pass. Unit regressions verify
+pending hints without current schemas, incompatible row contexts, numeric/boolean/comparison
+constraints, numeric widening and exact-column path selection with expression traversal and
+table-boundary stops. Backend remains authoritative; frontend checks do not execute data.
+Twelve browser scenarios pass, including mouse-held hint inspection on workbook proxy handles:
+text fields are rejected by arithmetic, numeric fields show compatible inputs, cancellation
+clears hints, and field selection highlights one of two wires without a saved revision change.
+Existing authoring, grouping/detach, undo, restore, languages/themes and concurrent-save tests pass.
+Frontend deployed healthy; six original/UX-copy snapshots are unchanged. No API/DB migration;
+full backend suite and private 164-slice parity not rerun for this frontend-only change.
+Operation-drop menus, general table column lineage and large-graph usability are not claimed.
+
 ## F2 canvas workbook cards - 2026-09-22
 
 96 frontend tests pass; TypeScript, ESLint and Docker production build pass. Unit coverage checks

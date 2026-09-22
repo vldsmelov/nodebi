@@ -26,7 +26,22 @@ export function connectionError(graph: GraphDraft, catalog: NodeDefinition[], co
   if (endpoint.column && resolved?.columns && !resolved.columns.some(column => column.column_id === endpoint.column)) return "Selected field is unavailable.";
   const kinds = endpoint.column ? ["field"] : resolved ? [resolved.kind] : [output.kind, ...(output.accepted_kinds ?? [])];
   if (!kinds.some(kind => [input.kind, ...(input.accepted_kinds ?? [])].includes(kind))) return "Select compatible ports.";
+  const logicalType = endpoint.column ? resolved?.columns?.find(column => column.column_id === endpoint.column)?.logical_type : resolved?.logical_type;
+  if (logicalType) {
+    if (target.type === "field_arithmetic" && !["integer", "float", "unknown"].includes(logicalType)) return "Arithmetic requires numeric fields. Convert the type explicitly.";
+    if (target.type === "field_sum" && input.id === "value" && !["integer", "float"].includes(logicalType)) return "Sum requires a numeric field. Convert the type explicitly.";
+    if ((target.type === "field_logical" || (target.type === "field_filter" && input.id === "value")) && logicalType !== "boolean") return "This input requires a boolean field or scalar.";
+  }
+  if (target.type === "field_logical" && target.config?.operation === "not" && input.id === "b") return "NOT uses only input a.";
   const remaining = graph.edges.filter(edge => !(edge.target_node_id === target.id && edge.target_port === input.id));
+  if (target.type === "field_compare" && logicalType) {
+    if (logicalType === "unknown") return "Comparison requires compatible explicit types.";
+    for (const edge of remaining.filter(item => item.target_node_id === target.id)) {
+      const other = schema?.nodes.find(node => node.node_id === edge.source_node_id)?.outputs?.[edge.source_port];
+      const otherType = edge.source_column_id ? other?.columns?.find(column => column.column_id === edge.source_column_id)?.logical_type : other?.logical_type;
+      if (otherType && otherType !== logicalType && ![logicalType, otherType].every(value => ["integer", "float"].includes(value))) return "Comparison requires compatible explicit types.";
+    }
+  }
   if (output.max_connections !== null && remaining.filter(edge => edge.source_node_id === source.id && edge.source_port === endpoint.port).length >= output.max_connections) return "This output has no free connections.";
   const pending = [target.id], visited = new Set<string>();
   while (pending.length) {

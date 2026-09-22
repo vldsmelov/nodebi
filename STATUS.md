@@ -5,6 +5,21 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F2 connection hints and explicit field paths (ADR-095, 2026-09-22).
+Dragging an output highlights compatible/blocked/pending inputs with localized text and symbols,
+using the same validator as connection creation and normalized workbook endpoints. Known numeric,
+boolean and comparison type constraints are checked locally; missing current schema stays pending.
+Output-label clicks highlight exact field wires through expressions and dim unrelated edges;
+tracing stops at produced tables. This is not inferred column lineage through Join/Group By.
+Selection and aborted drags do not change graph revisions. Clear button/Escape remove path focus.
+Checks: 99 frontend tests, TypeScript/ESLint, Docker production build and 12 browser scenarios
+pass; six original/UX-copy snapshots match. Backend/DB/API unchanged; no full backend/private
+164-slice parity rerun this session. Docker frontend is updated. No known P0/P1 in this slice.
+Next: compatible operation menu on blank-canvas field drop, then large-graph/virtualization
+acceptance and remaining F1 diagnostic fields. F3 composite UI and F4 acceptance remain open.
+
+Previous workbook-card slice:
+
 Latest slice: F2 canvas workbook cards (ADR-094, 2026-09-22). Explicit grouping from Excel Source
 inspector, sheet selection/field wires, persistent collapse and position, button/native-drag
 detach, return and ungroup now use the existing presentation contract and graph history/CAS.

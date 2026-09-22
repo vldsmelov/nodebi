@@ -1,5 +1,15 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Show connections for {0}": ["Показать связи поля {0}", "{0} кыры бәйләнешләрен күрсәтергә"],
+  "Clear field path": ["Снять выделение пути", "Юлны аеруны бетерергә"],
+  "Explicit connections; tracing stops at table transformations.": ["Показаны явные связи; путь заканчивается на табличном преобразовании.", "Ачык бәйләнешләр күрсәтелгән; юл таблица үзгәртүендә туктый."],
+  "Waiting for a current schema.": ["Ожидание актуальной схемы.", "Актуаль схеманы көтү."],
+  "Compatible input": ["Совместимый вход", "Ярашлы кереш"],
+  "Arithmetic requires numeric fields. Convert the type explicitly.": ["Для арифметики нужны числа. Явно преобразуйте тип.", "Арифметика өчен саннар кирәк. Типны ачык үзгәртегез."],
+  "Sum requires a numeric field. Convert the type explicitly.": ["Для суммы нужно числовое поле. Явно преобразуйте тип.", "Сумма өчен санлы кыр кирәк. Типны ачык үзгәртегез."],
+  "This input requires a boolean field or scalar.": ["Нужно логическое поле или скаляр.", "Логик кыр яки скаляр кирәк."],
+  "NOT uses only input a.": ["NOT использует только вход a.", "NOT бары тик a керешен куллана."],
+  "Comparison requires compatible explicit types.": ["Для сравнения нужны совместимые явные типы.", "Чагыштыру өчен ярашлы ачык типлар кирәк."],
   "Group workbook sheets": ["Объединить листы книги", "Китап битләрен берләштерергә"],
   "Expand workbook": ["Развернуть книгу", "Китапны җәяргә"],
   "Collapse workbook": ["Свернуть книгу", "Китапны җыярга"],
