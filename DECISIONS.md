@@ -1,5 +1,22 @@
 # DECISIONS.md
 
+# ADR-103 - Exact version identity in editor catalogs
+
+Date: 2026-09-22. Status: ACCEPTED; typed visualization implementation remains pending.
+
+Context: the backend registry keys contracts by type and version, but field connection validation,
+selected-node inspector and source menu labels used only type. Adding a second visualization
+version would select incorrect ports depending on catalog order. Classic next-step choices also
+discarded version identity. This is reproduced with incompatible versions in regression tests.
+Decision: resolve saved nodes strictly by (type, version); missing versions never fall back to another
+contract. Creation choices retain both identities and show a version suffix only when the catalog
+contains multiple versions of that type. Workbook insertion keeps its currently supported v1 reader.
+Reasoning: preserves old nodes and makes creation explicit without automatically upgrading graphs.
+Alternative rejected: choosing the newest definition for existing nodes, which changes their contract.
+Consequences: this is a frontend compatibility prerequisite, not delivery of field-bound charts.
+No registry, API, execution, migration or saved data change. Browser testing injects additional
+catalog entries only; it does not persist or execute invented node versions.
+
 # ADR-102 - Atomic block membership and public-port settings
 
 Date: 2026-09-22. Status: ACCEPTED; visualization bindings remain F3 work.

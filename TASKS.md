@@ -28,6 +28,7 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
 * [~] F3: Atomic one-level composite blocks, navigation/public ports, field Bar Chart and scalar KPI.
   * [x] Pack named nodes, render collapsed boundary ports, reopen/edit, unpack, pin extra output and preserve undo/save identities (ADR-101).
   * [x] Atomic block membership/public-port settings, saved aliases, optional port hiding, explicit input/output exposure and protected connected endpoints (ADR-102).
+  * [x] Resolve exact node versions in field connections/inspector and distinguish versioned creation choices before introducing visualization v2 (ADR-103).
   * [ ] Complete field Bar Chart/scalar KPI integration.
 * [ ] F4: UI-built end-to-end scenario, restart/compatibility/164-slice parity and operator evaluation.
 

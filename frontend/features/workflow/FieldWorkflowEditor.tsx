@@ -27,6 +27,7 @@ import { CompositeBlockCard, type CompositeCanvasNode } from "./CompositeBlockCa
 import { BlockSettings } from "./BlockSettings";
 import { BlockComposer } from "./BlockComposer";
 import { blockCanvasId, editBlock, memberBlock, packBlock, publishOutput, reconcileBlocks, renderBlockWire, resolveBlockConnection } from "./composite-blocks";
+import { definitionKey, definitionLabel, findNodeDefinition } from "./node-catalog";
 import { NodeFinder } from "./NodeFinder";
 import type { GraphIssue, NodeDefinition, ParameterValues, Workflow } from "./types";
 
@@ -101,7 +102,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
   const menuSource = operationMenu ? graph.nodes.find(node => node.id === operationMenu.source.nodeId) : undefined;
   const menuEndpoint = operationMenu ? readHandle(operationMenu.source.handle) : undefined;
   const menuOutput = operationMenu && menuEndpoint ? currentSchema?.nodes.find(node => node.node_id === operationMenu.source.nodeId)?.outputs?.[menuEndpoint.port] : undefined;
-  const menuLabel = menuSource ? `${String(menuSource.ui?.label || nodeName(menuSource.type))} / ${menuEndpoint?.column ? menuOutput?.columns?.find(column => column.column_id === menuEndpoint.column)?.display_name ?? t("Unavailable connection") : t(catalog.find(node => node.type === menuSource.type)?.output_ports.find(port => port.id === menuEndpoint?.port)?.display_name ?? "Value")}` : t("Unavailable connection");
+  const menuLabel = menuSource ? `${String(menuSource.ui?.label || nodeName(menuSource.type))} / ${menuEndpoint?.column ? menuOutput?.columns?.find(column => column.column_id === menuEndpoint.column)?.display_name ?? t("Unavailable connection") : t(findNodeDefinition(catalog, menuSource)?.output_ports.find(port => port.id === menuEndpoint?.port)?.display_name ?? "Value")}` : t("Unavailable connection");
   // Previous revision fields are labelled stale; the server always validates the saved graph.
   const choicesSchema = schema.data;
   useEffect(() => { writer.resume(); return () => writer.dispose(); }, [writer]);
@@ -113,9 +114,9 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
     return () => { window.removeEventListener("beforeunload", unload); document.removeEventListener("click", navigate, true); };
   }, [writer, t]);
   const selectedNode = graph.nodes.find(node => node.id === selected);
-  const definition = catalog.find(item => item.type === selectedNode?.type);
+  const definition = findNodeDefinition(catalog, selectedNode);
   const nodes: FieldCanvasNode[] = useMemo(() => graph.nodes.flatMap(node => {
-    const definition = catalog.find(item => item.type === node.type && item.version === node.version);
+    const definition = findNodeDefinition(catalog, node);
     return definition ? [{ id: node.id, type: "fieldNode" as const, position: node.position, selected: node.id === selected, data: { node, definition, schema: choicesSchema?.nodes.find(item => item.node_id === node.id), connected: graph.edges.filter(edge => edge.source_node_id === node.id).map(edge => fieldHandle(edge.source_port, edge.source_column_id)), stale: dirty || !currentSchema,
       largeGraph: graph.nodes.length > 40,
       focusedHandle: activeFocus?.nodeId === node.id ? activeFocus.handle : undefined,
@@ -147,7 +148,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
     setSelected(id);
   };
   const openSheet = (selection: SheetSelection, dropPosition?: { x: number; y: number }) => {
-    const sourceDefinition = catalog.find(item => item.type === "excel_source");
+    const sourceDefinition = findNodeDefinition(catalog, { type: "excel_source", version: 1 });
     if (!sourceDefinition) return;
     const result = openWorkbookSheet(graph, sources, selection, dropPosition ?? { x: 40 + graph.nodes.length % 3 * 340, y: 40 + Math.floor(graph.nodes.length / 3) * 480 }, sourceDefinition.version);
     if (!result) return;
@@ -199,7 +200,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
       }} />
       <WorkbookBrowser sources={sources} nodes={graph.nodes} onOpen={openSheet} />
       <input aria-label={t("Search nodes")} className={control} value={search} onChange={e => setSearch(e.target.value)} />
-      {catalog.filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={item.type} title={t("Add {0}", { 0: nodeName(item.type) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {nodeName(item.type)}</button>)}
+      {catalog.filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: definitionLabel(catalog, item, nodeName(item.type)) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {definitionLabel(catalog, item, nodeName(item.type))}</button>)}
     </aside>
     <section className="flex min-w-0 flex-col bg-page" onDragOver={event => { if (event.dataTransfer.types.includes(sheetDragType)) { event.preventDefault(); event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === "move" ? "move" : "copy"; } }} onDrop={event => {
       const selection = readSheetDrag(event.dataTransfer.getData(sheetDragType));

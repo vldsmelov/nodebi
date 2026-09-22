@@ -1,6 +1,7 @@
 import type { Connection, Edge } from "@xyflow/react";
 import type { GraphDraft } from "./autosave";
 import type { NodeDefinition, WorkflowEdge, WorkflowSchemaResult } from "./types";
+import { findNodeDefinition } from "./node-catalog";
 
 /** Handle encoding is presentation only; the saved edge has an explicit column ID. */
 export const fieldHandle = (port: string, column?: string | null) => column ? JSON.stringify([port, column]) : port;
@@ -19,8 +20,8 @@ export function connectionError(graph: GraphDraft, catalog: NodeDefinition[], co
   const source = graph.nodes.find(node => node.id === connection.source), target = graph.nodes.find(node => node.id === connection.target);
   if (!source || !target) return "Select available nodes.";
   const endpoint = readHandle(connection.sourceHandle ?? "");
-  const output = catalog.find(item => item.type === source.type)?.output_ports.find(port => port.id === endpoint.port);
-  const input = catalog.find(item => item.type === target.type)?.input_ports.find(port => port.id === connection.targetHandle);
+  const output = findNodeDefinition(catalog, source)?.output_ports.find(port => port.id === endpoint.port);
+  const input = findNodeDefinition(catalog, target)?.input_ports.find(port => port.id === connection.targetHandle);
   if (!output || !input || (endpoint.column && output.kind !== "dataset")) return "Select compatible ports.";
   const resolved = schema?.nodes.find(node => node.node_id === source.id)?.outputs?.[endpoint.port];
   if (endpoint.column && resolved?.columns && !resolved.columns.some(column => column.column_id === endpoint.column)) return "Selected field is unavailable.";

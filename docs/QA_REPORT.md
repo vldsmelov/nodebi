@@ -1,5 +1,17 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F3 versioned catalog prerequisite - 2026-09-22
+
+116 frontend tests, TypeScript/ESLint and production Docker frontend build pass. Ten browser
+scenarios pass: catalog versions (new), five field-editor scenarios, analytics helper, classic
+authoring and two graph-history scenarios. Catalog regression injects incompatible v2 entries
+before v1, verifies distinct creation labels, exact saved inspector inputs, unchanged revision
+and a real backend calculation result of 14. Fake versions are never saved or executed.
+Unit tests additionally cover both catalog orders, incompatible source/target kinds, missing
+versions and creation of the exact compatible operation version. Existing browser select controls
+now select by visible label because option values include version identity.
+Six retained snapshots remain unchanged. No backend/API/DB change or new field-bound chart yet.
+
 ## F3 block settings - 2026-09-22
 
 112 frontend tests pass. New unit regression checks membership edits without node/edge rewriting,

@@ -35,7 +35,7 @@ test("undo and redo compound graph edits, field sessions and layout with persist
     await page.goto(`/projects/${project.id}/workflow`);
     await expect(page.getByRole("button", { name: "Undo graph change", exact: true })).toBeDisabled();
     await page.getByLabel("Edit workflow node").selectOption(ids[0]);
-    await page.getByLabel("Add next step", { exact: true }).selectOption("filter"); await saved();
+    await page.getByLabel("Add next step", { exact: true }).selectOption({ label: "Filter" }); await saved();
     const added = await read(), next = added.nodes.find((node: { id: string }) => !ids.includes(node.id));
     await page.getByRole("button", { name: "Undo graph change", exact: true }).click(); await saved();
     expect((await read()).nodes).toHaveLength(2); expect((await read()).edges).toHaveLength(0);

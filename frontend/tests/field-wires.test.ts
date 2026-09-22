@@ -12,6 +12,22 @@ const catalog: NodeDefinition[] = [
 const graph: GraphDraft = { format_version: 2, name: "Test", nodes: ["one", "two", "math"].map(id => ({ id, type: id === "math" ? "field_arithmetic" : "table", version: 1, position: { x: 0, y: 0 } })), edges: [] };
 const schema: WorkflowSchemaResult = { revision: 1, valid: true, issues: [], nodes: ["one", "two"].map(id => ({ node_id: id, columns: null, issues: [], outputs: { data: { kind: "dataset", nullable: false, columns: [{ column_id: "q", engine_name: "q", display_name: "Same name", logical_type: "integer", nullable: false, metadata: {} }], row_context: { workflow_id: "workflow", node_id: id, output_port: "data" } } } })) };
 describe("typed field connections", () => {
+  it("uses exact source and target versions regardless of catalog order", () => {
+    const newer = [
+      { ...catalog[0], version: 2, output_ports: [port("data", "scalar")] },
+      { ...catalog[1], version: 2, input_ports: [port("a", "dataset")] },
+    ];
+    const connection = { source: "one", target: "math", sourceHandle: "data", targetHandle: "a" };
+    for (const definitions of [[...catalog, ...newer], [...newer, ...catalog]]) {
+      expect(connectionError(graph, definitions, connection)).toContain("compatible");
+      const upgraded = { ...graph, nodes: graph.nodes.map(node => node.id === "math" ? { ...node, version: 2 } : node) };
+      expect(connectionError(upgraded, definitions, connection)).toBeNull();
+      const scalarSource = { ...graph, nodes: graph.nodes.map(node => node.id === "one" ? { ...node, version: 2 } : node) };
+      expect(connectionError(scalarSource, definitions, connection)).toBeNull();
+      const unavailable = { ...graph, nodes: graph.nodes.map(node => ({ ...node, version: 99 })) };
+      expect(connectionError(unavailable, definitions, connection)).toContain("compatible");
+    }
+  });
   it("roundtrips unusual identities without storing display handles as ports", () => {
     const column = 'a:b["unicode"]';
     const connection = { source: "one", target: "math", sourceHandle: fieldHandle("data", column), targetHandle: "a" };

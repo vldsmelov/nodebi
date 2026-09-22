@@ -1,5 +1,7 @@
 "use client";
 
+import { definitionKey, definitionLabel } from "./node-catalog";
+
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme-provider";
 
@@ -146,8 +148,8 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
   const displayEdges = projection.edges.map(edge => { const original = originalEdges.get(edge.id)!; return { ...edge, style: { ...edge.style, opacity: highlighted && !(highlighted.has(original.source) && highlighted.has(original.target)) ? 0.1 : 1 } }; });
   const focusNodes = (ids: string[]) => { void flow.current?.fitView({ nodes: [...new Set(ids.map(id => { const node = nodes.find(item => item.id === id); const name = node && groupName(node); return name && view.collapsed.includes(name) ? groupProxyId(name) : id; }))].map(id => ({ id })), padding: 0.3, maxZoom: 1, duration: 0 }); };
   const following = selectedNode ? catalog.filter(definition => definition.input_ports.length === 1 && selectedNode.data.definition.output_ports.some(output => output.kind === definition.input_ports[0].kind && (output.max_connections === null || edges.filter(edge => edge.source === selectedNode.id && edge.sourceHandle === output.id).length < output.max_connections))) : [];
-  const addFollowing = (type: string) => {
-    const definition = following.find(item => item.type === type);
+  const addFollowing = (key: string) => {
+    const definition = following.find(item => definitionKey(item) === key);
     if (!selectedNode || !definition) return;
     const input = definition.input_ports[0];
     const output = selectedNode.data.definition.output_ports.find(port => port.kind === input.kind && (port.max_connections === null || edges.filter(edge => edge.source === selectedNode.id && edge.sourceHandle === port.id).length < port.max_connections));
@@ -336,7 +338,7 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
         <div className="mt-5 space-y-5">
           {(["source", "transform", "visualization"] as const).map((category) => {
             const definitions = visibleDefinitions.filter((item) => item.category === category);
-            return <section key={category}><h2 className="mb-2 text-[10px] uppercase tracking-[0.2em] text-muted">{t(category)}</h2>{definitions.length === 0 ? <p className="rounded-lg border border-dashed border-outline px-3 py-2 text-xs text-muted">{t("No nodes yet")}</p> : definitions.map((definition) => { const disabled = definition.type === "excel_source" && sources.length === 0; return <button key={`${definition.type}:${definition.version}`} disabled={disabled} title={disabled ? t("Upload a workbook first") : t("Add {0}", {"0": nodeName(definition.type)})} onClick={() => addNode(definition)} className="mb-2 flex w-full items-center gap-3 rounded-xl border border-outline bg-raised p-3 text-left hover:border-accent/40 hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-35"><Plus size={15} className="text-accent" /><span><span className="block text-sm">{nodeName(definition.type)}</span><span className="block text-[11px] text-muted">{disabled ? t("Upload a workbook first") : t(definition.description)}</span></span></button>; })}</section>;
+            return <section key={category}><h2 className="mb-2 text-[10px] uppercase tracking-[0.2em] text-muted">{t(category)}</h2>{definitions.length === 0 ? <p className="rounded-lg border border-dashed border-outline px-3 py-2 text-xs text-muted">{t("No nodes yet")}</p> : definitions.map((definition) => { const disabled = definition.type === "excel_source" && sources.length === 0; return <button key={`${definition.type}:${definition.version}`} disabled={disabled} title={disabled ? t("Upload a workbook first") : t("Add {0}", {"0": definitionLabel(catalog, definition, nodeName(definition.type))})} onClick={() => addNode(definition)} className="mb-2 flex w-full items-center gap-3 rounded-xl border border-outline bg-raised p-3 text-left hover:border-accent/40 hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-35"><Plus size={15} className="text-accent" /><span><span className="block text-sm">{definitionLabel(catalog, definition, nodeName(definition.type))}</span><span className="block text-[11px] text-muted">{disabled ? t("Upload a workbook first") : t(definition.description)}</span></span></button>; })}</section>;
           })}
         </div>
       </aside>
@@ -364,7 +366,7 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
             const label = event.target.value;
             setNodes(current => current.map(node => node.id === selectedNode.id ? { ...node, data: { ...node.data, ui: { ...node.data.ui, label } } } : node));
           }} /></label>
-          {following.length ? <label className="block text-xs">{t("Add next step")}<select aria-label={t("Add next step")} className="mt-2 w-full rounded-lg border border-outline bg-control p-2" value="" onChange={event => addFollowing(event.target.value)}><option value="">{t("Select node")}</option>{following.map(definition => <option key={definition.type} value={definition.type}>{nodeName(definition.type)}</option>)}</select></label> : null}
+          {following.length ? <label className="block text-xs">{t("Add next step")}<select aria-label={t("Add next step")} className="mt-2 w-full rounded-lg border border-outline bg-control p-2" value="" onChange={event => addFollowing(event.target.value)}><option value="">{t("Select node")}</option>{following.map(definition => <option key={definitionKey(definition)} value={definitionKey(definition)}>{definitionLabel(catalog, definition, nodeName(definition.type))}</option>)}</select></label> : null}
         </div> : null}
         {selectedNode?.data.definition.input_ports.map(port => {
           const connected = edges.find(edge => edge.target === selectedNode.id && edge.targetHandle === port.id);

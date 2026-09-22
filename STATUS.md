@@ -5,6 +5,19 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F3 version-aware editor catalog prerequisite (ADR-103, 2026-09-22).
+Fixed type-only contract lookup in field wires, selected inspector and source labels. Creation
+menus and classic next-step insertion retain version identity; duplicate types have version labels.
+Regression confirms catalog order cannot substitute ports, and unavailable versions do not fall back.
+Checks: 116 frontend tests, TypeScript/ESLint and frontend production Docker build pass; deployed
+frontend is healthy. Ten browser scenarios pass, including injected incompatible catalog versions,
+typed authoring, workbook connections, slow saves/two tabs, classic authoring and undo/redo.
+Six retained project snapshots unchanged. Backend/API/DB unchanged; backend/164-slice parity not
+rerun. No known P0/P1 in this change. Next: implement Bar Chart field and KPI scalar executors,
+rendering and UI bindings. This prerequisite does not complete that feature or F3/F4.
+
+Previous block-settings slice:
+
 Latest slice: F3 block membership and public-port settings (ADR-102, 2026-09-22).
 Edit block stages membership, names and public inputs/outputs/fields; Apply is one history/CAS
 operation. Cancel/Escape do not save. Removed members remain in the graph with all wires.

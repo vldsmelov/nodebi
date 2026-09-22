@@ -2,6 +2,11 @@
 
 ## Opt-in field editor foundation (ADR-093)
 
+Catalog version identity (ADR-103): saved nodes resolve exact type/version definitions for cards,
+inspector, connection validation and output labels. Creation menus carry both identifiers; when
+multiple versions coexist their labels include the version. Missing definitions do not fall back
+to newer/older contracts. Workbook insertion currently targets excel_source v1 explicitly.
+
 Typed schema diagnostics (ADR-098): ValueConnectionError may carry a port or config path.
 The schema resolver preserves it in GraphIssue and finds the offending inbound edge by port.
 Preflight execution rejection retains these issues; existing inspector error rendering labels

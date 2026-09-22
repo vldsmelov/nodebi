@@ -77,7 +77,7 @@ test("author grouped/global shares and stable ranks before parameter selection w
     await expect(page.getByLabel("Edit workflow node")).toHaveValue(total.id);
     expect((await read()).revision).toBe(inspected.revision);
     // Reuse the output before selection through an ordinary connected node.
-    await page.getByLabel("Add next step", { exact: true }).selectOption("limit");
+    await page.getByLabel("Add next step", { exact: true }).selectOption({ label: "Limit" });
     await page.getByLabel("Maximum rows", { exact: true }).fill("100");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const reused = await read(); const comparison = reused.nodes.find((node: { type: string }) => node.type === "limit");

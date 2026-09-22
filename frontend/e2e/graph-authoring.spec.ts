@@ -13,7 +13,7 @@ test("name nodes, trace dependencies, append a step and replace its input atomic
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByLabel("Edit workflow node").selectOption(ids[0]);
     await page.getByLabel("Node label", { exact: true }).fill("Prepared services");
-    await page.getByLabel("Add next step", { exact: true }).selectOption("filter");
+    await page.getByLabel("Add next step", { exact: true }).selectOption({ label: "Filter" });
     await expect(page.locator(".react-flow__node")).toHaveCount(3);
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const appended = await read(), added = appended.nodes.find((node: { id: string }) => !ids.includes(node.id));

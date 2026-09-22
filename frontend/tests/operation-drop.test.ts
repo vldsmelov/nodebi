@@ -25,6 +25,19 @@ it("filters registry operations by field types and table/field contracts", () =>
   expect(table).toContainEqual({ type: "ordinary_transform", version: 1, port: "table" });
 });
 
+it("offers and creates the compatible version even when an older contract comes first", () => {
+  const old = definition("chart", [port("input", "dataset")], "dataset");
+  const modern = { ...old, version: 2, input_ports: [port("value", "field")] };
+  const definitions = [...catalog, old, modern];
+  const source = { nodeId: "table", handle: fieldHandle("out", "amount") };
+  const choices = operationChoices(graph, definitions, schema, source).filter(choice => choice.type === "chart");
+  expect(choices).toEqual([{ type: "chart", version: 2, port: "value" }]);
+  const next = appendOperation(graph, definitions, schema, source, choices[0], { x: 1, y: 2 }, "chart")!;
+  expect(next.nodes.at(-1)?.version).toBe(2);
+  expect(next.edges.at(-1)?.target_port).toBe("value");
+  expect(graph.nodes).toHaveLength(2);
+});
+
 it("connects the exact expression row context and undoes node plus wires as one action", () => {
   const next = appendOperation(graph, catalog, schema, { nodeId: "expression", handle: "out" }, { type: "field_sum", version: 1, port: "value" }, { x: 250, y: 20 }, "sum")!;
   expect(next.edges.map(edge => [edge.source_node_id, edge.target_node_id, edge.target_port])).toEqual([["expression", "sum", "value"], ["table", "sum", "table"]]);
