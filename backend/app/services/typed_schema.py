@@ -9,7 +9,7 @@ from app.domain.nodes import (
     SchemaInferenceMode,
     TypedNodeExecutor,
 )
-from app.domain.values import RowContext, ValueSchema
+from app.domain.values import RowContext, ValueConnectionError, ValueSchema
 from app.domain.workflows import WorkflowGraph
 from app.services.workflow_validation import (
     GraphIssue,
@@ -138,11 +138,13 @@ def resolve_typed_schema(
             all_issues.extend(issues)
             results.append(NodeSchemaResult(node_id, None, issues))
         except (ValueError, KeyError, StopIteration) as exc:
+            field = exc.field if isinstance(exc, ValueConnectionError) else None
             issue = GraphIssue(
                 "INVALID_TYPED_NODE",
                 str(exc) or "A connected field is unavailable.",
                 node_id=node_id,
-                field="config",
+                field=field or "config",
+                edge_id=next((edge.id for edge in inbound if edge.target_port == field), None),
             )
             all_issues.append(issue)
             results.append(NodeSchemaResult(node_id, None, (issue,)))

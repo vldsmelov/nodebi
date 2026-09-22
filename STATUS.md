@@ -5,6 +5,21 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F1 typed schema diagnostic locations (ADR-098, 2026-09-22).
+Typed operand/context, sum/filter and scalar/name errors preserve input/config paths and wire IDs.
+Inspector error messages identify inputs and provide RU/EN/TT repair instructions. Public API
+shape, database schema and calculation semantics are unchanged. F1 remains IN PROGRESS:
+comparison/compiler and runtime-boundary paths, inline highlighting and remaining error coverage
+are next; then F3 composite UI/direct chart bindings and F4/operator acceptance.
+Checks: 336 backend tests pass with SQLite/PostgreSQL (6 SQLite-only skips); Ruff/format/mypy pass.
+105 frontend tests pass; localization rerun passes after removing a duplicate translation key
+caught by TypeScript/build. TypeScript/ESLint and final production Docker builds pass.
+Backend/frontend deployed healthy. Browser diagnostic scenario passes in all three languages;
+field-editor regression results are recorded in QA_REPORT. Six retained project snapshots match.
+No known P0/P1 in this slice, no implementation blocker. Private 164-slice parity not rerun.
+
+Previous large-graph slice:
+
 Latest slice: F2 bounded field rendering and large-graph navigation (ADR-097, 2026-09-22).
 Scrollable unconnected fields mount at most 16 rows; connected/focused ports remain pinned.
 Graphs over 40 nodes default compact; node search reveals and navigates to nodes/workbooks.

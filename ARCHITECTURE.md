@@ -2,6 +2,12 @@
 
 ## Opt-in field editor foundation (ADR-093)
 
+Typed schema diagnostics (ADR-098): ValueConnectionError may carry a port or config path.
+The schema resolver preserves it in GraphIssue and finds the offending inbound edge by port.
+Preflight execution rejection retains these issues; existing inspector error rendering labels
+input paths and localizes repair instructions. Generic compiler/runtime errors remain separate
+follow-up work. No API shape or database change is needed.
+
 WorkbookBrowser is a source navigator beside the canvas, not an alternative execution graph.
 It lists uploaded metadata without extra dataset execution, mounts at most 50 matching sheets
 per expanded book and opens actual excel_source nodes. Selection validates source/sheet/node

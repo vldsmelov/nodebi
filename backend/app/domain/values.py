@@ -20,6 +20,10 @@ from app.domain.parameters import ParameterDefinition, ParameterValue, resolve_p
 class ValueConnectionError(ValueError):
     """An invalid typed connection or an unsafe result at a table boundary."""
 
+    def __init__(self, message: str, *, field: str | None = None) -> None:
+        super().__init__(message)
+        self.field = field
+
 
 @dataclass(frozen=True)
 class RowContext:

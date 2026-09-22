@@ -19,11 +19,14 @@ export function localizeError(locale: Locale, error: unknown): string {
 
 const configurationLabels: Record<string, string> = { conditions: "Filter", column_id: "Select field", operator: "Operator", value: "Value", expression: "Expression", name: "Output field name", limit: "Maximum rows", keys: "Sort", dimensions: "Group By", aggregations: "Aggregation", source_id: "Source", sheet_name: "Worksheet" };
 function configurationField(locale: Locale, path: string): string {
+  if (["a", "b", "table", "value"].includes(path)) return translate(locale, "Input: {0}", { 0: translate(locale, { a: "a", b: "b", table: "Table", value: "Value" }[path]!) });
   if (!path.startsWith("config.")) return path;
   return path.slice(7).split(".").map(part => /^\d+$/.test(part) ? String(Number(part) + 1) : translate(locale, configurationLabels[part] ?? part)).join(" / ");
 }
 
 const messagePatterns: readonly [RegExp, string][] = [
+  [/^Workflow parameter '(.+)' is not declared\.$/, "Workflow parameter '{0}' is not declared."],
+  [/^Connected field (.+) no longer exists\.$/, "Connected field {0} no longer exists."],
   [/^Dashboard parameter '(.+)' is required\.$/, "Dashboard parameter '{0}' is required."],
   [/^Parameter '(.+)' requires (.+)\.$/, "Parameter '{0}' requires {1}."],
   [/^Filter parameter '(.+)' is required\.$/, "Filter parameter '{0}' is required."],

@@ -1,5 +1,24 @@
 # DECISIONS.md
 
+# ADR-098 - Preserve typed schema diagnostic locations
+
+Date: 2026-09-22. Status: ACCEPTED; remaining F1 runtime/compiler diagnostics stay open.
+
+Context: typed schema inference flattened semantic errors into field=config, losing which
+operand or table-field connection needed repair. Existing GraphIssue already supports paths
+and edge IDs; the frontend already displays structured issues in the output inspector.
+
+Decision: ValueConnectionError optionally carries a field path. Node inference attributes
+operand/type and context errors to input ports, scalar/name errors to config paths. The resolver
+preserves those paths and identifies the inbound wire by its target port. Existing codes and
+API shapes remain unchanged. Localized error presentation labels input paths and translates
+repair messages without translating user parameter names or field IDs.
+
+Reasoning: diagnostics belong at the layer that knows the invalid operand, rather than parsing
+English prose in generic graph traversal. No persistence migration or generated type change.
+Consequences: preflight errors retain locations through execution rejection. Runtime table-boundary
+and comparison/compiler errors still need a separate pass; this slice does not mark F1 complete.
+
 # ADR-097 - Bounded field rendering and large-graph navigation
 
 Date: 2026-09-22. Status: ACCEPTED; financial-copy/operator acceptance remains open.

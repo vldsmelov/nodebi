@@ -1,5 +1,21 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F1 typed schema diagnostic locations - 2026-09-22
+
+Regression cases verify input/config paths and wire IDs for nonnumeric sum, nonboolean filter,
+blank output name, undeclared parameter, invalid scalar conversion, arithmetic/logical operand
+types and table-row context mismatch. Execution preflight retains schema issues without loading
+source data. Browser acceptance creates an invalid typed graph through the ordinary API and
+checks its offending wire/input in schema and localized inspector text in RU/EN/TT.
+336 backend tests pass in SQLite/PostgreSQL matrix (6 SQLite-only skips), Ruff/format/mypy pass.
+105 frontend tests pass; focused localization tests pass after duplicate translation key removal.
+TypeScript/ESLint and final production Docker builds pass. Initial build caught the duplicate key;
+initial browser launch overlapped service restart and failed connections, then reran after health.
+Final browser run: all 6 diagnostic/field-editor scenarios pass, including workbook wires,
+operation creation, A/B, undo/reload and two-tab conflicts.
+Six retained project snapshots match. No migration/API shape change, no private 164-slice rerun.
+Runtime-boundary/compiler path completion and inline highlighting remain open in TASKS.
+
 ## F2 large graph and field virtualization - 2026-09-22
 
 Reproduced excessive DOM on the preceding deployment: generated real Excel with 1024 columns,

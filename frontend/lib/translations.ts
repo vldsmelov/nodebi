@@ -1,5 +1,16 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Input: {0}": ["Вход: {0}", "Кереш: {0}"],
+  "Workflow parameter '{0}' is not declared.": ["Параметр графа «{0}» не объявлен.", "Графның «{0}» параметры игълан ителмәгән."],
+  "Connected field {0} no longer exists.": ["Подключённое поле {0} больше не существует.", "Тоташтырылган {0} кыры бүтән юк."],
+  "Fields belong to different table outputs. Join the tables using explicit keys first.": ["Поля относятся к разным выходам таблиц. Сначала объедините таблицы через Join с явными ключами.", "Кырлар төрле таблица чыгышларына карый. Башта таблицаларны ачык ачкычлар белән Join аша берләштерегез."],
+  "Connect exactly the operands required by this operation.": ["Подключите только операнды, необходимые для выбранной операции.", "Сайланган гамәл өчен кирәкле операндларны гына тоташтырыгыз."],
+  "Logical operations require boolean fields.": ["Логическим операциям нужны логические поля.", "Логик гамәлләргә логик кырлар кирәк."],
+  "Connect a table to the table input.": ["Подключите таблицу к табличному входу.", "Таблицаны таблица керешенә тоташтырыгыз."],
+  "This operation requires a field from the connected table.": ["Выберите поле из подключённой таблицы.", "Тоташтырылган таблицадан кыр сайлагыз."],
+  "Sum requires a numeric field. Convert its type explicitly.": ["Для суммы нужно числовое поле. Явно преобразуйте его тип.", "Сумма өчен санлы кыр кирәк. Аның төрен ачык үзгәртегез."],
+  "Enter an output field name.": ["Введите имя выходного поля.", "Чыгыш кырының исемен кертегез."],
+  "Filter requires a boolean field.": ["Для фильтра нужно логическое поле.", "Фильтр өчен логик кыр кирәк."],
   "Scrollable fields": ["Прокручиваемый список полей", "Әйләндерелә торган кырлар исемлеге"],
   "Scroll or search for more fields.": ["Прокрутите список или найдите поле поиском.", "Исемлекне әйләндерегез яки кырны эзләгез."],
   "For field-to-table operations, the exact source table is connected when known.": ["Для операций поля с таблицей подключается его исходная таблица, если она известна.", "Кыр һәм таблица операцияләре өчен билгеле булса, аның чыганак таблицасы тоташтырыла."],

@@ -9,6 +9,19 @@ import { I18nProvider, LanguageSwitcher, useI18n } from "@/lib/i18n";
 import { formatCell, localeCookie, nodeNames, parseDataDate, parseLocale, translate } from "@/lib/locale";
 import { translations } from "@/lib/translations";
 import { localizeError } from "@/lib/localized-errors";
+
+it("retains typed input diagnostics and translates repair messages in all locales", () => {
+  for (const locale of ["ru", "en", "tt"] as const) {
+    const text = localizeError(locale, { code: "INVALID_TYPED_NODE", node_id: "node-1", field: "b", message: "Logical operations require boolean fields." });
+    expect(text).toContain("node-1");
+    expect(text).toContain("INVALID_TYPED_NODE");
+    expect(text).toContain("b");
+    expect(text).toContain(locale === "ru" ? "Вход:" : locale === "tt" ? "Кереш:" : "Input:");
+    expect(text).not.toContain("could not be completed");
+    if (locale !== "en") expect(text).not.toContain("Logical operations require");
+    expect(localizeError(locale, { field: "config.name", message: "Workflow parameter 'factor' is not declared." })).toContain("factor");
+  }
+});
 import { ApiError } from "@/lib/api";
 
 afterEach(() => { cleanup(); document.cookie = `${localeCookie}=; Max-Age=0; Path=/`; });

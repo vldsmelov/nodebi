@@ -84,6 +84,43 @@ def setup():  # type: ignore[no-untyped-def]
     return graph, context, access
 
 
+@pytest.mark.parametrize(
+    ("kind", "config", "field", "message"),
+    [
+        ("field_sum", {}, "value", "numeric field"),
+        ("field_filter", {"null_policy": "drop"}, "value", "boolean field"),
+        ("append_field", {"name": "   "}, "config.name", "output field name"),
+        ("scalar_parameter", {"name": "missing"}, "config.name", "not declared"),
+        ("scalar_constant", {"value": "text", "logical_type": "integer"}, "config.value", ""),
+    ],
+)
+def test_typed_schema_diagnostics_keep_input_or_setting_and_edge(
+    kind: str, config: dict, field: str, message: str
+) -> None:
+    graph, context, access = setup()
+    source = graph.nodes[0]
+    access.dataset = Dataset(
+        pl.DataFrame({"text": ["hello"]}),
+        DatasetSchema((ColumnSchema("text", "text", "Text", LogicalType.STRING, False),)),
+    )
+    target = node(kind, **config)
+    wires = (
+        ()
+        if kind.startswith("scalar_")
+        else (edge(source, target, "table"), edge(source, target, "value", "text"))
+    )
+    graph = replace(graph, nodes=(source, target), edges=wires)
+    result = WorkflowSchemaResolver(get_node_registry()).resolve(graph, context)
+    issue = next(item for item in result.issues if item.node_id == target.id)
+    assert issue.field == field
+    assert message in issue.message
+    assert issue.edge_id == (wires[1].id if field == "value" else None)
+    with pytest.raises(ExecutionFailure) as failure:
+        WorkflowExecutionService(get_node_registry()).execute(graph, target.id, context)
+    assert issue in failure.value.issues
+    assert access.loads == 0
+
+
 def test_mixed_execution_field_preview_scalar_and_cache() -> None:
     graph, context, access = setup()
     source, multiply, append, total = graph.nodes
@@ -111,6 +148,38 @@ def test_mixed_execution_field_preview_scalar_and_cache() -> None:
     with pytest.raises(ExecutionFailure) as failure:
         engine.execute(graph, source.id, context, output_port="value")
     assert failure.value.issues[0].code == "INVALID_OUTPUT_PORT"
+
+
+@pytest.mark.parametrize("kind,operation", [("field_arithmetic", "add"), ("field_logical", "and")])
+def test_operand_type_error_identifies_wire(kind: str, operation: str) -> None:
+    graph, context, access = setup()
+    left = node("scalar_constant", value=True if kind == "field_logical" else 2)
+    right = node("scalar_constant", value="text")
+    target = node(kind, operation=operation)
+    wires = (edge(left, target, "a", output="value"), edge(right, target, "b", output="value"))
+    graph = replace(graph, nodes=(left, right, target), edges=wires)
+    result = WorkflowSchemaResolver(get_node_registry()).resolve(graph, context)
+    issue = next(item for item in result.issues if item.node_id == target.id)
+    assert issue.field == "b" and issue.edge_id == wires[1].id
+    assert access.loads == 0
+
+
+def test_context_error_identifies_field_wire() -> None:
+    graph, context, access = setup()
+    source, _, append, total = graph.nodes
+    wires = tuple(
+        replace(wire, source_node_id=source.id, source_column_id="q")
+        if wire.target_node_id == total.id and wire.target_port == "value"
+        else wire
+        for wire in graph.edges
+    )
+    result = WorkflowSchemaResolver(get_node_registry()).resolve(
+        replace(graph, edges=wires), context
+    )
+    issue = next(item for item in result.issues if item.node_id == total.id)
+    assert issue.field == "value" and issue.edge_id == wires[-1].id
+    assert "Join" in issue.message
+    assert access.loads == 0
 
 
 def test_named_mixed_outputs_preserve_values_and_declared_default() -> None:

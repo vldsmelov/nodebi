@@ -76,11 +76,17 @@ class MaskConfig(StrictConfig):
 def scalar(node: NodeInstance, context: ExecutionContext) -> ScalarValue:
     if node.type == "scalar_constant":
         config = ConstantConfig.model_validate(node.config)
-        return ScalarValue(config.value, config.logical_type)
+        try:
+            return ScalarValue(config.value, config.logical_type)
+        except ValueConnectionError as exc:
+            raise ValueConnectionError(str(exc), field="config.value") from exc
     config_parameter = ParameterConfig.model_validate(node.config)
-    return parameter_scalar(
-        config_parameter.name, context.parameter_definitions, context.parameters
-    )
+    try:
+        return parameter_scalar(
+            config_parameter.name, context.parameter_definitions, context.parameters
+        )
+    except ValueConnectionError as exc:
+        raise ValueConnectionError(str(exc), field="config.name") from exc
 
 
 def expression(node: NodeInstance) -> str:
@@ -123,12 +129,30 @@ class FieldOperationExecutor(TypedNodeExecutor):
             expected = {"a"} if expr == "not a" else {"a", "b"}
             if inputs.keys() != expected:
                 raise ValueConnectionError(
-                    "Connect exactly the operands required by this operation."
+                    "Connect exactly the operands required by this operation.",
+                    field=sorted(inputs.keys() ^ expected)[0],
                 )
             fields = [value for value in inputs.values() if value.kind == "field"]
             for value in fields[1:]:
                 assert fields[0].context is not None and value.context is not None
-                require_context(fields[0].context, value.context)
+                try:
+                    require_context(fields[0].context, value.context)
+                except ValueConnectionError as exc:
+                    raise ValueConnectionError(str(exc), field="b") from exc
+            for port, value in inputs.items():
+                if node.type == "field_arithmetic" and value.logical_type not in {
+                    LogicalType.INTEGER,
+                    LogicalType.FLOAT,
+                    LogicalType.UNKNOWN,
+                }:
+                    raise ValueConnectionError(
+                        "Arithmetic requires numeric fields. Convert the type explicitly.",
+                        field=port,
+                    )
+                if node.type == "field_logical" and value.logical_type != LogicalType.BOOLEAN:
+                    raise ValueConnectionError(
+                        "Logical operations require boolean fields.", field=port
+                    )
             if any(
                 value.kind == "dataset" or value.logical_type is None for value in inputs.values()
             ):
@@ -165,23 +189,28 @@ class FieldOperationExecutor(TypedNodeExecutor):
             }
         table, value = inputs["table"], inputs["value"]
         if table.kind != "dataset" or table.table is None or table.context is None:
-            raise ValueConnectionError("Connect a table to the table input.")
+            raise ValueConnectionError("Connect a table to the table input.", field="table")
         if value.kind == "field":
             assert value.context is not None
-            require_context(table.context, value.context)
+            try:
+                require_context(table.context, value.context)
+            except ValueConnectionError as exc:
+                raise ValueConnectionError(str(exc), field="value") from exc
         elif value.kind != "scalar" or node.type != "append_field":
-            raise ValueConnectionError("This operation requires a field from the connected table.")
+            raise ValueConnectionError(
+                "This operation requires a field from the connected table.", field="value"
+            )
         if node.type == "field_sum":
             if value.logical_type not in {LogicalType.INTEGER, LogicalType.FLOAT}:
                 raise ValueConnectionError(
-                    "Sum requires a numeric field. Convert its type explicitly."
+                    "Sum requires a numeric field. Convert its type explicitly.", field="value"
                 )
             return {"value": ValueSchema("scalar", logical_type=LogicalType.FLOAT, nullable=False)}
         output_schema = table.table
         if node.type == "append_field":
             config = AppendConfig.model_validate(node.config)
             if not config.name.strip():
-                raise ValueConnectionError("Enter an output field name.")
+                raise ValueConnectionError("Enter an output field name.", field="config.name")
             output_schema = DatasetSchema(
                 (
                     *table.table.columns,
@@ -196,7 +225,7 @@ class FieldOperationExecutor(TypedNodeExecutor):
                 )
             )
         elif value.logical_type != LogicalType.BOOLEAN:
-            raise ValueConnectionError("Filter requires a boolean field.")
+            raise ValueConnectionError("Filter requires a boolean field.", field="value")
         return {
             "dataset": ValueSchema(
                 "dataset",
