@@ -19,6 +19,7 @@ import type { DataSource } from "@/features/data-sources/api";
 import type { GraphIssue, ResolvedColumn, WorkflowParameter } from "./types";
 
 type Props = {
+  version?: number;
   provenance?: ProvenanceMap;
   issues?: GraphIssue[];
   validationPending?: boolean;

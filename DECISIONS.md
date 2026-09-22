@@ -1,5 +1,37 @@
 # DECISIONS.md
 
+# ADR-104 - Explicit field-bound Bar Chart and scalar KPI
+
+Date: 2026-09-22. Status: ACCEPTED.
+
+Context: visualization v1 consumes a dataset and column selectors. Field workflows need explicit
+category/value/scalar wires without changing saved v1 contracts or introducing hidden aggregation.
+Decision: register bar_chart@2 (table/category/value inputs) and kpi@2 (scalar value input), available
+only in workflow format 2. A shared typed executor validates row context and value types, then
+materializes expressions at the visualization boundary. Bar preserves row order/cardinality and
+checks the 2000-point limit before materialization. KPI preserves one numeric/text/null scalar.
+Deferred field checks keep the offending input/edge. Common Polars execution, cache and legacy
+visualization validations remain authoritative. Both expose a named dataset for schema/preview.
+
+Bindings exist only in edges. Strict appearance config rejects legacy category/value selectors.
+Generated role columns have IDs derived from visualization node ID and port; collision-safe engine
+names and source-column metadata preserve upstream fields. Bar retains upstream columns for explicit
+highlight/navigation configuration. The render service derives its role mapping from the same helper,
+never stores a second config. Existing v1 charts remain registered and unchanged. No DB migration or
+OpenAPI shape change is needed: versions/config/edges already use the persisted generic contract.
+
+UI: versioned forms hide duplicate selectors, offer named connections and explicit visualization
+preview. Drop-to-create auto-connects the exact table context. Dashboard settings preserve workflow
+format/presentation. Independent copies clone real inbound edges and expose newly crossed block
+outputs atomically; generated navigation role IDs are remapped only in the replaced widget.
+Navigation can add context fields using common schema resolution for either executor contract.
+Opening a calculation from a dashboard selects its node in the opt-in field editor for v2.
+
+Alternatives rejected: upgrading v1 automatically, positional zipping of fields, implicit totals in
+the chart, separate financial endpoints, or one materialized table per expression wire.
+Consequences: authors explicitly aggregate upstream, table wires remain visible, and the UI/catalog
+may show both visualization versions. Full financial/operator acceptance remains F4 work.
+
 # ADR-103 - Exact version identity in editor catalogs
 
 Date: 2026-09-22. Status: ACCEPTED; typed visualization implementation remains pending.

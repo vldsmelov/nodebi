@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.domain.errors import ApplicationError
-from app.domain.nodes import NodeRegistry, TypedNodeExecutor
-from app.domain.visualizations import CHART_TYPES, VisualizationConfig
+from app.domain.nodes import NodeRegistry
+from app.domain.visualizations import CHART_TYPES, effective_visualization_config
 from app.infrastructure.storage import StorageProvider
 from app.models import DashboardWidget
 from app.schemas.dashboards import DashboardNavigationSave, DashboardRead, DashboardSave
@@ -90,13 +90,25 @@ def save_navigation(
         input_id = next(
             edge.source_node_id
             for edge in branch.edges
-            if edge.target_node_id == node.id and edge.target_port == "input"
+            if edge.target_node_id == node.id
+            and edge.target_port == ("table" if node.version == 2 else "input")
         )
         original = schemas.get(node.id)
         source = schemas.get(input_id)
         if original is None or source is None:
             raise ValueError("Resolve the visualization schema before adding navigation fields.")
-        old_ids = {column.column_id for column in original.columns}
+        domain_node = next(item for item in branch.nodes if item.id == node.id)
+        appearance = effective_visualization_config(domain_node)
+        old_ids = (
+            {column.column_id for column in original.columns}
+            if node.type == "table"
+            else {
+                appearance.category_column_id,
+                appearance.value_column_id,
+                appearance.highlight_column_id,
+                *appearance.context_column_ids,
+            }
+        )
         for identity in payload.add_context_column_ids:
             source.by_id(identity)
             if identity in old_ids:
@@ -109,13 +121,19 @@ def save_navigation(
                 )
             ),
         }
-        VisualizationConfig.model_validate(config)
-        domain_node = next(item for item in branch.nodes if item.id == node.id)
-        executor = registry.get(node.type, node.version).executor
-        if isinstance(executor, TypedNodeExecutor):
-            raise ApplicationError("INVALID_VISUALIZATION", "Select a visualization node.")
-        output = executor.infer_schema(
-            replace(domain_node, config=config), {"input": source}, context
+        registry.get(node.type, node.version).config_schema.model_validate(config)
+        changed_branch = replace(
+            branch,
+            nodes=tuple(
+                replace(item, config=config) if item.id == node.id else item
+                for item in branch.nodes
+            ),
+        )
+        changed_schema = WorkflowSchemaResolver(registry).resolve(changed_branch, context)
+        if not changed_schema.valid:
+            raise InvalidWorkflowError(changed_schema.issues)
+        output = next(
+            (item.schema for item in changed_schema.nodes if item.node_id == node.id), None
         )
         if output is None:
             raise ValueError("Resolve the visualization schema before adding navigation fields.")
@@ -123,6 +141,8 @@ def save_navigation(
             session,
             workflow,
             WorkflowSave(
+                format_version=graph.version,
+                presentation=graph.presentation,
                 name=graph.name,
                 expected_revision=graph.revision,
                 parameters=graph.parameters,

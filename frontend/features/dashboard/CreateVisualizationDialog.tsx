@@ -28,8 +28,8 @@ export function CreateVisualizationDialog({ dashboard, workflows, copy, close, c
       if (copy) {
         const node = workflow.nodes.find(node => node.id === copy.visualization.node_id);
         const edge = workflow.edges.find(edge => edge.target_node_id === node?.id && edge.target_port === "input");
-        if (!node || !edge || node.type !== copy.visualization.type) { setError(new Error("The visualization node is unavailable.")); return; }
-        setInput(edge.source_node_id); setConfig(node.config ?? {});
+        if (!node || (!edge && node.version !== 2) || node.type !== copy.visualization.type) { setError(new Error("The visualization node is unavailable.")); return; }
+        setInput(node.version === 2 ? node.id : edge!.source_node_id); setConfig(node.config ?? {});
       }
       setSnapshot({ workflow, schema, catalog });
     }).catch(error => { if (active) setError(error); });
@@ -46,7 +46,10 @@ export function CreateVisualizationDialog({ dashboard, workflows, copy, close, c
     await Promise.allSettled([client.invalidateQueries({ queryKey: ["visualizations", dashboard.project_id] }), client.invalidateQueries({ queryKey: ["workflow", workflowId] }), client.invalidateQueries({ queryKey: ["workflow-schema", workflowId] }), client.invalidateQueries({ queryKey: ["workflows", dashboard.project_id] })]);
     created(result); close();
   };
-  const columns = snapshot?.schema.nodes.find(node => node.node_id === input)?.columns ?? null;
+  const copyNode = copy ? snapshot?.workflow.nodes.find(node => node.id === copy.visualization.node_id) : undefined;
+  const boundCopy = copyNode?.version === 2;
+  const columnSource = boundCopy ? snapshot?.workflow.edges.find(edge => edge.target_node_id === copyNode.id && edge.target_port === "table")?.source_node_id : input;
+  const columns = snapshot?.schema.nodes.find(node => node.node_id === columnSource)?.columns ?? (boundCopy ? [] : null);
   const inputs = snapshot?.workflow.nodes.filter(node => snapshot.catalog.some(def => def.type === node.type && def.version === node.version && def.output_ports.some(port => port.id === "dataset" && port.kind === "dataset"))) ?? [];
   const control = "mt-1 w-full rounded border border-outline bg-control p-2 text-sm";
   return <dialog ref={dialog} aria-label={t(copy ? "Independent visualization copy" : "Create visualization widget")} onCancel={event => { event.preventDefault(); cancel(); }} onKeyDown={event => event.stopPropagation()} className="m-auto max-h-[90vh] w-[min(700px,94vw)] overflow-auto rounded-xl border border-outline bg-panel p-6 text-foreground backdrop:bg-black/60">
@@ -56,9 +59,9 @@ export function CreateVisualizationDialog({ dashboard, workflows, copy, close, c
     <fieldset disabled={busy}>
       <label>{t("Workflow")}<select aria-label={t("Widget workflow")} className={control} value={workflowId} disabled={!!copy} onChange={event => { setSnapshot(null); setError(null); setInput(""); setConfig({}); setChanged(true); setWorkflowId(event.target.value); }}><option value="">{t("Select workflow")}</option>{workflows.map(workflow => <option key={workflow.id} value={workflow.id}>{workflow.name}</option>)}</select></label>
       {snapshot ? <>
-        <label className="mt-3 block">{t("Input dataset")}<select aria-label={t("Widget input dataset")} disabled={!!copy} className={control} value={input} onChange={event => { setInput(event.target.value); setConfig({ title: config.title ?? "" }); setChanged(true); }}><option value="">{t("Select node")}</option>{inputs.map(node => <option key={node.id} value={node.id}>{String(node.ui?.label || node.config?.name || node.config?.sheet_name || nodeName(node.type))} ({node.id.slice(0, 6)})</option>)}</select></label>
+        {!boundCopy && <label className="mt-3 block">{t("Input dataset")}<select aria-label={t("Widget input dataset")} disabled={!!copy} className={control} value={input} onChange={event => { setInput(event.target.value); setConfig({ title: config.title ?? "" }); setChanged(true); }}><option value="">{t("Select node")}</option>{inputs.map(node => <option key={node.id} value={node.id}>{String(node.ui?.label || node.config?.name || node.config?.sheet_name || nodeName(node.type))} ({node.id.slice(0, 6)})</option>)}</select></label>}
         <label className="mt-3 block">{t("Visualization type")}<select aria-label={t("Visualization type")} disabled={!!copy} className={control} value={type} onChange={event => { setType(event.target.value as DashboardVisualizationCreate["type"]); setConfig({ title: config.title ?? "" }); setChanged(true); }}>{snapshot.catalog.filter(def => def.category === "visualization" && def.version === 1).map(def => <option key={def.type} value={def.type}>{nodeName(def.type)}</option>)}</select></label>
-        {input ? <VisualizationConfiguration type={type} config={config} columns={columns} parameters={snapshot.workflow.parameters} onChange={config => { setConfig(config); setChanged(true); }} /> : null}
+        {input ? <VisualizationConfiguration version={copyNode?.version} type={type} config={config} columns={columns} parameters={snapshot.workflow.parameters} onChange={config => { setConfig(config); setChanged(true); }} /> : null}
       </> : workflowId && !error ? <p className="my-3">{t("Loading…")}</p> : null}
     </fieldset>
     <div className="sticky -bottom-6 -mx-6 -mb-6 mt-4 flex gap-4 border-t border-outline bg-panel p-4"><button disabled={busy || !snapshot || !input || !columns} className="rounded bg-primary p-2 text-on-primary disabled:opacity-40" onClick={() => void save()}>{busy ? t("Saving…") : t(copy ? "Create independent copy" : "Create widget")}</button><button disabled={busy} onClick={cancel}>{t("Cancel")}</button></div>

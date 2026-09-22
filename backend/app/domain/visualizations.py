@@ -1,7 +1,9 @@
 import re
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.domain.workflows import NodeInstance
 
 ChartType = Literal[
     "bar_chart",
@@ -33,16 +35,42 @@ class NumberFormatConfig(BaseModel):
     currency: str = Field(default="USD", pattern="^[A-Z]{3}$")
 
 
-class VisualizationConfig(NumberFormatConfig):
+class VisualizationAppearance(NumberFormatConfig):
     title: str = Field(default="", max_length=200)
     title_template: bool = False
     highlight_column_id: str | None = Field(default=None, min_length=1)
     highlight_parameter: str | None = Field(default=None, min_length=1, max_length=64)
-    value_column_id: str | None = Field(default=None, min_length=1)
-    category_column_id: str | None = Field(default=None, min_length=1)
-    column_ids: list[str] | None = None
     context_column_ids: list[str] = Field(default_factory=list, max_length=64)
     column_formats: dict[str, NumberFormatConfig] = Field(default_factory=dict, max_length=1024)
     orientation: Literal["vertical", "horizontal"] = "vertical"
     show_legend: bool = True
     show_labels: bool = False
+
+
+class VisualizationConfig(VisualizationAppearance):
+    value_column_id: str | None = Field(default=None, min_length=1)
+    category_column_id: str | None = Field(default=None, min_length=1)
+    column_ids: list[str] | None = None
+
+
+class BoundVisualizationConfig(VisualizationAppearance):
+    """Bindings live exclusively in graph edges, never in duplicate config selectors."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+def bound_column_id(node: NodeInstance, port: str) -> str:
+    return f"viz_{node.id.hex}_{port}"
+
+
+def effective_visualization_config(node: NodeInstance) -> VisualizationConfig:
+    if node.version == 2 and node.type in {"bar_chart", "kpi"}:
+        appearance = BoundVisualizationConfig.model_validate(node.config)
+        return VisualizationConfig(
+            **appearance.model_dump(),
+            value_column_id=bound_column_id(node, "value"),
+            category_column_id=bound_column_id(node, "category")
+            if node.type == "bar_chart"
+            else None,
+        )
+    return VisualizationConfig.model_validate(node.config)

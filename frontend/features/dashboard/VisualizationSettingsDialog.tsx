@@ -37,7 +37,7 @@ export function VisualizationSettingsDialog({ visualization, projectId, close }:
     setBusy(true); setError(null);
     try {
       const workflow = snapshot.workflow;
-      await saveWorkflow(workflow.id, { format_version: 1, name: workflow.name, expected_revision: workflow.revision, parameters: workflow.parameters, nodes: workflow.nodes.map(item => item.id === node.id ? { ...item, config } : item), edges: workflow.edges });
+      await saveWorkflow(workflow.id, { format_version: workflow.version === 2 ? 2 : 1, presentation: workflow.presentation, name: workflow.name, expected_revision: workflow.revision, parameters: workflow.parameters, nodes: workflow.nodes.map(item => item.id === node.id ? { ...item, config } : item), edges: workflow.edges });
     } catch (error) { setError(error); setBusy(false); return; }
     // The write has succeeded. Cache refresh failure must never turn into a repeated write.
     await Promise.allSettled([
@@ -49,7 +49,7 @@ export function VisualizationSettingsDialog({ visualization, projectId, close }:
     ]);
     close();
   };
-  const inputId = snapshot?.workflow.edges.find(edge => edge.target_node_id === visualization.node_id && edge.target_port === "input")?.source_node_id;
+  const inputId = snapshot?.workflow.edges.find(edge => edge.target_node_id === visualization.node_id && edge.target_port === (node?.version === 2 ? "table" : "input"))?.source_node_id;
   const columns = snapshot?.schema.nodes.find(node => node.node_id === inputId)?.columns ?? null;
   return <dialog ref={dialog} aria-label={t("Edit visualization")} onCancel={event => { event.preventDefault(); cancel(); }} onKeyDown={event => event.stopPropagation()} className="m-auto max-h-[90vh] w-[min(700px,94vw)] overflow-auto rounded-xl border border-outline bg-panel p-6 text-foreground backdrop:bg-black/60">
     <h2 className="text-lg">{t("Edit visualization")}</h2>
@@ -59,7 +59,7 @@ export function VisualizationSettingsDialog({ visualization, projectId, close }:
     {snapshot && node ? <fieldset disabled={busy}>
       <h3 className="mt-3 font-medium">{t("Used in saved dashboards")}</h3><ul className="my-2 list-inside list-disc text-sm">{uses.map(use => <li key={use.id}>{use.dashboard} / {use.title || visualization.name}</li>)}</ul>
       {uses.length > 1 ? <label className="my-3 flex gap-2 text-sm"><input type="checkbox" checked={sharedAcknowledged} onChange={event => setSharedAcknowledged(event.target.checked)} />{t("Apply these settings to all listed widgets")}</label> : null}
-      <VisualizationConfiguration type={node.type} config={config} columns={columns} parameters={snapshot.workflow.parameters} onChange={setConfig} />
+      <VisualizationConfiguration version={node.version} type={node.type} config={config} columns={columns} parameters={snapshot.workflow.parameters} onChange={setConfig} />
     </fieldset> : null}
     <div className="sticky -bottom-6 -mx-6 -mb-6 mt-4 flex gap-4 border-t border-outline bg-panel p-4"><button disabled={!dirty || busy || uses.length > 1 && !sharedAcknowledged} className="rounded bg-primary p-2 text-on-primary disabled:opacity-40" onClick={() => void save()}>{busy ? t("Saving…") : t("Save visualization")}</button><button disabled={busy} onClick={cancel}>{t("Cancel")}</button></div>
   </dialog>;

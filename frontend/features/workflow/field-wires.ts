@@ -29,6 +29,10 @@ export function connectionError(graph: GraphDraft, catalog: NodeDefinition[], co
   if (!kinds.some(kind => [input.kind, ...(input.accepted_kinds ?? [])].includes(kind))) return "Select compatible ports.";
   const logicalType = endpoint.column ? resolved?.columns?.find(column => column.column_id === endpoint.column)?.logical_type : resolved?.logical_type;
   if (logicalType) {
+    if (target.version === 2 && input.id === "value") {
+      if (target.type === "bar_chart" && !["integer", "float", "unknown"].includes(logicalType)) return "Select a numeric value field.";
+      if (target.type === "kpi" && !["integer", "float", "unknown", "string"].includes(logicalType)) return "KPI requires a numeric or text scalar.";
+    }
     if (target.type === "field_arithmetic" && !["integer", "float", "unknown"].includes(logicalType)) return "Arithmetic requires numeric fields. Convert the type explicitly.";
     if (target.type === "field_sum" && input.id === "value" && !["integer", "float"].includes(logicalType)) return "Sum requires a numeric field. Convert the type explicitly.";
     if ((target.type === "field_logical" || (target.type === "field_filter" && input.id === "value")) && logicalType !== "boolean") return "This input requires a boolean field or scalar.";
@@ -55,7 +59,7 @@ export function connectionError(graph: GraphDraft, catalog: NodeDefinition[], co
     const value = schema?.nodes.find(node => node.node_id === nodeId)?.outputs?.[port];
     return (column || value?.kind === "field" || value?.kind === "dataset") && value?.row_context ? JSON.stringify(value.row_context) : null;
   };
-  if (["field_arithmetic", "field_compare", "field_logical", "append_field", "field_filter", "field_sum"].includes(target.type)) {
+  if (["field_arithmetic", "field_compare", "field_logical", "append_field", "field_filter", "field_sum"].includes(target.type) || (target.type === "bar_chart" && target.version === 2)) {
     const context = rowContext(source.id, endpoint.port, endpoint.column);
     if (context && remaining.some(edge => edge.target_node_id === target.id && (() => { const other = rowContext(edge.source_node_id, edge.source_port, edge.source_column_id); return other && other !== context; })())) return "Fields use different rows. Join the tables first.";
   }

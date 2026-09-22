@@ -67,3 +67,17 @@ it("does not create undeclared composite boundary connections", () => {
   withBlock.presentation!.blocks![0].outputs = [{ id: "port", label: "Result", node_id: "expression", port: "out" }];
   expect(operationChoices(withBlock, catalog, schema, source).length).toBeGreaterThan(0);
 });
+
+it("connects chart fields with their exact table and rejects foreign contexts and scalar KPI fields", () => {
+  const bar = { ...definition("bar_chart", [port("table", "dataset"), port("category", "field"), port("value", "field")], "dataset"), version: 2 };
+  const kpi = { ...definition("kpi", [port("value", "scalar")], "dataset"), version: 2 };
+  const definitions = [...catalog, bar, kpi];
+  const source = { nodeId: "expression", handle: "out" };
+  const choices = operationChoices(graph, definitions, schema, source);
+  expect(choices).toContainEqual({ type: "bar_chart", version: 2, port: "value" });
+  expect(choices.some(choice => choice.type === "kpi")).toBe(false);
+  const next = appendOperation(graph, definitions, schema, source, { type: "bar_chart", version: 2, port: "value" }, { x: 0, y: 0 }, "chart")!;
+  expect(next.edges.map(edge => [edge.source_node_id, edge.target_port])).toEqual([["expression", "value"], ["table", "table"]]);
+  const text = operationChoices(graph, definitions, schema, { nodeId: "table", handle: fieldHandle("out", "name") }).filter(choice => choice.type === "bar_chart");
+  expect(text).toEqual([{ type: "bar_chart", version: 2, port: "category" }]);
+});

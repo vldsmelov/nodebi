@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from app.domain.nodes import NodeRegistry
+from app.nodes.bound_visualization import bound_visualization_definitions
 from app.nodes.calculated_column import calculated_column_definition
 from app.nodes.combine import combine_definitions
 from app.nodes.convert_types import convert_types_definition
@@ -38,5 +39,7 @@ def get_node_registry() -> NodeRegistry:
         registry.register(definition)
     registry.register(pivot_definition())
     for definition in visualization_definitions():
+        registry.register(definition)
+    for definition in bound_visualization_definitions():
         registry.register(definition)
     return registry

@@ -1,5 +1,33 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F3 typed visualizations and initial F4 acceptance - 2026-09-22
+
+349 backend tests pass in the SQLite/PostgreSQL matrix (six SQLite-only skips for checks executed
+on PostgreSQL). 118 frontend tests pass. Ruff/format/mypy, TypeScript/ESLint, OpenAPI consistency and
+production Docker builds pass. Typed chart regression covers same/foreign row contexts, no hidden
+aggregation with duplicate categories, null/negative/empty data, parameter-sensitive scalar cache,
+boolean rejection, strict binding configuration, non-finite arithmetic and 2000-point limits.
+API checks compare v1/v2 rendering, dashboard restore, atomic copies from inside a composite,
+new public boundaries, navigation role remapping and context-field addition while retaining v2 metadata.
+
+Browser acceptance authors calculations/filter/grouping/chart/KPI and dashboard through named UI
+controls, changes appearance, creates an independent copy, reloads and opens the selected field node.
+Both themes and RU/EN/TT are checked. Initial test failures were test assumptions (Scalar output label,
+Create dashboard for an empty project, and widget ordering); selectors now target visible names and
+the actual chart widget. API copy correctly returns 201; the regression initially expected 200.
+Classic authoring regression caught a v1 presentation-envelope rejection while adding copy support;
+fixed by including the presentation envelope only for v2, preserving the downgrade guard.
+Twelve distinct browser scenarios pass across the two final runs (five plus eight, with the new
+bound-visualization journey repeated after the final navigation changes). This includes composite
+blocks, versioned catalogs, classic dashboard authoring/settings, calculation links, drill-through,
+field authoring, workbook grouping and slow saves/two tabs.
+
+A disposable synthetic workflow, composite block and two saved widgets were compared before/after
+PostgreSQL/backend restart: graph, block, dashboard and both visualization results match exactly.
+Retained original/copy snapshots remain unchanged across six endpoints. Private 164-slice numerical
+parity and human operator timing have not been rerun; F4 remains open.
+The disposable restart fixture is deleted after verification; comparison artifacts remain ignored.
+
 ## F3 versioned catalog prerequisite - 2026-09-22
 
 116 frontend tests, TypeScript/ESLint and production Docker frontend build pass. Ten browser

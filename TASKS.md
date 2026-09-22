@@ -25,12 +25,15 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
   * [x] Virtualize unconnected fields, keep connected/focused ports pinned, compact large graphs, navigate by node search and eliminate duplicate schema GET (ADR-097).
   * [x] Browser acceptance on a synthetic 168-node graph and real generated 1024-column workbook; no eager previews or view-only revision changes.
   * [ ] Complete retained financial-copy/operator large-graph acceptance.
-* [~] F3: Atomic one-level composite blocks, navigation/public ports, field Bar Chart and scalar KPI.
+* [x] F3: Atomic one-level composite blocks, navigation/public ports, field Bar Chart and scalar KPI.
   * [x] Pack named nodes, render collapsed boundary ports, reopen/edit, unpack, pin extra output and preserve undo/save identities (ADR-101).
   * [x] Atomic block membership/public-port settings, saved aliases, optional port hiding, explicit input/output exposure and protected connected endpoints (ADR-102).
   * [x] Resolve exact node versions in field connections/inspector and distinguish versioned creation choices before introducing visualization v2 (ADR-103).
-  * [ ] Complete field Bar Chart/scalar KPI integration.
-* [ ] F4: UI-built end-to-end scenario, restart/compatibility/164-slice parity and operator evaluation.
+  * [x] Complete field Bar Chart/scalar KPI integration, common typed execution, versioned forms, on-demand rendering and dashboard settings/copy/navigation (ADR-104).
+* [~] F4: UI-built end-to-end scenario, restart/compatibility/164-slice parity and operator evaluation.
+  * [x] Build Excel → arithmetic → append → Filter → Group By → field Bar Chart + scalar KPI → dashboard using named UI controls; edit/copy/reload and verify both themes/three languages.
+  * [x] Verify a saved typed graph, composite block, dashboard and both chart results after PostgreSQL/backend restart on disposable synthetic data.
+  * [ ] Complete retained financial-copy 164-slice parity and operator evaluation.
 
 ## Manual-authoring UX review and proposed redesign (2026-09-15)
 

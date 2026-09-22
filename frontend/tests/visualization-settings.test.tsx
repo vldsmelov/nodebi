@@ -32,3 +32,17 @@ it("refuses mismatched schema and workflow revisions before exposing editable se
   vi.mocked(getWorkflowSchema).mockResolvedValue({ revision: 4, valid: true, nodes: [], issues: [] });
   mount(); await screen.findByRole("alert"); expect(screen.queryByLabelText("Chart title")).not.toBeInTheDocument(); expect(screen.getByText("Save visualization")).toBeDisabled(); expect(saveWorkflow).not.toHaveBeenCalled();
 });
+
+it("saves typed visualization appearance without downgrading or losing bindings and containers", async () => {
+  const typed = { ...workflow, version: 2, nodes: [{ ...workflow.nodes[0], version: 2, config: { title: "Original" } }], edges: [{ id: "edge", source_node_id: "source", source_port: "dataset", source_column_id: "amount", target_node_id: "chart", target_port: "value" }], presentation: { workbooks: [], blocks: [] } };
+  vi.mocked(getWorkflow).mockResolvedValue(typed);
+  vi.mocked(saveWorkflow).mockResolvedValue({ ...typed, revision: 4 });
+  const close = mount();
+  fireEvent.change(await screen.findByLabelText("Chart title"), { target: { value: "Connected revenue" } });
+  expect(screen.queryByLabelText("Chart category")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Chart value")).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Orientation")).toBeInTheDocument();
+  fireEvent.click(screen.getByText("Save visualization"));
+  await waitFor(() => expect(close).toHaveBeenCalledOnce());
+  expect(saveWorkflow).toHaveBeenCalledWith("flow", expect.objectContaining({ format_version: 2, expected_revision: 3, presentation: typed.presentation, edges: typed.edges, nodes: [{ ...typed.nodes[0], config: { title: "Connected revenue" } }] }));
+});

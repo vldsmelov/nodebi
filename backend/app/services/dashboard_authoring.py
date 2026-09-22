@@ -11,6 +11,7 @@ from app.schemas.dashboards import (
     DashboardVisualizationCreate,
     WidgetPayload,
 )
+from app.schemas.presentation import PublicPort, WorkflowPresentation
 from app.schemas.workflows import EdgePayload, NodePayload, PositionPayload, WorkflowSave
 from app.services.dashboards import DashboardService
 from app.services.projects import ProjectService
@@ -56,11 +57,23 @@ def create_visualization(
             edge.id == payload.edge_id for edge in graph.edges
         ):
             raise ApplicationError("DUPLICATE_GRAPH_ID", "Node and edge IDs must be unique.")
-        registry.get(payload.type, 1).config_schema.model_validate(payload.config)
+        copied = next(
+            (widget for widget in dashboard.widgets if widget.id == payload.widget_id), None
+        )
+        bound_copy = bool(
+            payload.replace_existing
+            and copied
+            and copied.visualization_id == source.id
+            and source.type == payload.type
+            and source.version == 2
+            and source.type in {"bar_chart", "kpi"}
+        )
+        version = 2 if bound_copy else 1
+        registry.get(payload.type, version).config_schema.model_validate(payload.config)
         node = NodePayload(
             id=payload.node_id,
             type=payload.type,
-            version=1,
+            version=version,
             position=PositionPayload(x=source.position.x + 360, y=source.position.y),
             config=payload.config,
         )
@@ -78,15 +91,50 @@ def create_visualization(
             target_node_id=node.id,
             target_port="input",
         )
+        added_edges = [edge]
+        if bound_copy:
+            # Copy the explicit bindings, not the original visualization's materialized result.
+            added_edges = [
+                item.model_copy(
+                    update={
+                        "id": payload.edge_id if index == 0 else uuid.uuid4(),
+                        "target_node_id": node.id,
+                    }
+                )
+                for index, item in enumerate(
+                    item for item in graph.edges if item.target_node_id == source.id
+                )
+            ]
+        presentation = (graph.presentation or WorkflowPresentation()).model_copy(deep=True)
+        for block in presentation.blocks:
+            for item in added_edges:
+                if item.source_node_id in block.node_ids and not any(
+                    port.node_id == item.source_node_id
+                    and port.port == item.source_port
+                    and port.column_id == item.source_column_id
+                    for port in block.outputs
+                ):
+                    origin = next(n for n in graph.nodes if n.id == item.source_node_id)
+                    block.outputs.append(
+                        PublicPort(
+                            id=uuid.uuid4(),
+                            label=str(origin.ui.get("label") or item.source_port)[:200],
+                            node_id=item.source_node_id,
+                            port=item.source_port,
+                            column_id=item.source_column_id,
+                        )
+                    )
         save_graph(
             session,
             workflow,
             WorkflowSave(
+                format_version=graph.version,
+                presentation=presentation if graph.version == 2 else None,
                 name=graph.name,
                 expected_revision=graph.revision,
                 parameters=graph.parameters,
                 nodes=[*graph.nodes, node],
-                edges=[*graph.edges, edge],
+                edges=[*graph.edges, *added_edges],
             ),
             registry,
             commit=False,
@@ -103,6 +151,32 @@ def create_visualization(
                 else widget
                 for widget in widgets
             ]
+            if bound_copy:
+                old_prefix, new_prefix = f"viz_{source.id.hex}_", f"viz_{node.id.hex}_"
+                for widget in widgets:
+                    action = widget.config.action
+                    if widget.id == payload.widget_id and action:
+                        widget.config = widget.config.model_copy(
+                            update={
+                                "action": action.model_copy(
+                                    update={
+                                        "values": {
+                                            name: value.model_copy(
+                                                update={
+                                                    "name": new_prefix
+                                                    + value.name[len(old_prefix) :]
+                                                }
+                                            )
+                                            if value.source == "field"
+                                            and value.name
+                                            in {old_prefix + "category", old_prefix + "value"}
+                                            else value
+                                            for name, value in action.values.items()
+                                        }
+                                    }
+                                )
+                            }
+                        )
         else:
             widgets.append(
                 WidgetPayload(

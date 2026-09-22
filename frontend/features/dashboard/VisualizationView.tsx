@@ -34,6 +34,7 @@ export function isHighlighted(result: VisualizationResult, row: Record<string, u
 export function chartOptions(result: VisualizationResult, locale: Locale = "ru", theme: Theme = "dark"): EChartsOption {
   const x = result.category_field!;
   const y = result.value_field!;
+  const seriesName = result.columns.find(column => column.engine_name === y)?.metadata?.visualization_role === "value" ? translate(locale, "Value") : y;
   const hasHighlight = !!result.highlight_field && result.highlight_value != null;
   const highlightStyle = (row: Record<string, unknown>) => hasHighlight ? { itemStyle: { opacity: isHighlighted(result, row) ? 1 : 0.35, borderWidth: isHighlighted(result, row) ? 2 : 0, borderColor: themePalette[theme].accent } } : {};
   const point = (value: unknown, row: Record<string, unknown>) => hasHighlight ? { value, ...highlightStyle(row) } : value;
@@ -54,7 +55,7 @@ export function chartOptions(result: VisualizationResult, locale: Locale = "ru",
     xAxis: { type: "value", axisLabel: { formatter: value => format(value, result, locale) } },
     yAxis: { type: "category", inverse: true, data: result.rows.map(row => String(row[x] ?? "")),
       axisLabel: { width: 170, overflow: "truncate" } },
-    series: [{ type: "bar", name: y, data: result.rows.map(row => point(row[y], row)),
+    series: [{ type: "bar", name: seriesName, data: result.rows.map(row => point(row[y], row)),
       itemStyle: { color: themePalette[theme].accent },
       label: { show: result.show_labels, position: "right", formatter: (parameters: { value?: unknown }) => format(parameters.value, result, locale) } }],
   } as EChartsOption;
@@ -73,7 +74,7 @@ export function chartOptions(result: VisualizationResult, locale: Locale = "ru",
       },
     },
     yAxis: { type: "value", axisLabel: { formatter: value => format(value, result, locale) } },
-    series: [{ type: scatter ? "scatter" : line ? "line" : "bar", name: y,
+    series: [{ type: scatter ? "scatter" : line ? "line" : "bar", name: seriesName,
       data: points.map((value, index) => point(value, result.rows[index])), itemStyle: { color: themePalette[theme].accent },
       label: { show: result.show_labels, position: "top", formatter: (parameters: { value?: unknown }) => format(Array.isArray(parameters.value) ? parameters.value[1] : parameters.value, result, locale) },
       ...(result.type === "area_chart" ? { areaStyle: { opacity: 0.3 } } : {}),

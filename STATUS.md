@@ -5,6 +5,29 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F3 field-bound Bar Chart/scalar KPI and initial F4 acceptance (ADR-104, 2026-09-22).
+bar_chart@2 uses explicit table/category/value wires; kpi@2 uses a scalar. Common typed execution
+validates row context/types, preserves null/text/order/cardinality, rejects non-finite values and
+oversized charts, and retains shared caching. Strict appearance config has no duplicate selectors.
+UI supports named binding/drop-to-create, on-demand rendering and dashboard settings/copy/navigation.
+Copies retain input bindings, export new composite boundaries and remap selected-widget role IDs.
+Existing visualization v1 remains available. No migration or OpenAPI shape change was required.
+
+Checks: 349 backend tests with SQLite/PostgreSQL pass (six PostgreSQL-only checks skipped on SQLite);
+118 frontend tests, Ruff/format/mypy, TypeScript/ESLint, API generation consistency and production
+Docker builds pass. Twelve distinct browser scenarios pass including UI-built Excel → arithmetic → append →
+Filter → Group By → Bar Chart + Sum field → KPI → dashboard, settings/copy/reload, both themes and
+three languages, navigation, calculation links, composite blocks, slow saves and two tabs. Fresh PostgreSQL migrations
+run in isolated test schemas. Separate saved typed graph/block/dashboard/results match exactly
+after PostgreSQL/backend restart. Six retained project snapshots are unchanged.
+
+F3 is complete; F4 remains open for retained financial-copy 164-slice parity and operator evaluation.
+No known P0/P1 or blocker in this slice. Next: retained-copy compatibility acceptance.
+Original financial project was not converted; private data remain ignored. The disposable restart
+fixture was removed after verification. Local ignored .backups files retain comparison evidence.
+
+Previous version-aware catalog slice:
+
 Latest slice: F3 version-aware editor catalog prerequisite (ADR-103, 2026-09-22).
 Fixed type-only contract lookup in field wires, selected inspector and source labels. Creation
 menus and classic next-step insertion retain version identity; duplicate types have version labels.

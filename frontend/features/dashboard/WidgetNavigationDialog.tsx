@@ -24,7 +24,8 @@ export function WidgetNavigationDialog({ dashboard, dashboards, widget, visualiz
     queryFn: async () => {
       const [workflow, schema] = await Promise.all([getWorkflow(visualization.workflow_id), getWorkflowSchema(visualization.workflow_id)]);
       if (workflow.revision !== schema.revision) throw new Error("This workflow was changed elsewhere. Reload before saving.");
-      const input = workflow.edges.find(edge => edge.target_node_id === visualization.node_id && edge.target_port === "input");
+      const node = workflow.nodes.find(item => item.id === visualization.node_id);
+      const input = workflow.edges.find(edge => edge.target_node_id === visualization.node_id && edge.target_port === (node?.version === 2 ? "table" : "input"));
       return { workflow, columns: schema.nodes.find(item => item.node_id === input?.source_node_id)?.columns ?? [] };
     } });
   const dialog = useRef<HTMLDialogElement>(null);
@@ -35,7 +36,7 @@ export function WidgetNavigationDialog({ dashboard, dashboards, widget, visualiz
   const query = useQuery({ queryKey: ["navigation-fields", visualization.id, parameters], queryFn: () => getVisualizationResult(visualization.id, 0, parameters), retry: false });
   const resultFields = query.data?.columns ?? [];
   const matchingRevision = Boolean(snapshot.data && query.data && snapshot.data.workflow.revision === query.data.revision);
-  const fields = matchingRevision ? snapshot.data!.columns : resultFields;
+  const fields = matchingRevision ? [...snapshot.data!.columns, ...resultFields.filter(field => !snapshot.data!.columns.some(item => item.column_id === field.column_id))] : resultFields;
   const missing = [...new Set(Object.values(action?.values ?? {}).filter(item => item.source === "field").map(item => item.name))].filter(id => fields.some(field => field.column_id === id) && !resultFields.some(field => field.column_id === id));
   const dirty = missing.length > 0 || JSON.stringify(action) !== JSON.stringify(widget.config?.action ?? null);
   const uses = dashboards.flatMap(board => board.widgets.filter(item => item.visualization_id === visualization.id).map(item => ({ id: `${board.id}:${item.id}`, label: `${board.name} / ${item.title || visualization.name}` })));

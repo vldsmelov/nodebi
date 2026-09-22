@@ -6,7 +6,7 @@ from app.config import Settings
 from app.domain.errors import ApplicationError
 from app.domain.nodes import NodeRegistry
 from app.domain.parameters import ParameterValue
-from app.domain.visualizations import CHART_TYPES, TITLE_PARAMETER, VisualizationConfig
+from app.domain.visualizations import CHART_TYPES, TITLE_PARAMETER, effective_visualization_config
 from app.infrastructure.storage import StorageProvider
 from app.models import Visualization, Workflow
 from app.schemas.dashboards import VisualizationResult
@@ -57,11 +57,12 @@ def render_visualization(
                     "message": i.message,
                     "field": i.field,
                     "node_id": str(i.node_id) if i.node_id else None,
+                    "edge_id": str(i.edge_id) if i.edge_id else None,
                 }
                 for i in exc.issues
             ],
         ) from exc
-    config = VisualizationConfig.model_validate(node.config)
+    config = effective_visualization_config(node)
     fields = (
         list(result.schema.columns)
         if node.type == "table"

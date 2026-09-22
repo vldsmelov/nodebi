@@ -1,5 +1,13 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Preview visualization": ["Просмотр визуализации", "Визуализацияне карау"],
+  "Connect a numeric or text scalar to Value. Use Sum field for a total.": ["Подключите число или текст к входу «Значение». Для итога используйте «Сумма поля».", "«Кыйммәт» керешенә сан яки текст тоташтырыгыз. Йомгак өчен «Кыр суммасы»н кулланыгыз."],
+  "Connect Table, Category and Value from the same table output. Aggregate upstream.": ["Подключите таблицу, категорию и значение из одного выхода таблицы. Агрегацию выполните перед диаграммой.", "Таблицаны, категорияне һәм кыйммәтне бер таблица чыгышыннан тоташтырыгыз. Агрегацияне диаграмма алдыннан башкарыгыз."],
+  "Connect the table used by the chart fields.": ["Подключите таблицу, которой принадлежат поля диаграммы.", "Диаграмма кырлары кергән таблицаны тоташтырыгыз."],
+  "This visualization input requires a field.": ["Этот вход визуализации требует поле.", "Бу визуализация керешенә кыр кирәк."],
+  "This visualization input requires a scalar.": ["Этот вход визуализации требует одно значение — скаляр.", "Бу визуализация керешенә бер кыйммәт — скаляр кирәк."],
+  "KPI requires a numeric or text scalar.": ["KPI требует числовое или текстовое значение.", "KPI өчен сан яки текст кыйммәте кирәк."],
+  "Display connected fields or a scalar. Configure aggregation upstream.": ["Отображение подключённых полей или скаляра. Настройте агрегацию до визуализации.", "Тоташтырылган кырларны яки скалярны күрсәтү. Агрегацияне визуализация алдыннан көйләгез."],
   "Edit block": ["Настроить блок", "Блокны көйләргә"],
   "Edit composite block": ["Настройка составного блока", "Составлы блокны көйләү"],
   "Removing a member keeps its node and connections in the workflow.": ["Исключение из блока сохраняет узел и его связи в графе.", "Блоктан чыгару төенне һәм аның бәйләнешләрен графта саклый."],

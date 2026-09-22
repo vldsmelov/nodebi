@@ -28,6 +28,7 @@ import { BlockSettings } from "./BlockSettings";
 import { BlockComposer } from "./BlockComposer";
 import { blockCanvasId, editBlock, memberBlock, packBlock, publishOutput, reconcileBlocks, renderBlockWire, resolveBlockConnection } from "./composite-blocks";
 import { definitionKey, definitionLabel, findNodeDefinition } from "./node-catalog";
+import { VisualizationView } from "@/features/dashboard/VisualizationView";
 import { NodeFinder } from "./NodeFinder";
 import type { GraphIssue, NodeDefinition, ParameterValues, Workflow } from "./types";
 
@@ -37,7 +38,7 @@ const control = "w-full rounded border border-outline bg-control p-2 text-xs";
 const resolveCanvasConnection = (graph: GraphDraft, connection: Connection) => resolveBlockConnection(graph, resolveBookConnection(graph, connection));
 type Pin = { id: string; port?: string } | null;
 
-export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { workflow: Workflow; catalog: NodeDefinition[]; sources: DataSource[]; onSaved: () => void }) {
+export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targetNodeId }: { targetNodeId?: string | null; workflow: Workflow; catalog: NodeDefinition[]; sources: DataSource[]; onSaved: () => void }) {
   const { t, nodeName, errorText } = useI18n();
   const { theme, palette } = useTheme();
   const initial: GraphDraft = { format_version: 2, name: workflow.name, nodes: workflow.nodes, edges: workflow.edges, parameters: workflow.parameters ?? [], presentation: workflow.presentation ?? { workbooks: [], blocks: [] } };
@@ -52,7 +53,8 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
   const [openBlock, setOpenBlock] = useState<string | null>(null);
   const [history] = useState(() => new GraphHistory(graph));
   useSyncExternalStore(history.subscribe, history.getVersion, history.getVersion);
-  const [selected, setSelected] = useState<string | null>(null), [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string | null>(targetNodeId ?? null), [search, setSearch] = useState("");
+  const [chartRequest, setChartRequest] = useState<{ node: string; revision: number; parameters: string } | null>(null);
   const [wireSearch, setWireSearch] = useState("");
   const [connectionIssue, setConnectionIssue] = useState<string | null>(null);
   const [dragSource, setDragSource] = useState<FieldEndpoint | null>(null);
@@ -267,7 +269,8 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
           const inputIssues = inspectorIssues.filter(issue => issue.node_id === selected && issue.field === port.id && issue.severity === "error");
           return <label key={port.id} className="mt-3 block text-xs">{t("Input:")} {t(port.display_name)}<select aria-invalid={inputIssues.length > 0} title={inputIssues.map(errorText).join("\n")} style={inputIssues.length ? { borderColor: "var(--danger)" } : undefined} aria-label={t("Input {0}", { 0: port.id })} className={control} value={active} onChange={e => { if (!e.target.value) setGraph(current => ({ ...current, edges: current.edges.filter(edge => !(edge.target_node_id === selected && edge.target_port === port.id)) })); else { const [source, sourceHandle] = JSON.parse(e.target.value); connect({ source, sourceHandle, target: selectedNode.id, targetHandle: port.id }); } }}><option value="">{t("Disconnected")}</option>{active && <option value={active}>{pinned?.label ?? t("Unavailable connection")}</option>}{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
-        {(() => { const onChange = (config: Record<string, unknown>) => setGraph(current => reconcileWorkbooks({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, config } : node) })); const incoming = graph.edges.filter(edge => edge.target_node_id === selected); const inputColumns = Object.fromEntries(incoming.map(edge => [edge.target_port, choicesSchema?.nodes.find(node => node.node_id === edge.source_node_id)?.columns ?? null])); return selectedNode.type in fieldDefaults ? <FieldOperationConfiguration issues={inspectorIssues.filter(issue => issue.node_id === selected)} type={selectedNode.type} config={selectedNode.config ?? {}} onChange={onChange} parameters={graph.parameters ?? []} /> : <NodeConfiguration type={selectedNode.type} config={selectedNode.config ?? {}} sources={sources} columns={Object.values(inputColumns)[0] ?? null} inputColumns={inputColumns} onChange={onChange} parameters={graph.parameters ?? []} issues={currentSchema?.issues.filter(issue => issue.node_id === selected)} validationPending={!currentSchema} />; })()}
+        {(() => { const onChange = (config: Record<string, unknown>) => setGraph(current => reconcileWorkbooks({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, config } : node) })); const incoming = graph.edges.filter(edge => edge.target_node_id === selected); const inputColumns = Object.fromEntries(incoming.map(edge => [edge.target_port, choicesSchema?.nodes.find(node => node.node_id === edge.source_node_id)?.columns ?? null])); return selectedNode.type in fieldDefaults ? <FieldOperationConfiguration issues={inspectorIssues.filter(issue => issue.node_id === selected)} type={selectedNode.type} config={selectedNode.config ?? {}} onChange={onChange} parameters={graph.parameters ?? []} /> : <NodeConfiguration version={selectedNode.version} type={selectedNode.type} config={selectedNode.config ?? {}} sources={sources} columns={inputColumns.table ?? inputColumns.input ?? Object.values(inputColumns)[0] ?? null} inputColumns={inputColumns} onChange={onChange} parameters={graph.parameters ?? []} issues={currentSchema?.issues.filter(issue => issue.node_id === selected)} validationPending={!currentSchema} />; })()}
+        {definition?.category === "visualization" && <><button className="mt-4 w-full rounded border border-outline p-2 text-sm" disabled={dirty} onClick={() => setChartRequest({ node: selectedNode.id, revision: save.revision, parameters: parameterKey })}>{t("Preview visualization")}</button>{!dirty && chartRequest?.node === selectedNode.id && chartRequest.revision === save.revision && chartRequest.parameters === parameterKey && <div className="mt-4 h-72"><VisualizationView id={selectedNode.id} revision={save.revision} parameters={parameters} /></div>}</>}
         <NodeOutputPanel onRuntimeIssues={reportRuntimeIssues} workflowId={workflow.id} nodeId={selectedNode.id} outputPort={definition?.output_ports[0]?.id} revision={save.revision} dirty={dirty} parameters={parameters} issues={currentSchema?.issues.filter(issue => issue.node_id === selected) ?? []} />
         <button className="mt-4 text-xs text-danger" onClick={() => { remove(new Set([selectedNode.id])); setSelected(null); }}>{t("Delete selected node")}</button>
       </>}

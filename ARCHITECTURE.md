@@ -2,6 +2,17 @@
 
 ## Opt-in field editor foundation (ADR-093)
 
+Bound visualizations (ADR-104): bar_chart@2 consumes table/category/value with identical row context;
+kpi@2 consumes a numeric/text/null scalar. Both use TypedNodeExecutor and produce a named dataset.
+Polars field expressions materialize only at the consumer, preserving deferred error checks.
+Bar limits are explicit errors, not truncation/aggregation. Strict appearance config excludes
+category/value selectors. Stable generated role IDs and the effective config helper connect existing
+visualization rendering to the new contract. Upstream columns remain available for navigation and
+highlighting. V1 nodes/configuration and visualization identities remain compatible.
+Dashboard settings/copy/navigation preserve workflow format and presentation; copying duplicates
+bindings rather than depending on the original chart. Public block outputs and widget role mappings
+are adjusted in that same transaction. The field editor renders visualization previews on request.
+
 Catalog version identity (ADR-103): saved nodes resolve exact type/version definitions for cards,
 inspector, connection validation and output labels. Creation menus carry both identifiers; when
 multiple versions coexist their labels include the version. Missing definitions do not fall back
