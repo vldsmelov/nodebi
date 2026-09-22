@@ -18,9 +18,12 @@ import { NodeOutputPanel } from "./NodeOutputPanel";
 import { ParametersConfiguration } from "./ParametersConfiguration";
 import { WorkbookBrowser } from "./WorkbookBrowser";
 import { openWorkbookSheet, readSheetDrag, sheetDragType, type SheetSelection } from "./workbook-navigation";
+import { WorkbookNodeCard, type WorkbookCanvasNode } from "./WorkbookNodeCard";
+import { attachedBook, bookCanvasId, detachWorkbookSheet, groupWorkbook, reconcileWorkbooks, renderBookWire, resolveBookConnection } from "./workbook-containers";
 import type { NodeDefinition, ParameterValues, Workflow } from "./types";
 
-const nodeTypes = { fieldNode: FieldNodeCard };
+const nodeTypes = { fieldNode: FieldNodeCard, workbookNode: WorkbookNodeCard };
+type CanvasNode = FieldCanvasNode | WorkbookCanvasNode;
 const control = "w-full rounded border border-outline bg-control p-2 text-xs";
 type Pin = { id: string; port?: string } | null;
 
@@ -39,7 +42,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
   const [wireSearch, setWireSearch] = useState("");
   const [connectionIssue, setConnectionIssue] = useState<string | null>(null);
   const [pins, setPins] = useState<[Pin, Pin]>([null, null]);
-  const flow = useRef<ReactFlowInstance<FieldCanvasNode, Edge> | null>(null);
+  const flow = useRef<ReactFlowInstance<CanvasNode, Edge> | null>(null);
   const pinCount = pins.filter(Boolean).length;
   useEffect(() => {
     const timer = setTimeout(() => { void flow.current?.fitView({ maxZoom: 1, padding: 0.15 }); }, 100);
@@ -65,17 +68,18 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
     const definition = catalog.find(item => item.type === node.type && item.version === node.version);
     return definition ? [{ id: node.id, type: "fieldNode" as const, position: node.position, selected: node.id === selected, data: { node, definition, schema: choicesSchema?.nodes.find(item => item.node_id === node.id), connected: graph.edges.filter(edge => edge.source_node_id === node.id).map(edge => fieldHandle(edge.source_port, edge.source_column_id)), stale: dirty || !currentSchema } }] : [];
   }), [graph, catalog, choicesSchema, selected, dirty, currentSchema]);
-  const edges = graph.edges.map(edge => ({ ...renderWire(edge), style: { stroke: palette.accent } }));
-  const connect = (connection: Connection) => {
+  const edges = graph.edges.map(edge => ({ ...renderBookWire(graph, renderWire(edge)), style: { stroke: palette.accent } }));
+  const connect = (displayConnection: Connection) => {
+    const connection = resolveBookConnection(graph, displayConnection);
     const issue = connectionError(graph, catalog, connection, currentSchema);
     setConnectionIssue(issue);
     if (issue) return;
     setGraph(current => ({ ...current, edges: [...current.edges.filter(edge => !(edge.target_node_id === connection.target && edge.target_port === connection.targetHandle)), saveWire(connection)] }));
   };
-  const remove = (ids: Set<string>) => setGraph(current => ({ ...current, nodes: current.nodes.filter(node => !ids.has(node.id)), edges: current.edges.filter(edge => !ids.has(edge.source_node_id) && !ids.has(edge.target_node_id)) }));
-  const changeNodes = (changes: NodeChange<FieldCanvasNode>[]) => {
+  const remove = (ids: Set<string>) => setGraph(current => reconcileWorkbooks({ ...current, nodes: current.nodes.filter(node => !ids.has(node.id)), edges: current.edges.filter(edge => !ids.has(edge.source_node_id) && !ids.has(edge.target_node_id)), presentation: { ...current.presentation, workbooks: current.presentation?.workbooks?.filter(book => !ids.has(bookCanvasId(book.id))) ?? [] } }));
+  const changeNodes = (changes: NodeChange<CanvasNode>[]) => {
     const positions = changes.filter(change => change.type === "position");
-    if (positions.some(change => change.position)) setGraph(current => ({ ...current, nodes: current.nodes.map(node => { const next = positions.find(change => change.id === node.id)?.position; return next ? { ...node, position: next } : node; }) }));
+    if (positions.some(change => change.position)) setGraph(current => ({ ...current, nodes: current.nodes.map(node => { const next = positions.find(change => change.id === node.id)?.position; return next ? { ...node, position: next } : node; }), presentation: { ...current.presentation, workbooks: current.presentation?.workbooks?.map(book => { const next = positions.find(change => change.id === bookCanvasId(book.id))?.position; return next ? { ...book, position: next } : book; }) ?? [] } }));
     const deleted = new Set(changes.filter(change => change.type === "remove").map(change => change.id));
     if (deleted.size) remove(deleted);
   };
@@ -86,15 +90,30 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
     setGraph(current => ({ ...current, nodes: [...current.nodes, { id, type: item.type, version: item.version, position: { x: 40 + current.nodes.length % 3 * 340, y: 40 + Math.floor(current.nodes.length / 3) * 480 }, config: item.type === "excel_source" ? { source_id: source.id, sheet_name: sheet.name } : { ...(fieldDefaults[item.type] ?? {}) }, ui: {} }] }));
     setSelected(id);
   };
-  const openSheet = (selection: SheetSelection, position = { x: 40 + graph.nodes.length % 3 * 340, y: 40 + Math.floor(graph.nodes.length / 3) * 480 }) => {
+  const openSheet = (selection: SheetSelection, dropPosition?: { x: number; y: number }) => {
     const sourceDefinition = catalog.find(item => item.type === "excel_source");
     if (!sourceDefinition) return;
-    const result = openWorkbookSheet(graph, sources, selection, position, sourceDefinition.version);
+    const result = openWorkbookSheet(graph, sources, selection, dropPosition ?? { x: 40 + graph.nodes.length % 3 * 340, y: 40 + Math.floor(graph.nodes.length / 3) * 480 }, sourceDefinition.version);
     if (!result) return;
+    const existingBook = result.graph.presentation?.workbooks?.find(book => book.source_id === selection.sourceId);
+    if (existingBook && result.graph !== graph) result.graph = groupWorkbook(result.graph, selection.sourceId, existingBook.label);
+    const book = attachedBook(result.graph, result.nodeId);
+    if (book && dropPosition) result.graph = detachWorkbookSheet(result.graph, book.id, result.nodeId, true, dropPosition);
     setGraph(result.graph);
     setSelected(result.nodeId);
-    requestAnimationFrame(() => { void flow.current?.fitView({ nodes: [{ id: result.nodeId }], maxZoom: 1, padding: 0.3 }); });
+    const parent = attachedBook(result.graph, result.nodeId);
+    requestAnimationFrame(() => { void flow.current?.fitView({ nodes: [{ id: parent ? bookCanvasId(parent.id) : result.nodeId }], maxZoom: 1, padding: 0.3 }); });
   };
+  const canvasNodes: CanvasNode[] = [
+    ...nodes.filter(node => !attachedBook(graph, node.id)),
+    ...(graph.presentation?.workbooks ?? []).map(book => ({ id: bookCanvasId(book.id), type: "workbookNode" as const, position: book.position, data: {
+      book, sheets: nodes.filter(node => book.node_ids.includes(node.id)), selectedSheet: selected,
+      onSelect: setSelected,
+      onToggle: () => setGraph(current => ({ ...current, presentation: { ...current.presentation, workbooks: current.presentation?.workbooks?.map(item => item.id === book.id ? { ...item, collapsed: !item.collapsed } : item) } })),
+      onDetach: (id: string, detach: boolean) => setGraph(current => detachWorkbookSheet(current, book.id, id, detach)),
+      onUngroup: () => remove(new Set([bookCanvasId(book.id)])),
+    } })),
+  ];
   if (incompatible) return <p role="alert" className="p-6 text-danger">{t("A legacy draft is pending. Restore it in the classic editor first.")}</p>;
   return <div className="grid h-[calc(100vh-8rem)] grid-cols-[220px_minmax(320px,1fr)_350px] border-t border-outline">
     <aside className="overflow-auto bg-panel p-3">
@@ -103,9 +122,9 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
       <input aria-label={t("Search nodes")} className={control} value={search} onChange={e => setSearch(e.target.value)} />
       {catalog.filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={item.type} title={t("Add {0}", { 0: nodeName(item.type) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {nodeName(item.type)}</button>)}
     </aside>
-    <section className="flex min-w-0 flex-col bg-page" onDragOver={event => { if (event.dataTransfer.types.includes(sheetDragType)) { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; } }} onDrop={event => {
+    <section className="flex min-w-0 flex-col bg-page" onDragOver={event => { if (event.dataTransfer.types.includes(sheetDragType)) { event.preventDefault(); event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === "move" ? "move" : "copy"; } }} onDrop={event => {
       const selection = readSheetDrag(event.dataTransfer.getData(sheetDragType));
-      if (!selection || !flow.current || !(event.target as Element).closest(".react-flow")) return;
+      if (!selection || !flow.current || !(event.target as Element).closest(".react-flow") || (event.target as Element).closest(".react-flow__node")) return;
       event.preventDefault();
       openSheet(selection, flow.current.screenToFlowPosition({ x: event.clientX, y: event.clientY }));
     }}>
@@ -120,14 +139,15 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
       {save.error && <div role="alert" className="p-2 text-xs text-danger">{errorText(save.error)} <button onClick={() => void writer.flush()}>{t("Retry save")}</button> <button onClick={() => { if (window.confirm(t("Discard this local draft and load the saved workflow?"))) { sessionStorage.removeItem(writer.key); window.location.reload(); } }}>{t("Discard draft and reload")}</button></div>}
       {connectionIssue && <p role="alert" className="p-2 text-xs text-danger">{t(connectionIssue)}</p>}
       {schema.error && <p role="alert" className="text-danger">{errorText(schema.error)}</p>}
-      {Boolean(graph.presentation?.blocks?.length || graph.presentation?.workbooks?.length) && <p className="p-2 text-xs text-warning">{t("Containers are preserved; this preview shows their individual nodes.")}</p>}
-      <div className="min-h-64 flex-1"><ReactFlow<FieldCanvasNode, Edge> onInit={instance => { flow.current = instance; }} fitViewOptions={{ maxZoom: 1, padding: 0.15 }} nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={changeNodes} onEdgesChange={changes => { const deleted = new Set(changes.filter(change => change.type === "remove").map(change => change.id)); if (deleted.size) setGraph(current => ({ ...current, edges: current.edges.filter(edge => !deleted.has(edge.id)) })); }} onConnect={connect} isValidConnection={connection => !connectionError(graph, catalog, { source: connection.source, target: connection.target, sourceHandle: connection.sourceHandle ?? null, targetHandle: connection.targetHandle ?? null }, currentSchema)} onNodeClick={(_, node) => setSelected(node.id)} onPaneClick={() => setSelected(null)} colorMode={theme} minZoom={0.05} fitView><Background color={palette.grid} /><Controls /></ReactFlow></div>
+      {Boolean(graph.presentation?.blocks?.length) && <p className="p-2 text-xs text-warning">{t("Containers are preserved; this preview shows their individual nodes.")}</p>}
+      <div className="min-h-64 flex-1"><ReactFlow<CanvasNode, Edge> onInit={instance => { flow.current = instance; }} fitViewOptions={{ maxZoom: 1, padding: 0.15 }} nodes={canvasNodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={changeNodes} onEdgesChange={changes => { const deleted = new Set(changes.filter(change => change.type === "remove").map(change => change.id)); if (deleted.size) setGraph(current => ({ ...current, edges: current.edges.filter(edge => !deleted.has(edge.id)) })); }} onConnect={connect} isValidConnection={connection => !connectionError(graph, catalog, resolveBookConnection(graph, { source: connection.source, target: connection.target, sourceHandle: connection.sourceHandle ?? null, targetHandle: connection.targetHandle ?? null }), currentSchema)} onNodeClick={(_, node) => { if (node.type === "fieldNode") setSelected(node.id); }} onPaneClick={() => setSelected(null)} colorMode={theme} minZoom={0.05} fitView><Background color={palette.grid} /><Controls /></ReactFlow></div>
       {pins.some(Boolean) && <div className="grid max-h-72 grid-cols-2 gap-3 overflow-auto border-t border-outline p-3">{pins.map((pin, index) => <section key={index} aria-label={index ? "B" : "A"}>{pin && <><div className="flex gap-2 text-xs"><b>{index ? "B" : "A"}</b><span>{String(graph.nodes.find(node => node.id === pin.id)?.ui?.label || nodeName(graph.nodes.find(node => node.id === pin.id)?.type ?? ""))}</span><button onClick={() => setPins(current => index ? [current[0], null] : [null, current[1]])}>{t("Close")}</button></div>{graph.nodes.some(node => node.id === pin.id) ? <NodeOutputPanel workflowId={workflow.id} nodeId={pin.id} outputPort={pin.port} revision={save.revision} dirty={dirty} parameters={parameters} issues={[]} /> : <p>{t("Selected node is unavailable.")}</p>}</>}</section>)}</div>}
     </section>
     <aside className="overflow-auto border-l border-outline bg-panel p-4">
       <ParametersConfiguration definitions={graph.parameters ?? []} onChange={items => setGraph(current => ({ ...current, parameters: items }))} values={parameters} onValuesChange={setParameters} />
       {!selectedNode ? <p className="text-sm">{t("Select a node to edit its settings.")}</p> : <>
         <h2>{nodeName(selectedNode.type)}</h2>
+        {selectedNode.type === "excel_source" && <button className="my-2 rounded border border-outline p-2 text-xs" onClick={() => setGraph(current => groupWorkbook(current, String(selectedNode.config?.source_id), sources.find(source => source.id === selectedNode.config?.source_id)?.original_filename ?? t("Workbook browser")))}>{t("Group workbook sheets")}</button>}
         <label className="block mt-3 text-xs">{t("Node label")}<input aria-label={t("Node label")} className={control} value={String(selectedNode.ui?.label ?? "")} onChange={e => setGraph(current => ({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, ui: { ...node.ui, label: e.target.value } } : node) }))} /></label>
         <input aria-label={t("Search connection fields")} placeholder={t("Search connection fields")} className={`${control} mt-3`} value={wireSearch} onChange={e => setWireSearch(e.target.value)} />
         {definition?.input_ports.map(port => {
@@ -138,7 +158,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
           const pinned = options.find(option => option.value === active);
           return <label key={port.id} className="mt-3 block text-xs">{t("Input:")} {t(port.display_name)}<select aria-label={t("Input {0}", { 0: port.id })} className={control} value={active} onChange={e => { if (!e.target.value) setGraph(current => ({ ...current, edges: current.edges.filter(edge => !(edge.target_node_id === selected && edge.target_port === port.id)) })); else { const [source, sourceHandle] = JSON.parse(e.target.value); connect({ source, sourceHandle, target: selectedNode.id, targetHandle: port.id }); } }}><option value="">{t("Disconnected")}</option>{active && <option value={active}>{pinned?.label ?? t("Unavailable connection")}</option>}{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
-        {(() => { const onChange = (config: Record<string, unknown>) => setGraph(current => ({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, config } : node) })); const incoming = graph.edges.filter(edge => edge.target_node_id === selected); const inputColumns = Object.fromEntries(incoming.map(edge => [edge.target_port, choicesSchema?.nodes.find(node => node.node_id === edge.source_node_id)?.columns ?? null])); return selectedNode.type in fieldDefaults ? <FieldOperationConfiguration type={selectedNode.type} config={selectedNode.config ?? {}} onChange={onChange} parameters={graph.parameters ?? []} /> : <NodeConfiguration type={selectedNode.type} config={selectedNode.config ?? {}} sources={sources} columns={Object.values(inputColumns)[0] ?? null} inputColumns={inputColumns} onChange={onChange} parameters={graph.parameters ?? []} issues={currentSchema?.issues.filter(issue => issue.node_id === selected)} validationPending={!currentSchema} />; })()}
+        {(() => { const onChange = (config: Record<string, unknown>) => setGraph(current => reconcileWorkbooks({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, config } : node) })); const incoming = graph.edges.filter(edge => edge.target_node_id === selected); const inputColumns = Object.fromEntries(incoming.map(edge => [edge.target_port, choicesSchema?.nodes.find(node => node.node_id === edge.source_node_id)?.columns ?? null])); return selectedNode.type in fieldDefaults ? <FieldOperationConfiguration type={selectedNode.type} config={selectedNode.config ?? {}} onChange={onChange} parameters={graph.parameters ?? []} /> : <NodeConfiguration type={selectedNode.type} config={selectedNode.config ?? {}} sources={sources} columns={Object.values(inputColumns)[0] ?? null} inputColumns={inputColumns} onChange={onChange} parameters={graph.parameters ?? []} issues={currentSchema?.issues.filter(issue => issue.node_id === selected)} validationPending={!currentSchema} />; })()}
         <NodeOutputPanel workflowId={workflow.id} nodeId={selectedNode.id} outputPort={definition?.output_ports[0]?.id} revision={save.revision} dirty={dirty} parameters={parameters} issues={currentSchema?.issues.filter(issue => issue.node_id === selected) ?? []} />
         <button className="mt-4 text-xs text-danger" onClick={() => { remove(new Set([selectedNode.id])); setSelected(null); }}>{t("Delete selected node")}</button>
       </>}

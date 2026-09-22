@@ -1,5 +1,12 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Group workbook sheets": ["Объединить листы книги", "Китап битләрен берләштерергә"],
+  "Expand workbook": ["Развернуть книгу", "Китапны җәяргә"],
+  "Collapse workbook": ["Свернуть книгу", "Китапны җыярга"],
+  "Ungroup workbook": ["Разобрать карточку книги", "Китап карточкасын аерырга"],
+  "Detach sheet": ["Отделить лист", "Битне аерырга"],
+  "Return sheet to workbook": ["Вернуть лист в книгу", "Битне китапка кайтарырга"],
+  "Search sheets in workbook": ["Поиск листов в книге", "Китапта битләр эзләү"],
   "Workbook browser": ["Книги и листы", "Китаплар һәм битләр"],
   "Search books and sheets": ["Поиск книг и листов", "Китаплар һәм битләр эзләү"],
   "Upload a workbook on the Sources page first.": ["Сначала загрузите книгу на странице источников.", "Башта чыганаклар битендә китап йөкләгез."],

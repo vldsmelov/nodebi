@@ -25,7 +25,7 @@ test("choose workbook sheets by name, drag to canvas and reopen without duplicat
     await expect(page.locator(".react-flow__node")).toHaveCount(1);
     await browser.getByRole("button", { name: /first.xlsx/ }).click();
     await browser.getByRole("button", { name: /second.xlsx/ }).click();
-    await browser.getByTitle("Add sheet to graph").first().dragTo(page.locator(".react-flow__pane"), { targetPosition: { x: 400, y: 300 } });
+    await browser.getByTitle("Add sheet to graph").first().dragTo(page.locator(".react-flow__pane"), { targetPosition: { x: 40, y: 40 } });
     await expect(page.locator(".react-flow__node")).toHaveCount(2);
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const after = await (await request.get(`${api}/api/v1/workflows/${workflowId}`)).json();
@@ -108,6 +108,83 @@ test("author typed Excel calculation using named fields, pin A/B and restore v2"
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await expect(page.locator(".react-flow__node")).toHaveCount(4);
     }
+  } finally { await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
+});
+
+test("workbook cards retain typed wires through collapse, detach, undo and reload", async ({ page, request }) => {
+  const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Workbook card acceptance" } })).json();
+  try {
+    const upload = await request.post(`${api}/api/v1/projects/${project.id}/sources/excel`, { multipart: { file: { name: "sales.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: readFileSync(resolve("../fixtures/excel/sales.xlsx")) } } });
+    expect(upload.ok()).toBe(true);
+    await page.goto(`/projects/${project.id}/workflow`);
+    await page.getByRole("button", { name: "New field workflow", exact: true }).click();
+    await page.getByTitle("Add Excel Source", { exact: true }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Group workbook sheets", exact: true }).click();
+    const book = page.locator(".react-flow__node-workbookNode");
+    await expect(book).toHaveCount(1);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.getByTitle("Add Field arithmetic", { exact: true }).click();
+    const workflowId = new URL(page.url()).searchParams.get("workflow");
+    const getGraph = async () => (await request.get(`${api}/api/v1/workflows/${workflowId}`)).json();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const draft = await getGraph();
+    const sheetName = draft.nodes.find((node: { type: string }) => node.type === "excel_source").config.sheet_name;
+    await book.getByRole("button", { name: sheetName, exact: true }).click();
+    const arithmetic = page.locator(".react-flow__node-fieldNode");
+    await book.locator('.react-flow__handle[title="quantity"]').dragTo(arithmetic.locator('.react-flow__handle[data-handleid="a"]'));
+    await book.locator('.react-flow__handle[title="price"]').dragTo(arithmetic.locator('.react-flow__handle[data-handleid="b"]'));
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const original = await getGraph();
+    expect(original.edges).toHaveLength(2);
+    const calculation = original.nodes.find((node: { type: string }) => node.type === "field_arithmetic");
+    const preview = async () => { const response = await request.post(`${api}/api/v1/workflows/${workflowId}/nodes/${calculation.id}/preview`, { data: {} }); expect(response.ok()).toBe(true); return (await response.json()).rows; };
+    const values = await preview();
+    await book.getByRole("button", { name: "Collapse workbook", exact: true }).click();
+    await expect(book.locator('.react-flow__handle[title="quantity"]')).toBeVisible();
+    await expect(book.locator('.react-flow__handle[title="price"]')).toBeVisible();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await book.getByRole("button", { name: "Detach sheet", exact: true }).click();
+    await expect(page.locator(".react-flow__node-fieldNode")).toHaveCount(2);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".react-flow__node-fieldNode")).toHaveCount(1);
+    await page.getByRole("button", { name: "Redo", exact: true }).click();
+    await expect(page.locator(".react-flow__node-fieldNode")).toHaveCount(2);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(book.getByRole("button", { name: "Expand workbook", exact: true })).toBeVisible();
+    await book.getByRole("button", { name: /Return sheet to workbook/ }).click();
+    await expect(page.locator(".react-flow__node-fieldNode")).toHaveCount(1);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    expect((await getGraph()).edges).toEqual(original.edges);
+    expect(await preview()).toEqual(values);
+    await page.screenshot({ path: test.info().outputPath("workbook-card.png") });
+    await book.getByRole("button", { name: sheetName, exact: true }).dragTo(page.locator(".react-flow__pane"), { targetPosition: { x: 40, y: 550 } });
+    await expect(page.locator(".react-flow__node-fieldNode")).toHaveCount(2);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Fit graph", exact: true }).click();
+    await book.getByRole("button", { name: /Return sheet to workbook/ }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await book.getByRole("button", { name: "Ungroup workbook", exact: true }).click();
+    await expect(book).toHaveCount(0);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    expect((await getGraph()).edges).toEqual(original.edges);
+    expect(await preview()).toEqual(values);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(book).toHaveCount(1);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await book.getByRole("button", { name: sheetName, exact: true }).click();
+    await page.getByRole("button", { name: "Delete selected node", exact: true }).click();
+    await expect(book).toHaveCount(0);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const deleted = await getGraph();
+    expect(deleted.presentation.workbooks).toHaveLength(0);
+    expect(deleted.edges).toHaveLength(0);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    expect((await getGraph()).edges).toEqual(original.edges);
+    expect(await preview()).toEqual(values);
   } finally { await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
 });
 

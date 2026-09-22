@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# ADR-094 - Workbook cards project existing sheet endpoints
+
+Date: 2026-09-22. Status: ACCEPTED; remaining F2 interaction/performance work stays open.
+Context: sheets need a single visible workbook card without changing execution identities or
+introducing a second graph. Migration 0008 already stores book membership and detached sheet IDs.
+Decision: grouping is an explicit inspector action over Excel nodes using one source, excluding
+composite-block members. React Flow renders a presentation-only workbook node. Its handles encode
+the actual sheet node and output handle; incoming user connections are decoded before common
+validation/saving. Saved edges always retain the real node/port/column IDs. Connected sheet ports
+remain mounted when collapsed or filtered. Only the selected sheet expands unconnected fields.
+Persist grouping, collapse, movement, detach/return and ungroup through ordinary revision-safe
+draft/history. Dropping a sheet onto blank canvas detaches the same node; a button is available
+as an alternative. Reconcile workbook membership atomically when a source changes or is deleted;
+remove an empty book. Ungrouping removes presentation only, never source nodes or dashboard links.
+Alternatives: copying nodes would break stable references; materializing workbook calculations
+would duplicate execution; hiding all collapsed connections would obscure active dependencies.
+Consequences: workbook containers can restore through existing APIs/migration. Expansion search
+is page-local; collapse and detach are persistent. Composite rendering, full virtualization and
+168-node usability acceptance remain separate tasks. No backend execution or database change.
+
 # ADR-093 - Separate opt-in field UI with shared save and execution contracts
 
 Date: 2026-09-21. Status: ACCEPTED; F2 is IN PROGRESS.

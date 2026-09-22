@@ -5,6 +5,22 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F2 canvas workbook cards (ADR-094, 2026-09-22). Explicit grouping from Excel Source
+inspector, sheet selection/field wires, persistent collapse and position, button/native-drag
+detach, return and ungroup now use the existing presentation contract and graph history/CAS.
+Visible book handles project real sheet endpoints; persisted wires and calculation IDs stay
+unchanged. Connected ports remain visible when collapsed. Source deletion/change reconciles
+membership and removes empty books atomically. Existing projects are not auto-grouped.
+Checks: 96 frontend tests, TypeScript/ESLint and Docker production build pass. Twelve focused
+browser scenarios passed before extending native drag/delete; final rerun has all four field
+editor scenarios passing, with the other eight regressions passing on the same deployed code.
+Six original/UX-copy snapshot endpoints match. No backend/API/migration changes.
+Next: compatible operation menus/highlighting, selected field path, large-graph/virtualization
+acceptance and remaining F1 diagnostic field paths. F3 composite UI and F4 remain pending.
+No known P0/P1 in the delivered implementation; full F2 completion is not claimed.
+
+Earlier navigator slice in this session:
+
 Current session: F2 workbook navigation (2026-09-22). Added a searchable, expandable source
 browser with bounded sheet lists, click and native drag insertion into the canvas. Existing
 configured sheet instances reopen by ID without changes to config/position/wires; different

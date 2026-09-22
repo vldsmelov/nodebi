@@ -8,15 +8,24 @@ per expanded book and opens actual excel_source nodes. Selection validates sourc
 identities against current project state. Reopening an instance preserves its config, position,
 edges and ID; adding a sheet uses the ordinary draft/history/save operation. Drag payloads carry
 only identities and screen coordinates are converted by React Flow. Browser expansion/search
-are local view state; persistent canvas workbook containers/detach remain pending.
+are local view state.
+
+Canvas workbook cards (ADR-094) project actual member endpoints through presentation handles.
+renderBookWire maps a sheet endpoint to its visible book; resolveBookConnection reverses that
+mapping before shared connection validation and persistence. Computational edges never contain
+container IDs. Group/ungroup, collapse, movement, detach/return share graph CAS and history.
+Connected fields stay mounted in compact cards; selected sheets expose searchable field lists.
+Source deletion or changing source_id reconciles membership in the same draft, removing empty
+books. Block members are excluded from workbook grouping. Dragging a sheet onto blank canvas
+detaches its existing node, with no data copy. Container membership uses migration 0008 unchanged.
 
 The workflow page creates a new explicit v2 workflow from the New field workflow action; existing
 v1 workflows are not upgraded. mode=fields opens FieldWorkflowEditor with the v2 catalog. Classic
 editor remains the default and retains its old-client format guard. Both editors reuse the same
 WorkflowAutosave and GraphHistory implementations. Field drafts use a separate fields-v2 storage
 namespace so switching modes cannot overwrite unsaved typed wires; wrong-format drafts are refused.
-Presentation metadata is included in the v2 draft and
-history, but container rendering/packing is not yet implemented (members are shown individually).
+Presentation metadata is included in the v2 draft and history. Workbook cards render their sheets;
+composite block rendering/packing is not yet implemented (block members are shown individually).
 
 Canvas handles encode port+column only for display; field-wires serializes explicit source_port
 and source_column_id. Connections can be dragged or selected by node/field label. Input replacement

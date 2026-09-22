@@ -1,5 +1,21 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F2 canvas workbook cards - 2026-09-22
+
+96 frontend tests pass; TypeScript, ESLint and Docker production build pass. Unit coverage checks
+exact endpoint projection/reversal (including unusual column IDs), unchanged computational nodes
+and edges when grouping, detached proxy rejection, return, deletion/source-change reconciliation,
+and exclusion of composite members. Browser acceptance creates actual field wires by mouse from
+the workbook, compares computed rows before/after collapse, detach/return, undo/redo and reload.
+Extended coverage exercises native sheet drag, ungroup, source deletion and undo restoration.
+Final field-editor rerun: all four pass. The other eight focused classic/formula/chart/format
+scenarios pass on the same deployed code. Six original/UX-copy snapshots remain unchanged.
+The initial extended run used drop coordinates on another node, and later covered the return
+button with the detached node. Corrected drop targets to blank canvas as specified; preserved
+all identity/value assertions. Visual inspection confirms collapsed cards keep connected fields.
+Backend/DB contracts are unchanged; migration 0008 supplies persistence. Full private reference
+parity, 168-node usability and composite block UI remain outside this delivered slice.
+
 ## F2 workbook navigation - 2026-09-22
 
 93 frontend tests pass; TypeScript, ESLint and production Docker build pass. Full default browser
