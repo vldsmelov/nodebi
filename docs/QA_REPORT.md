@@ -1,5 +1,22 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F3 initial composite-block UI - 2026-09-22
+
+111 frontend tests, TypeScript/ESLint and Docker production build pass. Unit checks cover
+identity-preserving pack/undo, bidirectional proxy mapping, hidden inner wires, publication
+deduplication, deleted-member reconciliation and rejection of nested/workbook membership.
+Fifteen existing presentation tests pass with SQLite/PostgreSQL (one SQLite-only migration skip).
+Nine existing browser regressions pass, including field/workbook editor, conflicts, diagnostics,
+168-node/1024-field scale and v1 protection. New composite browser scenario passes after fixing
+an incorrect handle CSS selector and using the return action following node-focused zoom.
+It checks baseline result 16 unchanged by packing; proxy reconnection -> 12, undo -> 16, redo ->
+12; inner operation edit -> 4; extra public output retains prior port ID; reload and unpack -> 4.
+Node/edge identities survive packing; RU/EN/TT and both themes checked. Collapsed screenshot
+reviewed. Timed-out disposable test projects were explicitly removed; no user project reset.
+Six retained snapshots unchanged; frontend healthy. No backend/API/DB changes, no full backend
+or private 164-slice parity rerun. Membership/port management and direct chart bindings remain
+F3 work; expanding on the shared canvas is explicitly the current implementation.
+
 ## F1 preview-scoped runtime diagnostics - 2026-09-22
 
 338 backend tests pass with SQLite/PostgreSQL (6 SQLite-only skips), Ruff/format/mypy pass.

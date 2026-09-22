@@ -5,6 +5,23 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F3 first composite-block UI (ADR-101, 2026-09-22).
+Named checklist packs ordinary nodes; collapsed cards expose real boundary endpoints. Opening
+reveals members on the shared canvas; return collapses the block. Rename, move, unpack, extra
+output publication and member deletion use shared history/CAS without changing computational IDs.
+Workbook/nested membership is excluded. New explicit boundary wires export public endpoints.
+Checks: 111 frontend tests, TypeScript/ESLint and Docker production build pass. Nine existing
+focused browser scenarios pass; the new composite scenario passes after correcting a handle
+selector and using the return action after node-focused zoom. It checks unchanged results/IDs,
+proxy reconnection and undo/redo, inner edit, extra output, reload/unpack, RU/EN/TT and both themes.
+Fifteen presentation backend tests pass with SQLite/PostgreSQL (one SQLite migration skip).
+Six retained snapshots unchanged; frontend deployed healthy. Backend/API/DB unchanged.
+No full backend/private 164-slice rerun; no known P0/P1 in this slice.
+Next: F3 membership/public-port management and typed visualizations. F2 operator acceptance and
+F4 remain open. This is not completion of the entire new editor; no implementation blocker.
+
+Previous preview diagnostic slice:
+
 Latest slice: F1 preview-scoped runtime diagnostics (ADR-100, 2026-09-22).
 Selected inspector combines current schema issues with current preview issues. Draft/revision/
 parameter/output changes and retry clear stale errors; direct field preview failures identify

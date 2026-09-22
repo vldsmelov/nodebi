@@ -1,5 +1,24 @@
 # DECISIONS.md
 
+# ADR-101 - Composite cards project the existing graph
+
+Date: 2026-09-22. Status: ACCEPTED; F3 remains in progress.
+
+Context: migration 0008 already persists one-level blocks and validates boundary ports; the field
+editor previously rendered all members individually and provided no packing controls.
+Decision: a named node checklist creates a presentation block, exporting each crossing endpoint
+once. Collapsed cards project saved public ports onto actual node/port/column endpoints; internal
+wires are hidden only visually. Opening reveals members on the shared canvas with a return action.
+Renaming, collapse, movement, unpacking and explicit extra-output publication reuse graph history
+and revision-safe save. Unpacking/deleting a block card retains its calculation nodes and edges.
+Deleting members repairs presentation references; explicit new crossing wires export their endpoint
+in the same draft. Existing public port IDs remain stable. Workbook members and nested blocks are
+excluded from packing. Search offers named selection without technical IDs.
+Reasoning: reuse the authoritative graph and persisted references; do not introduce another
+execution engine or duplicate inner graph. No schema/API/migration changes.
+Consequences: this initial delivery expands in the shared canvas rather than an isolated subcanvas.
+Membership/public-port management and direct visualization bindings remain separate F3 tasks.
+
 # ADR-100 - Preview-scoped runtime diagnostics
 
 Date: 2026-09-22. Status: ACCEPTED.

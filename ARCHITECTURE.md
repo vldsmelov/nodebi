@@ -39,7 +39,11 @@ editor remains the default and retains its old-client format guard. Both editors
 WorkflowAutosave and GraphHistory implementations. Field drafts use a separate fields-v2 storage
 namespace so switching modes cannot overwrite unsaved typed wires; wrong-format drafts are refused.
 Presentation metadata is included in the v2 draft and history. Workbook cards render their sheets;
-composite block rendering/packing is not yet implemented (block members are shown individually).
+composite blocks (ADR-101) project their real boundary endpoints onto collapsed cards. Internal
+wires remain saved but are visually hidden. Opening reveals unchanged members on the shared canvas.
+reconcileBlocks preserves public IDs, removes deleted members/references and exports explicit new
+crossing connections. Packing/unpacking and extra output publication are one graph/history action.
+Nested/workbook membership is excluded; source and visualization identities are never rewritten.
 
 Canvas handles encode port+column only for display; field-wires serializes explicit source_port
 and source_column_id. Connections can be dragged or selected by node/field label. Input replacement

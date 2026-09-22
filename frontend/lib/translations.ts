@@ -1,5 +1,15 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Block name": ["Название блока", "Блок исеме"],
+  "Nodes in block: {0}": ["Узлов в блоке: {0}", "Блоктагы төеннәр: {0}"],
+  "Open block": ["Открыть блок", "Блокны ачарга"],
+  "Close block": ["Свернуть блок", "Блокны җыярга"],
+  "Unpack block": ["Распаковать блок", "Блокны таратырга"],
+  "Create composite block": ["Создать составной блок", "Составлы блок булдырырга"],
+  "Choose nodes. Boundary connections become public ports.": ["Выберите узлы. Связи на границе блока станут публичными портами.", "Төеннәрне сайлагыз. Блок чигендәге бәйләнешләр ачык портларга әйләнәчәк."],
+  "Pack block": ["Упаковать в блок", "Блокка берләштерергә"],
+  "Back to workflow": ["Назад к графу", "Графка кайтырга"],
+  "Expose block output": ["Вывести выход на блок", "Чыгышны блокка чыгарырга"],
   "Unknown logical operation or invalid number of inputs.": ["Проверьте логическую операцию и количество входов.", "Логик гамәлне һәм керешләр санын тикшерегез."],
   "Unknown arithmetic operation or division policy.": ["Выберите арифметическую операцию и политику деления.", "Арифметик гамәлне һәм бүлү кагыйдәсен сайлагыз."],
   "Field expression is too complex; add a table output first.": ["Выражение поля слишком сложное. Сначала добавьте результат в таблицу.", "Кыр аңлатмасы артык катлаулы. Башта нәтиҗәне таблицага өстәгез."],
