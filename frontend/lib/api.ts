@@ -1,4 +1,4 @@
-export type ApiIssue = { code: string; message: string; node_id?: string | null; field?: string | null };
+export type ApiIssue = { code: string; message: string; node_id?: string | null; edge_id?: string | null; field?: string | null };
 
 export class ApiError extends Error {
   constructor(

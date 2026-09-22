@@ -1,6 +1,8 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n";
+import { useEffect } from "react";
+import { ApiError } from "@/lib/api";
 
 import { useMutation } from "@tanstack/react-query";
 import { previewWorkflowNode } from "./api";
@@ -15,13 +17,18 @@ type Props = {
   dirty: boolean;
   schema?: NodeSchemaResult;
   issues: GraphIssue[];
+  onRuntimeIssues?: (issues: GraphIssue[]) => void;
 };
 
 /** Schema and preview are visible only for the currently acknowledged graph revision. */
-function NodeOutputContent({ workflowId, nodeId, revision, dirty, schema, issues, parameters = {}, outputPort }: Props) {
+function NodeOutputContent({ workflowId, nodeId, revision, dirty, schema, issues, parameters = {}, outputPort, onRuntimeIssues }: Props) {
   const { t, errorText, cell } = useI18n();
   const preview = useMutation({ mutationFn: (request: { nodeId: string; revision: number }) => previewWorkflowNode(workflowId, request.nodeId, 100, parameters, outputPort) });
   const result = !dirty && preview.data?.revision === revision ? preview.data : undefined;
+  useEffect(() => {
+    const error = !dirty && !preview.isPending && preview.variables?.revision === revision && preview.error instanceof ApiError ? preview.error : null;
+    onRuntimeIssues?.(error?.issues.map(issue => ({ ...issue, severity: "error", node_id: issue.node_id ?? error.nodeId ?? null, edge_id: issue.edge_id ?? null, field: issue.field ?? null })) ?? []);
+  }, [dirty, revision, preview.error, preview.isPending, preview.variables, onRuntimeIssues]);
   return <>
     {dirty && <p className="mt-3 text-xs text-warning">{t("Preview is stale. Save changes before running again.")}</p>}
     <button onClick={() => preview.mutate({ nodeId, revision })} disabled={preview.isPending || dirty}
@@ -60,5 +67,5 @@ function NodeOutputContent({ workflowId, nodeId, revision, dirty, schema, issues
 }
 
 export function NodeOutputPanel(props: Props) {
-  return <NodeOutputContent key={`${props.nodeId}:${props.outputPort ?? ""}:${JSON.stringify(props.parameters ?? {})}`} {...props} />;
+  return <NodeOutputContent key={`${props.workflowId}:${props.nodeId}:${props.outputPort ?? ""}:${props.revision}:${props.dirty}:${JSON.stringify(props.parameters ?? {})}`} {...props} />;
 }

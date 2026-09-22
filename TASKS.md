@@ -4,7 +4,7 @@
 
 Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retained below.
 
-* [~] F1: Typed connections, persistence and execution.
+* [x] F1: Typed connections, persistence and execution.
   * [x] Table/field/scalar value foundation, row-context checks, shared expression compiler, explicit arithmetic/null policies, parameter scalars and legacy named-table adapter.
   * [x] Explicit save-format acknowledgement and CAS upgrade guard; reject old-client overwrite and unsupported v2 fields; regenerate OpenAPI types.
   * [x] Persist source_column_id through API/ORM/domain with migration 0007, v1 wire compatibility, CAS/format guards and loss-preventing downgrade.
@@ -14,7 +14,7 @@ Plan and acceptance: docs/FIELD_EDITOR_PLAN.md. Existing UX/U5 history is retain
   * [x] Adapt DATA_DEPENDENT legacy schemas in mixed typed branches through validated prefix execution; Pivot field IDs, parameter changes, cache, limits and error attribution verified (ADR-091).
   * [x] Preserve precise input/configuration paths and offending wire IDs for typed arithmetic/logic, row-context, sum/filter and scalar/name schema errors; localize repair messages (ADR-098).
   * [x] Attribute comparison compiler and typed execution-boundary errors; retain runtime issues/wires, identify null policy and highlight current schema controls with accessible invalid state (ADR-099).
-  * [ ] Audit direct named-output failure paths, runtime-to-inspector highlighting and remaining RU/EN/TT error coverage.
+  * [x] Attribute direct field-output failures, report scoped runtime preview issues to inspector controls and translate known typed value/schema errors; verify late responses and draft/parameter invalidation (ADR-100).
 * [~] F2: Opt-in editor, workbook/sheets, interactive fields/cards, compatible wires and A/B previews.
   * [x] Explicit new-v2 mode, shared autosave/history, typed field cards and eight operation forms, drag/list connections, bounded field search and A/B named-output previews (ADR-093).
   * [x] Preserve usable schemas in partial drafts; parameter-aware schema requests and revision/output-aware preview handling.

@@ -382,6 +382,13 @@ def test_division_error_and_explicit_null_survive_wiring() -> None:
     assert failure.value.node_id == append.id
     assert failure.value.issues[0].field == "value"
     assert failure.value.issues[0].edge_id == graph.edges[3].id
+    with pytest.raises(ExecutionFailure, match="division by zero") as direct:
+        WorkflowExecutionService(get_node_registry()).execute(
+            graph, division.id, context, output_port="value"
+        )
+    assert direct.value.issues[0].field == "outputs.value"
+    assert direct.value.issues[0].node_id == division.id
+    assert direct.value.issues[0].edge_id is None
     safe = replace(division, config={"operation": "divide", "zero_policy": "null"})
     graph = replace(graph, nodes=(source, safe, append, total, zero))
     assert (

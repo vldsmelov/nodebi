@@ -1,5 +1,21 @@
 # MVP 0.1.0 release QA — 2026-09-11
 
+## F1 preview-scoped runtime diagnostics - 2026-09-22
+
+338 backend tests pass with SQLite/PostgreSQL (6 SQLite-only skips), Ruff/format/mypy pass.
+Direct field preview division failure now asserts outputs.value and target identity without a
+fabricated input edge. 108 frontend tests pass; preview tests cover error reporting, successful
+retry, dirty-to-clean restoration and late failed response after parameter change. Final focused
+locale/preview reruns pass. TypeScript/ESLint and production Docker builds pass.
+Browser runtime scenario executes 1/0, checks policy highlighting, changes policy to null and
+verifies a successful API preview with cleared diagnostics. Thirteen focused scenarios covered:
+eleven passed in the combined run; two passed on targeted rerun. The runtime locator initially
+matched Next's route-announcer alert too and was scoped to actual error text. An existing field
+drag timed out once, passed isolated rerun; it now waits for saved/current schema before dragging.
+Six retained snapshots match; backend/frontend healthy. No private 164-slice parity rerun.
+F1 foundation complete; F2 operator acceptance and F3/F4 remain open. A/B errors stay local and
+do not replace the selected inspector's diagnostics; changing selected node starts a new preview.
+
 ## F1 runtime diagnostics and inspector controls - 2026-09-22
 
 338 backend tests pass in the SQLite/PostgreSQL matrix (6 SQLite-only skips). New checks cover

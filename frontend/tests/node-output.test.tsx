@@ -6,6 +6,43 @@ import { NodeOutputPanel } from "@/features/workflow/NodeOutputPanel";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+it("reports structured runtime issues and clears them on retry and draft changes", async () => {
+  const issue = { code: "NODE_EXECUTION_FAILED", message: "Filter predicate contains null values.", node_id: "node", edge_id: null, field: "config.null_policy" };
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ detail: { message: issue.message, issues: [issue] } }), { status: 422 }))));
+  const report = vi.fn();
+  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+  const panel = (dirty: boolean) => <QueryClientProvider client={client}><NodeOutputPanel workflowId="workflow" nodeId="node" revision={1} dirty={dirty} issues={[]} onRuntimeIssues={report} /></QueryClientProvider>;
+  const view = render(panel(false));
+  fireEvent.click(screen.getByRole("button", { name: "Preview output" }));
+  await waitFor(() => expect(report).toHaveBeenLastCalledWith([{ ...issue, severity: "error" }]));
+  view.rerender(panel(true));
+  await waitFor(() => expect(report).toHaveBeenLastCalledWith([]));
+  view.rerender(panel(false));
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(report).toHaveBeenLastCalledWith([]);
+  fireEvent.click(screen.getByRole("button", { name: "Preview output" }));
+  await waitFor(() => expect(report).toHaveBeenLastCalledWith([{ ...issue, severity: "error" }]));
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ revision: 1, columns: [], rows: [], total_rows: 0, duration_ms: 1 }))));
+  fireEvent.click(screen.getByRole("button", { name: "Preview output" }));
+  await waitFor(() => expect(report).toHaveBeenLastCalledWith([]));
+  expect(await screen.findByText("The result is empty.")).toBeVisible();
+});
+
+it("does not report a late failed preview after parameters change", async () => {
+  let resolve!: (value: Response) => void;
+  vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(done => { resolve = done; })));
+  const report = vi.fn(), client = new QueryClient();
+  const panel = (factor: number) => <QueryClientProvider client={client}><NodeOutputPanel workflowId="workflow" nodeId="node" revision={1} dirty={false} parameters={{ factor }} issues={[]} onRuntimeIssues={report} /></QueryClientProvider>;
+  const view = render(panel(0));
+  fireEvent.click(screen.getByRole("button", { name: "Preview output" }));
+  await waitFor(() => expect(resolve).toBeDefined());
+  view.rerender(panel(1));
+  resolve(new Response(JSON.stringify({ detail: { issues: [{ code: "FAIL", message: "Old failure", field: "value" }] } }), { status: 422 }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Preview output" })).toBeEnabled());
+  expect(report.mock.calls.every(([issues]) => issues.length === 0)).toBe(true);
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 it("named output changes discard a late result and send the selected port", async () => {
   let resolve!: (value: Response) => void;
   const fetcher = vi.fn(() => new Promise<Response>(done => { resolve = done; }));

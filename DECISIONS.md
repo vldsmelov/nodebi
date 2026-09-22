@@ -1,5 +1,23 @@
 # DECISIONS.md
 
+# ADR-100 - Preview-scoped runtime diagnostics
+
+Date: 2026-09-22. Status: ACCEPTED.
+
+Context: preview errors were readable but did not mark inspector controls. A late failure must
+not mark controls after graph, parameter or output changes, including undo without a save.
+Decision: NodeOutputPanel reports structured API issues for its current request only. Its content
+is remounted for workflow/node/output/revision/dirty/parameter changes. Retry and success clear
+reported errors. The field inspector additionally gates runtime issues by draft object identity,
+revision and parameters, and merges them with current schema issues only for matching node IDs.
+A/B panels retain their own local diagnostics and do not overwrite the selected inspector.
+Direct field-output materialization failures carry outputs.<port>, not a guessed operand path.
+Known typed-value/schema repair messages and output labels have RU/EN/TT presentation.
+Alternatives: a global unversioned error store or parsing displayed prose would allow stale or
+misattributed highlights. No persistence, API shape or calculation-policy changes are needed.
+Consequence: selecting another inspector node starts a fresh preview session; errors of an
+upstream node remain described in the failing preview, never attached to the wrong controls.
+
 # ADR-099 - Runtime issues and schema-driven inspector highlighting
 
 Date: 2026-09-22. Status: ACCEPTED; final diagnostic audit remains open.

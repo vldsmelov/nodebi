@@ -5,6 +5,22 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Latest slice: F1 preview-scoped runtime diagnostics (ADR-100, 2026-09-22).
+Selected inspector combines current schema issues with current preview issues. Draft/revision/
+parameter/output changes and retry clear stale errors; direct field preview failures identify
+outputs.<port>. A/B diagnostics remain local. Typed value/schema repair messages are localized.
+F1 foundation is complete; next implementation task is F3 one-level composite block UI and
+public ports, then direct chart/KPI bindings. F2 financial-copy/operator acceptance remains open.
+Checks: 338 backend tests with SQLite/PostgreSQL pass (6 SQLite-only skips), Ruff/format/mypy pass.
+108 frontend tests, TypeScript/ESLint and production Docker builds pass. Focused preview/locale
+tests rerun after translation additions. Thirteen browser scenarios covered: eleven passed in
+the combined run, runtime diagnostic and authoring scenarios passed on targeted rerun. The new
+runtime locator was scoped to exclude Next's route alert; authoring now waits for current saved
+schema before dragging. Six retained snapshots unchanged. Backend/frontend deployed healthy.
+No API shape/DB change, no private 164-slice parity rerun. No known P0/P1 or blocker in this slice.
+
+Previous comparison/runtime slice:
+
 Latest slice: F1 comparison/runtime diagnostics and inspector highlighting (ADR-099, 2026-09-22).
 Comparison failures identify operand b. Typed execution failures retain structured paths/wires;
 null predicates identify their policy and deferred arithmetic identifies the materializing input.

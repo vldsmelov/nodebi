@@ -115,6 +115,8 @@ test("author typed Excel calculation using named fields, pin A/B and restore v2"
     await expect(page.locator('.react-flow__node').getByText(/quantity/)).toBeVisible();
     await page.getByTitle("Add Field arithmetic", { exact: true }).click();
     await page.getByLabel("Node label", { exact: true }).fill("Revenue expression");
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await expect(page.getByText("Updating fields", { exact: true })).toHaveCount(0);
     const outputHandle = page.locator('.react-flow__node').filter({ hasText: "Excel Source" }).locator('.react-flow__handle[title="quantity"]');
     const inputHandle = page.locator('.react-flow__node').filter({ hasText: "Revenue expression" }).locator('.react-flow__handle[data-handleid="a"]');
     await outputHandle.dragTo(inputHandle);

@@ -475,6 +475,14 @@ class WorkflowExecutionService:
                     category="transformation",
                     execution_id=context.execution_id,
                     node_id=target_node_id,
+                    issues=(
+                        GraphIssue(
+                            "NODE_EXECUTION_FAILED",
+                            str(exc),
+                            node_id=target_node_id,
+                            field=f"outputs.{selected_port}",
+                        ),
+                    ),
                 ) from exc
         assert target_output is not None
         target = target_output

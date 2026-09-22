@@ -24,7 +24,7 @@ import { fieldPath, inputHint, type FieldEndpoint } from "./field-interaction";
 import { appendOperation, operationChoices, type OperationChoice } from "./operation-drop";
 import { OperationDropMenu } from "./OperationDropMenu";
 import { NodeFinder } from "./NodeFinder";
-import type { NodeDefinition, ParameterValues, Workflow } from "./types";
+import type { GraphIssue, NodeDefinition, ParameterValues, Workflow } from "./types";
 
 const nodeTypes = { fieldNode: FieldNodeCard, workbookNode: WorkbookNodeCard };
 type CanvasNode = FieldCanvasNode | WorkbookCanvasNode;
@@ -69,6 +69,12 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
   const dirty = JSON.stringify(graph) !== writer.savedGraph || save.status !== "saved";
   const schema = useQuery({ queryKey: ["field-schema", workflow.id, save.revision, parameters], queryFn: () => getWorkflowSchema(workflow.id, parameters), enabled: !dirty && !incompatible, placeholderData: keepPreviousData });
   const currentSchema = !dirty && !schema.isPlaceholderData && schema.data?.revision === save.revision ? schema.data : undefined;
+  const parameterKey = JSON.stringify(parameters);
+  const [runtime, setRuntime] = useState<{ graph: GraphDraft; revision: number; parameters: string; issues: GraphIssue[] } | null>(null);
+  const reportRuntimeIssues = useCallback((issues: GraphIssue[]) => {
+    setRuntime({ graph, revision: save.revision, parameters: parameterKey, issues });
+  }, [graph, save.revision, parameterKey]);
+  const inspectorIssues = [...(currentSchema?.issues ?? []), ...(!dirty && runtime?.graph === graph && runtime.revision === save.revision && runtime.parameters === parameterKey ? runtime.issues : [])];
   const offeredOperations = useMemo(() => operationMenu ? operationChoices(graph, catalog, currentSchema, operationMenu.source) : [], [operationMenu, graph, catalog, currentSchema]);
   const chooseOperation = (choice: OperationChoice) => {
     if (!operationMenu) return;
@@ -224,11 +230,11 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved }: { w
           const options = nodes.flatMap(node => node.data.definition.output_ports.flatMap(output => [{ handle: output.id, label: t(output.display_name) }, ...(node.data.schema?.outputs?.[output.id]?.columns ?? []).map(column => ({ handle: fieldHandle(output.id, column.column_id), label: column.display_name }))].map(value => ({ value: JSON.stringify([node.id, value.handle]), label: `${String(node.data.node.ui?.label || nodeName(node.data.node.type))} / ${value.label}`, connection: { source: node.id, sourceHandle: value.handle, target: selectedNode.id, targetHandle: port.id } }))));
           const available = options.filter(option => option.value !== active && option.label.toLowerCase().includes(wireSearch.toLowerCase()) && !connectionError(graph, catalog, option.connection, currentSchema)).slice(0, 100);
           const pinned = options.find(option => option.value === active);
-          const inputIssues = currentSchema?.issues.filter(issue => issue.node_id === selected && issue.field === port.id && issue.severity === "error") ?? [];
+          const inputIssues = inspectorIssues.filter(issue => issue.node_id === selected && issue.field === port.id && issue.severity === "error");
           return <label key={port.id} className="mt-3 block text-xs">{t("Input:")} {t(port.display_name)}<select aria-invalid={inputIssues.length > 0} title={inputIssues.map(errorText).join("\n")} style={inputIssues.length ? { borderColor: "var(--danger)" } : undefined} aria-label={t("Input {0}", { 0: port.id })} className={control} value={active} onChange={e => { if (!e.target.value) setGraph(current => ({ ...current, edges: current.edges.filter(edge => !(edge.target_node_id === selected && edge.target_port === port.id)) })); else { const [source, sourceHandle] = JSON.parse(e.target.value); connect({ source, sourceHandle, target: selectedNode.id, targetHandle: port.id }); } }}><option value="">{t("Disconnected")}</option>{active && <option value={active}>{pinned?.label ?? t("Unavailable connection")}</option>}{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
-        {(() => { const onChange = (config: Record<string, unknown>) => setGraph(current => reconcileWorkbooks({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, config } : node) })); const incoming = graph.edges.filter(edge => edge.target_node_id === selected); const inputColumns = Object.fromEntries(incoming.map(edge => [edge.target_port, choicesSchema?.nodes.find(node => node.node_id === edge.source_node_id)?.columns ?? null])); return selectedNode.type in fieldDefaults ? <FieldOperationConfiguration issues={currentSchema?.issues.filter(issue => issue.node_id === selected) ?? []} type={selectedNode.type} config={selectedNode.config ?? {}} onChange={onChange} parameters={graph.parameters ?? []} /> : <NodeConfiguration type={selectedNode.type} config={selectedNode.config ?? {}} sources={sources} columns={Object.values(inputColumns)[0] ?? null} inputColumns={inputColumns} onChange={onChange} parameters={graph.parameters ?? []} issues={currentSchema?.issues.filter(issue => issue.node_id === selected)} validationPending={!currentSchema} />; })()}
-        <NodeOutputPanel workflowId={workflow.id} nodeId={selectedNode.id} outputPort={definition?.output_ports[0]?.id} revision={save.revision} dirty={dirty} parameters={parameters} issues={currentSchema?.issues.filter(issue => issue.node_id === selected) ?? []} />
+        {(() => { const onChange = (config: Record<string, unknown>) => setGraph(current => reconcileWorkbooks({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, config } : node) })); const incoming = graph.edges.filter(edge => edge.target_node_id === selected); const inputColumns = Object.fromEntries(incoming.map(edge => [edge.target_port, choicesSchema?.nodes.find(node => node.node_id === edge.source_node_id)?.columns ?? null])); return selectedNode.type in fieldDefaults ? <FieldOperationConfiguration issues={inspectorIssues.filter(issue => issue.node_id === selected)} type={selectedNode.type} config={selectedNode.config ?? {}} onChange={onChange} parameters={graph.parameters ?? []} /> : <NodeConfiguration type={selectedNode.type} config={selectedNode.config ?? {}} sources={sources} columns={Object.values(inputColumns)[0] ?? null} inputColumns={inputColumns} onChange={onChange} parameters={graph.parameters ?? []} issues={currentSchema?.issues.filter(issue => issue.node_id === selected)} validationPending={!currentSchema} />; })()}
+        <NodeOutputPanel onRuntimeIssues={reportRuntimeIssues} workflowId={workflow.id} nodeId={selectedNode.id} outputPort={definition?.output_ports[0]?.id} revision={save.revision} dirty={dirty} parameters={parameters} issues={currentSchema?.issues.filter(issue => issue.node_id === selected) ?? []} />
         <button className="mt-4 text-xs text-danger" onClick={() => { remove(new Set([selectedNode.id])); setSelected(null); }}>{t("Delete selected node")}</button>
       </>}
     </aside>

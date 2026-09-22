@@ -10,7 +10,11 @@ follow-up work. ADR-099 preserves typed executor runtime issues at the execution
 attributes comparison compiler errors to operand b. Deferred field checks identify the consumer
 input at materialization, without guessing the originating arithmetic node. Current schema issues
 mark inspector controls with aria-invalid, localized title and border. Runtime issues remain in
-preview; propagating them to controls and direct named-output paths are pending. No API/DB change.
+preview. ADR-100 reports current structured preview errors to the selected inspector, gated by
+draft identity/revision/parameters; retry and session changes clear old errors. A/B retain local
+errors. Preview content remounts on workflow/node/output/revision/dirty/parameter changes, so
+late requests cannot repopulate a new session. Direct named-field errors identify outputs.<port>.
+No API shape or database change.
 
 WorkbookBrowser is a source navigator beside the canvas, not an alternative execution graph.
 It lists uploaded metadata without extra dataset execution, mounts at most 50 matching sheets
