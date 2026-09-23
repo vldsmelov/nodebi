@@ -40,6 +40,12 @@ class CompositeBlock(Container):
     outputs: list[PublicPort] = Field(default_factory=list, max_length=2000)
 
 
+class ResultPosition(PresentationModel):
+    publication_id: uuid.UUID
+    position: ContainerPosition
+
+
 class WorkflowPresentation(PresentationModel):
     workbooks: list[WorkbookContainer] = Field(default_factory=list, max_length=200)
     blocks: list[CompositeBlock] = Field(default_factory=list, max_length=200)
+    results: list[ResultPosition] = Field(default_factory=list, max_length=1000)

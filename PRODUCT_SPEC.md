@@ -1,5 +1,12 @@
 # PRODUCT_SPEC.md
 
+## Table-driven node authoring (2026-09-23)
+
+Table outputs offer Join with another table and Add calculated field. Each action creates
+ordinary editable nodes atomically, without rewiring existing branches. Published outputs
+have visible result cards; these are presentation references, not calculation/chart nodes.
+The walkthrough is docs/TABLE_AUTHORING.md. Other table-header transformations remain deferred.
+
 ## Approved primary dashboard workflow (2026-09-22)
 
 Prepare data with nodes, publish a named table/scalar output, create independent visualizations,

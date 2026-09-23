@@ -1,4 +1,9 @@
 "use client";
+import { ResultNodeCard, resultCanvasId, type ResultCanvasNode } from "./ResultNodeCard";
+import { listVisualizations } from "@/features/dashboard/api";
+import { IndependentVisualizationDialog } from "@/features/dashboard/IndependentVisualizationDialog";
+import { TableStepDialog, type TableEndpoint } from "./TableStepDialog";
+import { reconcileResults, resultPositions } from "./result-presentation";
 import { PublishedResults } from "./PublishedResults";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type SetStateAction } from "react";
@@ -33,8 +38,8 @@ import { VisualizationView } from "@/features/dashboard/VisualizationView";
 import { NodeFinder } from "./NodeFinder";
 import type { GraphIssue, NodeDefinition, ParameterValues, Workflow } from "./types";
 
-const nodeTypes = { fieldNode: FieldNodeCard, workbookNode: WorkbookNodeCard, compositeNode: CompositeBlockCard };
-type CanvasNode = FieldCanvasNode | WorkbookCanvasNode | CompositeCanvasNode;
+const nodeTypes = { fieldNode: FieldNodeCard, workbookNode: WorkbookNodeCard, compositeNode: CompositeBlockCard, resultNode: ResultNodeCard };
+type CanvasNode = FieldCanvasNode | WorkbookCanvasNode | CompositeCanvasNode | ResultCanvasNode;
 const control = "w-full rounded border border-outline bg-control p-2 text-xs";
 const resolveCanvasConnection = (graph: GraphDraft, connection: Connection) => resolveBlockConnection(graph, resolveBookConnection(graph, connection));
 type Pin = { id: string; port?: string } | null;
@@ -48,7 +53,15 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
   const [recovered] = useState(() => writer.recover());
   const incompatible = recovered && (recovered.draft.format_version ?? 1) < 2;
   const [graph, updateGraph] = useState<GraphDraft>(recovered?.draft ?? initial);
-  const setGraph = useCallback((next: SetStateAction<GraphDraft>) => updateGraph(current => reconcileBlocks((() => { const value = typeof next === "function" ? next(current) : next; return current.format_version === 3 ? { ...value, format_version: 3, result_catalog: value.result_catalog ?? { outputs: [], contexts: [] } } : value; })())), []);
+  const setGraph = useCallback((next: SetStateAction<GraphDraft>) => updateGraph(current => reconcileBlocks(reconcileResults((() => { const value = typeof next === "function" ? next(current) : next; return current.format_version === 3 ? { ...value, format_version: 3, result_catalog: value.result_catalog ?? { outputs: [], contexts: [] } } : value; })()))), []);
+  const [tableStep, setTableStep] = useState<{ mode: "join" | "calculate"; source: TableEndpoint } | null>(null);
+  const [createPublication, setCreatePublication] = useState<string | null>(null);
+  const visuals = useQuery({ queryKey: ["visualizations", workflow.project_id], queryFn: () => listVisualizations(workflow.project_id) });
+  const createFromResult = async (id: string) => {
+    writer.change(graph);
+    await writer.flush();
+    if (!writer.dirty && writer.savedGraph === JSON.stringify(graph)) setCreatePublication(id);
+  };
   const [composeBlock, setComposeBlock] = useState(false);
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [openBlock, setOpenBlock] = useState<string | null>(null);
@@ -127,7 +140,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
       inputHints: dragSource ? Object.fromEntries(definition.input_ports.map(port => [port.id, inputHint(graph, catalog, dragSource, node.id, port.id, currentSchema)])) : undefined,
     } }] : [];
   }), [graph, catalog, choicesSchema, selected, dirty, currentSchema, activeFocus, focusOutput, dragSource]);
-  const edges = graph.edges.flatMap(edge => { const rendered = renderBlockWire(graph, renderBookWire(graph, renderWire(edge))); return rendered ? [{ ...rendered, className: path ? path.has(edge.id) ? "field-path-active" : "field-path-muted" : undefined, style: { stroke: palette.accent, strokeWidth: path?.has(edge.id) ? 3 : 1, opacity: path && !path.has(edge.id) ? 0.18 : 1 } }] : []; });
+  const edges: Edge[] = graph.edges.flatMap(edge => { const rendered = renderBlockWire(graph, renderBookWire(graph, renderWire(edge))); return rendered ? [{ ...rendered, className: path ? path.has(edge.id) ? "field-path-active" : "field-path-muted" : undefined, style: { stroke: palette.accent, strokeWidth: path?.has(edge.id) ? 3 : 1, opacity: path && !path.has(edge.id) ? 0.18 : 1 } }] : []; });
   const connect = (displayConnection: Connection) => {
     if (cancelledDrag.current) return;
     const connection = resolveCanvasConnection(graph, displayConnection);
@@ -139,7 +152,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
   const remove = (ids: Set<string>) => setGraph(current => reconcileWorkbooks({ ...current, nodes: current.nodes.filter(node => !ids.has(node.id)), edges: current.edges.filter(edge => !ids.has(edge.source_node_id) && !ids.has(edge.target_node_id)), presentation: { ...current.presentation, blocks: current.presentation?.blocks?.filter(block => !ids.has(blockCanvasId(block.id))) ?? [], workbooks: current.presentation?.workbooks?.filter(book => !ids.has(bookCanvasId(book.id))) ?? [] } }));
   const changeNodes = (changes: NodeChange<CanvasNode>[]) => {
     const positions = changes.filter(change => change.type === "position");
-    if (positions.some(change => change.position)) setGraph(current => ({ ...current, nodes: current.nodes.map(node => { const next = positions.find(change => change.id === node.id)?.position; return next ? { ...node, position: next } : node; }), presentation: { ...current.presentation, blocks: current.presentation?.blocks?.map(block => { const next = positions.find(change => change.id === blockCanvasId(block.id))?.position; return next ? { ...block, position: next } : block; }) ?? [], workbooks: current.presentation?.workbooks?.map(book => { const next = positions.find(change => change.id === bookCanvasId(book.id))?.position; return next ? { ...book, position: next } : book; }) ?? [] } }));
+    if (positions.some(change => change.position)) setGraph(current => ({ ...current, nodes: current.nodes.map(node => { const next = positions.find(change => change.id === node.id)?.position; return next ? { ...node, position: next } : node; }), presentation: { ...current.presentation, results: resultNodes.map(node => ({ publication_id: node.id.slice("publication:".length), position: positions.find(change => change.id === node.id)?.position ?? node.position })), blocks: current.presentation?.blocks?.map(block => { const next = positions.find(change => change.id === blockCanvasId(block.id))?.position; return next ? { ...block, position: next } : block; }) ?? [], workbooks: current.presentation?.workbooks?.map(book => { const next = positions.find(change => change.id === bookCanvasId(book.id))?.position; return next ? { ...book, position: next } : book; }) ?? [] } }));
     const deleted = new Set(changes.filter(change => change.type === "remove").map(change => change.id));
     if (deleted.size) remove(deleted);
   };
@@ -164,9 +177,35 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
     const parent = attachedBook(result.graph, result.nodeId);
     requestAnimationFrame(() => { void flow.current?.fitView({ nodes: [{ id: parent ? bookCanvasId(parent.id) : result.nodeId }], maxZoom: 1, padding: 0.3 }); });
   };
+  const displayGraph = reconcileBlocks(graph);
+  const resultNodes: ResultCanvasNode[] = (graph.result_catalog?.outputs ?? []).map(output => {
+    return { id: resultCanvasId(output.id), type: "resultNode", deletable: false,
+      position: resultPositions(graph).find(item => item.publication_id === output.id)!.position,
+      data: { name: output.name, kind: output.kind, stale: dirty || !currentSchema || !currentSchema.nodes.find(node => node.node_id === output.node_id)?.outputs?.[output.port],
+        consumers: (visuals.data ?? []).filter(item => item.publication_id === output.id).map(item => item.name),
+        href: `/projects/${workflow.project_id}/visualizations`,
+        onRename: name => setGraph(current => ({ ...current, result_catalog: { ...current.result_catalog, outputs: current.result_catalog!.outputs!.map(item => item.id === output.id ? { ...item, name } : item) } })),
+        onPreview: () => setPins(current => [{ id: output.node_id, port: output.port }, current[1]]),
+        onCreate: () => void createFromResult(output.id),
+      } };
+  });
+  for (const output of graph.result_catalog?.outputs ?? []) {
+    const wire = renderBlockWire(displayGraph, renderBookWire(graph, { id: resultCanvasId(output.id), source: output.node_id, sourceHandle: output.port, target: resultCanvasId(output.id), targetHandle: "result", deletable: false, selectable: false }));
+    if (wire) edges.push(wire);
+  }
+  const outputActions = (id: string, port?: string) => {
+    if (!port) return null;
+    const output = currentSchema?.nodes.find(node => node.node_id === id)?.outputs?.[port];
+    if (!output || !["dataset", "scalar"].includes(output.kind)) return null;
+    return <div className="my-3 flex flex-wrap gap-3 text-xs">
+      {output.kind === "dataset" && <><button onClick={() => setTableStep({ mode: "join", source: { nodeId: id, port } })}>{t("Join with\u2026")}</button><button onClick={() => setTableStep({ mode: "calculate", source: { nodeId: id, port } })}>{t("Add calculated field")}</button></>}
+      <button onClick={() => { const name = window.prompt(t("Result name")); if (name?.trim()) setGraph(current => ({ ...current, format_version: 3, result_catalog: { ...current.result_catalog, outputs: [...(current.result_catalog?.outputs ?? []), { id: crypto.randomUUID(), name: name.trim(), node_id: id, port, kind: output.kind as "dataset" | "scalar", context_ids: (current.result_catalog?.contexts ?? []).map(item => item.id) }] } })); }}>{t("Publish this output")}</button>
+    </div>;
+  };
   const canvasNodes: CanvasNode[] = [
+    ...resultNodes,
     ...nodes.filter(node => !attachedBook(graph, node.id) && !memberBlock(graph, node.id)?.collapsed),
-    ...(graph.presentation?.blocks ?? []).map(block => ({ id: blockCanvasId(block.id), type: "compositeNode" as const, position: block.position, data: {
+    ...(displayGraph.presentation?.blocks ?? []).map(block => ({ id: blockCanvasId(block.id), type: "compositeNode" as const, position: block.position, data: {
       block,
       portLabels: Object.fromEntries([...(block.inputs ?? []), ...(block.outputs ?? [])].map(port => {
         const node = nodes.find(node => node.id === port.node_id);
@@ -189,6 +228,8 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
   ];
   if (incompatible) return <p role="alert" className="p-6 text-danger">{t("A legacy draft is pending. Restore it in the classic editor first.")}</p>;
   return <div className="grid h-[calc(100vh-8rem)] grid-cols-[220px_minmax(320px,1fr)_350px] border-t border-outline" onKeyDown={event => { if (event.key === "Escape") { cancelledDrag.current = Boolean(dragSource); setFocusedOutput(null); setDragSource(null); setOperationMenu(null); } }}>
+    {tableStep && currentSchema && <TableStepDialog mode={tableStep.mode} sources={sources} source={tableStep.source} graph={graph} schema={currentSchema} close={() => setTableStep(null)} apply={(next, id) => { setGraph(next); setSelected(id); setTableStep(null); }} />}
+    {createPublication && <IndependentVisualizationDialog projectId={workflow.project_id} initialSelection={`${workflow.id}/${createPublication}`} close={() => setCreatePublication(null)} />}
     {editingBlock && graph.presentation?.blocks?.some(block => block.id === editingBlock) && <BlockSettings key={editingBlock} graph={graph} block={graph.presentation.blocks.find(block => block.id === editingBlock)!} catalog={catalog} schema={currentSchema} onClose={() => setEditingBlock(null)} onApply={block => { setGraph(current => editBlock(current, block)); setEditingBlock(null); }} />}
     {composeBlock && <BlockComposer graph={graph} onClose={() => setComposeBlock(false)} onPack={(ids, name) => { setGraph(current => packBlock(current, ids, name)); setComposeBlock(false); setSelected(null); }} />}
     {operationMenu && <OperationDropMenu choices={offeredOperations} catalog={catalog} sourceLabel={menuLabel} pending={!currentSchema} onChoose={chooseOperation} onClose={() => setOperationMenu(null)} />}
@@ -201,7 +242,11 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
         const book = attachedBook(graph, id);
         requestAnimationFrame(() => { void flow.current?.fitView({ nodes: [{ id: book ? bookCanvasId(book.id) : id }], maxZoom: 1, padding: 0.3 }); });
       }} />
-      <PublishedResults graph={graph} schema={currentSchema} onChange={setGraph} /><WorkbookBrowser sources={sources} nodes={graph.nodes} onOpen={openSheet} />
+      <PublishedResults graph={graph} schema={currentSchema} onChange={next => {
+        const used = (visuals.data ?? []).filter(item => item.workflow_id === workflow.id && item.publication_id && !(next.result_catalog?.outputs ?? []).some(output => output.id === item.publication_id));
+        if (!visuals.data || used.length) { setConnectionIssue(used.length ? `${t("Visualizations")}: ${used.map(item => item.name).join(", ")}` : t("Loading\u2026")); return; }
+        setGraph(next);
+      }} /><WorkbookBrowser sources={sources} nodes={graph.nodes} onOpen={openSheet} />
       <input aria-label={t("Search nodes")} className={control} value={search} onChange={e => setSearch(e.target.value)} />
       {catalog.filter(item => item.type !== "context_filter" && (graph.format_version !== 3 || item.category !== "visualization")).filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: definitionLabel(catalog, item, nodeName(item.type)) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {definitionLabel(catalog, item, nodeName(item.type))}</button>)}
     </aside>
@@ -227,6 +272,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
           setOperationMenu({ source: activeFocus, position: { x: origin.x + 360, y: origin.y + 80 } });
         }}>{t("Add operation to output")}</button>}
       </div>
+      {activeFocus && !readHandle(activeFocus.handle).column && outputActions(activeFocus.nodeId, readHandle(activeFocus.handle).port)}
       {activeFocus && <p className="px-2 text-xs text-muted">{t("Explicit connections; tracing stops at table transformations.")}</p>}
       {save.error && <div role="alert" className="p-2 text-xs text-danger">{errorText(save.error)} <button onClick={() => void writer.flush()}>{t("Retry save")}</button> <button onClick={() => { if (window.confirm(t("Discard this local draft and load the saved workflow?"))) { sessionStorage.removeItem(writer.key); window.location.reload(); } }}>{t("Discard draft and reload")}</button></div>}
       {connectionIssue && <p role="alert" className="p-2 text-xs text-danger">{t(connectionIssue)}</p>}
@@ -252,7 +298,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
           }
         }
       }} isValidConnection={connection => !connectionError(graph, catalog, resolveCanvasConnection(graph, { source: connection.source, target: connection.target, sourceHandle: connection.sourceHandle ?? null, targetHandle: connection.targetHandle ?? null }), currentSchema)} onNodeClick={(_, node) => { if (node.type === "fieldNode") setSelected(node.id); }} onPaneClick={() => setSelected(null)} colorMode={theme} minZoom={0.05} fitView><Background color={palette.grid} /><Controls /></ReactFlow></div>
-      {pins.some(Boolean) && <div className="grid max-h-72 grid-cols-2 gap-3 overflow-auto border-t border-outline p-3">{pins.map((pin, index) => <section key={index} aria-label={index ? "B" : "A"}>{pin && <><div className="flex gap-2 text-xs"><b>{index ? "B" : "A"}</b><span>{String(graph.nodes.find(node => node.id === pin.id)?.ui?.label || nodeName(graph.nodes.find(node => node.id === pin.id)?.type ?? ""))}</span><button onClick={() => setPins(current => index ? [current[0], null] : [null, current[1]])}>{t("Close")}</button></div>{graph.nodes.some(node => node.id === pin.id) ? <NodeOutputPanel workflowId={workflow.id} nodeId={pin.id} outputPort={pin.port} revision={save.revision} dirty={dirty} parameters={parameters} issues={[]} /> : <p>{t("Selected node is unavailable.")}</p>}</>}</section>)}</div>}
+      {pins.some(Boolean) && <div className="grid max-h-72 grid-cols-2 gap-3 overflow-auto border-t border-outline p-3">{pins.map((pin, index) => <section key={index} aria-label={index ? "B" : "A"}>{pin && <><div className="flex gap-2 text-xs"><b>{index ? "B" : "A"}</b><span>{String(graph.nodes.find(node => node.id === pin.id)?.ui?.label || nodeName(graph.nodes.find(node => node.id === pin.id)?.type ?? ""))}</span><button onClick={() => setPins(current => index ? [current[0], null] : [null, current[1]])}>{t("Close")}</button></div>{outputActions(pin.id, pin.port)}{graph.nodes.some(node => node.id === pin.id) ? <NodeOutputPanel workflowId={workflow.id} nodeId={pin.id} outputPort={pin.port} revision={save.revision} dirty={dirty} parameters={parameters} issues={[]} /> : <p>{t("Selected node is unavailable.")}</p>}</>}</section>)}</div>}
     </section>
     <aside className="overflow-auto border-l border-outline bg-panel p-4">
       <ParametersConfiguration definitions={graph.parameters ?? []} onChange={items => setGraph(current => ({ ...current, parameters: items }))} values={parameters} onValuesChange={setParameters} />
@@ -272,6 +318,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
         })}
         {(() => { const onChange = (config: Record<string, unknown>) => setGraph(current => reconcileWorkbooks({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, config } : node) })); const incoming = graph.edges.filter(edge => edge.target_node_id === selected); const inputColumns = Object.fromEntries(incoming.map(edge => [edge.target_port, choicesSchema?.nodes.find(node => node.node_id === edge.source_node_id)?.columns ?? null])); return selectedNode.type in fieldDefaults ? <FieldOperationConfiguration issues={inspectorIssues.filter(issue => issue.node_id === selected)} type={selectedNode.type} config={selectedNode.config ?? {}} onChange={onChange} parameters={graph.parameters ?? []} /> : <NodeConfiguration version={selectedNode.version} type={selectedNode.type} config={selectedNode.config ?? {}} sources={sources} columns={inputColumns.table ?? inputColumns.input ?? Object.values(inputColumns)[0] ?? null} inputColumns={inputColumns} onChange={onChange} parameters={graph.parameters ?? []} issues={currentSchema?.issues.filter(issue => issue.node_id === selected)} validationPending={!currentSchema} />; })()}
         {definition?.category === "visualization" && <><button className="mt-4 w-full rounded border border-outline p-2 text-sm" disabled={dirty} onClick={() => setChartRequest({ node: selectedNode.id, revision: save.revision, parameters: parameterKey })}>{t("Preview visualization")}</button>{!dirty && chartRequest?.node === selectedNode.id && chartRequest.revision === save.revision && chartRequest.parameters === parameterKey && <div className="mt-4 h-72"><VisualizationView id={selectedNode.id} revision={save.revision} parameters={parameters} /></div>}</>}
+        {outputActions(selectedNode.id, definition?.output_ports[0]?.id)}
         <NodeOutputPanel onRuntimeIssues={reportRuntimeIssues} workflowId={workflow.id} nodeId={selectedNode.id} outputPort={definition?.output_ports[0]?.id} revision={save.revision} dirty={dirty} parameters={parameters} issues={currentSchema?.issues.filter(issue => issue.node_id === selected) ?? []} />
         <button className="mt-4 text-xs text-danger" onClick={() => { remove(new Set([selectedNode.id])); setSelected(null); }}>{t("Delete selected node")}</button>
       </>}

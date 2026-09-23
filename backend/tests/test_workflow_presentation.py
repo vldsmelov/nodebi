@@ -124,7 +124,7 @@ def test_containers_atomic_restore_omission_conflict_unpack_and_execution(
         # Explicit empty metadata unwraps the block atomically without changing computations.
         unpacked = client.put(path, json={**omitted, "expected_revision": 4, "presentation": {}})
         assert unpacked.status_code == 200
-        assert unpacked.json()["presentation"] == {"workbooks": [], "blocks": []}
+        assert unpacked.json()["presentation"] == {"workbooks": [], "blocks": [], "results": []}
         assert result() == [{"value": 8.0}]
     finally:
         app.dependency_overrides.clear()

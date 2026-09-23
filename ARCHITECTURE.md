@@ -1,5 +1,17 @@
 # ARCHITECTURE.md
 
+## Result cards and table-driven authoring (ADR-107, 2026-09-23)
+
+WorkflowPresentation.results stores publication_id and position only, within existing JSON
+and workflow CAS. Omitted result positions survive older client saves; an explicit empty list
+clears positions. References must be unique and belong to the effective publication catalog.
+No schema migration or format upgrade beyond v3 is needed. Canvas publication edges never
+enter the computation DAG; collapsed blocks expose actual published endpoints.
+Join and calculated-column dialogs create existing executor nodes and all their incoming
+edges in one history operation. Formulas use the existing safe compiler; no UI execution or
+implicit rewriting of downstream branches occurs. Visualization creation flushes pending
+workflow changes and opens only after successful acknowledgement.
+
 ## Published results and independent visualization documents (ADR-106, 2026-09-22)
 
 For new workflows the primary format is v3. Workflow.result_catalog stores stable named

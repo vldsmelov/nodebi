@@ -4,6 +4,7 @@ import { Database, Calculator, ChartColumn } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import type { NodeDefinition, NodeSchemaResult, WorkflowNode } from "./types";
 import { fieldHandle } from "./field-wires";
+import { formulaParts } from "./formula-presentation";
 import type { InputHint } from "./field-interaction";
 import { fieldWindow, FIELD_ROW_HEIGHT, FIELD_VIEW_HEIGHT } from "./field-window";
 
@@ -22,14 +23,16 @@ export function FieldNodeCard({ id, data, selected, compact = false, handleFor =
   for (const handle of data.connected) {
     if (!outputs.some(item => item.handle === handle)) outputs.push({ handle, label: t("Unavailable connection"), kind: "unknown" });
   }
-  const pinned = outputs.filter(item => data.connected.includes(item.handle) || data.focusedHandle === item.handle || data.definition.output_ports.some(port => port.id === item.handle));
+  const calculatedHandle = data.node.type === "calculated_column" ? fieldHandle(data.definition.output_ports[0]?.id ?? "dataset", `calc_${data.node.id.replaceAll("-", "")}`) : null;
+  const pinned = outputs.filter(item => item.handle === calculatedHandle || data.connected.includes(item.handle) || data.focusedHandle === item.handle || data.definition.output_ports.some(port => port.id === item.handle));
   const remaining = expanded && !compact ? outputs.filter(item => !pinned.includes(item) && item.label.toLowerCase().includes(search.toLowerCase())) : [];
   const window = fieldWindow(remaining.length, scrollTop);
   const visible = remaining.slice(window.start, window.end);
   const layout = JSON.stringify([[...pinned, ...visible].map(item => item.handle), scrollTop]);
   useEffect(() => { refresh(id); }, [id, layout, refresh]);
   const Icon = data.definition.category === "source" ? Database : data.definition.category === "visualization" ? ChartColumn : Calculator;
-  const summary = data.node.config?.expression ?? data.node.config?.operation ?? data.node.config?.sheet_name ?? data.node.config?.name;
+  const rawSummary = data.node.config?.expression ?? data.node.config?.operation ?? data.node.config?.sheet_name ?? data.node.config?.name;
+  const summary = data.node.type === "calculated_column" && typeof rawSummary === "string" ? formulaParts(rawSummary, data.schema?.outputs?.[data.definition.output_ports[0]?.id]?.columns ?? null).map(part => part.column?.display_name ?? part.text).join("") : rawSummary;
   const row = (item: typeof outputs[number]) => <div key={item.handle} className="relative h-6 px-4 py-1 text-right text-xs"><button className={`nodrag nopan block w-full truncate text-right ${data.focusedHandle === item.handle ? "font-bold text-accent underline" : ""}`} aria-label={t("Show connections for {0}", { 0: item.label })} aria-pressed={data.focusedHandle === item.handle} title={item.label} onClick={event => { event.stopPropagation(); data.onFocusOutput?.(item.handle); }}>{item.label} · {t(item.kind)} →</button><Handle type="source" position={Position.Right} id={handleFor(item.handle)} title={item.label} /></div>;
   return <div className={`w-72 rounded-xl border bg-control shadow-lg ${selected ? "border-accent" : "border-outline"}`}>
     <div className="flex items-center gap-2 border-b border-outline p-3"><Icon size={18} /><div className="min-w-0"><strong className="block truncate text-sm">{String(data.node.ui?.label || nodeName(data.node.type))}</strong><span className="text-xs text-muted">{typeof summary === "string" ? t(summary) : nodeName(data.node.type)}</span></div></div>

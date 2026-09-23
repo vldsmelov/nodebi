@@ -49,8 +49,13 @@ export function reconcileBlocks(graph: GraphDraft): GraphDraft {
       const item = { id: "", label: `${String(graph.nodes.find(node => node.id === node_id)?.ui?.label || port)} / ${port}`.slice(0, 200), node_id, port, column_id };
       const ports = target ? inputs : outputs;
       if (!ports.some(existing => sameEndpoint(existing, item))) ports.push({ ...item, id: crypto.randomUUID() });
-    }
-    return [{ ...block, node_ids, inputs, outputs }];
+      }
+      for (const publication of graph.result_catalog?.outputs ?? []) {
+        if (node_ids.includes(publication.node_id) && !outputs.some(port => port.node_id === publication.node_id && port.port === publication.port && !port.column_id)) {
+          outputs.push({ id: publication.id, label: publication.name, node_id: publication.node_id, port: publication.port, column_id: null });
+        }
+      }
+      return [{ ...block, node_ids, inputs, outputs }];
   });
   return { ...graph, presentation: { ...graph.presentation, blocks } };
 }

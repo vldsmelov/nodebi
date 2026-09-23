@@ -14,7 +14,7 @@ test("v1 editor cannot overwrite v2 and retains its rejected draft", async ({ pa
     expect(upgrade.ok()).toBe(true);
     const saved = await upgrade.json();
     expect(saved.edges).toEqual(edges);
-    expect(saved.presentation).toEqual(presentation);
+    expect(saved.presentation).toEqual({ ...presentation, results: [] });
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByTitle("Add Select Columns").click();
     await expect(page.getByRole("alert").filter({ hasText: "supports its format" })).toBeVisible();

@@ -9,9 +9,9 @@ import { VisualizationConfiguration } from "@/features/workflow/VisualizationCon
 import { VisualizationResultView } from "./VisualizationView";
 import type { Visualization, VisualizationResult } from "./api";
 
-export function IndependentVisualizationDialog({ projectId, visualization, copy = false, close, onCreated }: { projectId: string; visualization?: Visualization; copy?: boolean; close: () => void; onCreated?: (value: Visualization) => void }) {
+export function IndependentVisualizationDialog({ projectId, visualization, initialSelection, copy = false, close, onCreated }: { projectId: string; visualization?: Visualization; initialSelection?: string; copy?: boolean; close: () => void; onCreated?: (value: Visualization) => void }) {
   const { t, nodeName, errorText } = useI18n(); const client = useQueryClient(); const dialog = useRef<HTMLDialogElement>(null);
-  const [selection, setSelection] = useState(visualization ? `${visualization.workflow_id}/${visualization.publication_id}` : "");
+  const [selection, setSelection] = useState(visualization ? `${visualization.workflow_id}/${visualization.publication_id}` : initialSelection ?? "");
   const [name, setName] = useState(visualization?.name ?? ""), [type, setType] = useState<Visualization["type"]>(visualization?.type ?? "bar_chart"), [config, setConfig] = useState<Record<string, unknown>>(visualization?.config ?? {});
   const [busy, setBusy] = useState(false), [error, setError] = useState<unknown>(null), [acknowledged, setAcknowledged] = useState(false), [preview, setPreview] = useState<VisualizationResult | null>(null);
   useEffect(() => { dialog.current?.showModal(); }, []);
@@ -38,7 +38,7 @@ export function IndependentVisualizationDialog({ projectId, visualization, copy 
       }
     } catch (error) { setError(error); } finally { setBusy(false); }
   };
-  const dirty = type !== (visualization?.type ?? "bar_chart") || selection !== (visualization ? `${visualization.workflow_id}/${visualization.publication_id}` : "") || name !== (visualization?.name ?? "") || JSON.stringify(config) !== JSON.stringify(visualization?.config ?? {});
+  const dirty = type !== (visualization?.type ?? "bar_chart") || selection !== (visualization ? `${visualization.workflow_id}/${visualization.publication_id}` : initialSelection ?? "") || name !== (visualization?.name ?? "") || JSON.stringify(config) !== JSON.stringify(visualization?.config ?? {});
   useEffect(() => {
     const guard = (event: BeforeUnloadEvent) => { if (dirty || busy) { event.preventDefault(); event.returnValue = ""; } };
     window.addEventListener("beforeunload", guard); return () => window.removeEventListener("beforeunload", guard);

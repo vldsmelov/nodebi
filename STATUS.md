@@ -1,9 +1,42 @@
 # Node BI Development Status
 
-Last updated: 2026-09-22
+Last updated: 2026-09-23
 Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
+
+Current milestone: table-driven node authoring and visible published results (ADR-107).
+Implemented result cards, named Join creation and calculated-column creation from table outputs.
+Each operation creates ordinary nodes/wires in one undo step. Calculated fields expose a pinned
+field port and complete table; existing branches remain unchanged. Publication cards share the
+existing catalog and visualization documents, and their wires never enter the execution DAG.
+Positions save through existing JSON/CAS, survive older clients omitting the new field, and
+remain visible outside collapsed blocks. Used publications show their consumers and cannot
+be removed. Creating a visualization flushes pending graph changes and requires acknowledgement.
+
+Checks: 371 backend tests passed with SQLite/PostgreSQL (seven PostgreSQL-only SQLite skips);
+128 frontend tests passed. Ruff/format/mypy, TypeScript/ESLint/OpenAPI and production Docker
+builds pass. Browser checks cover two books -> Join -> Quantity * Price -> published result ->
+chart + table -> dashboard, undo/redo, card movement, used-publication protection and reload.
+Existing publication/period tests, delayed responses, two tabs, format guard, six financial
+screens in both themes/three languages and 168-node/1024-column scale checks pass.
+Numeric parity: all 164 slices / 1551 widget pages match the financial oracle. A backend and
+PostgreSQL restart restores the new demo graph, card position, visualization data and dashboard.
+
+Initial failures were test expectations for the additive results=[] API field and a wrong
+chart-field selector. Two simultaneous Playwright commands collided in the shared trace
+directory; sequential reruns passed. Visual review found overlapping initial Join placement;
+new Join nodes now start to the right of both inputs, with a regression assertion.
+
+Guide: docs/TABLE_AUTHORING.md. Synthetic public fixtures: join-orders.xlsx and join-prices.xlsx.
+Retained UI-built demo: project fea71ce7-ca29-41cb-b727-56794803fd77,
+workflow 8138d4a7-8935-4b52-af56-ec03979324ef (four nodes, one publication, two visualizations).
+Private evidence: .backups/table-authoring-demo.json, table-authoring-restart.json (verified),
+table-authoring-financial-parity.json. The financial project was not edited or reset.
+Next: human operator measurements. Other table-header operations remain deferred; Join retains
+the existing single key-pair/inner/left scope. No known P0/P1; no human speed percentage claimed.
+
+Previous completed milestone:
 
 Current milestone: independent visualizations and simple interactive dashboards (ADR-106).
 D1-D5 completed. Post-restart browser verification passed. Next: human operator measurements;

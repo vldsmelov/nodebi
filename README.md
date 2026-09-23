@@ -1,5 +1,7 @@
 # Node BI
 
+New authoring walkthrough: [two Excel books, Join, calculated field and visible result cards](docs/TABLE_AUTHORING.md).
+
 Primary dashboard workflow: [published results, independent visualizations and shared period](docs/PUBLISHED_DASHBOARDS.md).
 The current financial project uses 28 publications and 53 independent visualizations; its
 calculation graph contains no chart nodes. ADR-106 supersedes the historical bound-chart workflow below.

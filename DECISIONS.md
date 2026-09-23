@@ -1,5 +1,26 @@
 # DECISIONS.md
 
+# ADR-107 - Visible results and table-driven node creation
+
+Date: 2026-09-23. Status: ACCEPTED. Extends ADR-106.
+
+Context: common Join and arithmetic tasks required selecting node types and wiring helper
+operations. Published outputs were difficult to locate on the canvas.
+
+Decision: create ordinary Join or Calculated Column nodes through schema-aware table actions.
+Keep one calculated-column card per calculation; expose its new field and complete table.
+Result cards reference existing publication identities and persist only layout in presentation.
+Reuse independent visualization authoring with a preselected publication after a successful save.
+
+Rejected: embedding a second transformation pipeline inside Join configuration, adding a
+result executor, or duplicating publication settings in canvas metadata. These would hide
+calculation order or introduce multiple sources of truth.
+
+Consequences: new optional presentation positions and generated API types, no DB migration;
+older saves preserve omitted positions. Existing branches stay unchanged. Join retains one
+explicit key pair and inner/left semantics. Other table actions remain out of this delivery.
+Human speed improvements require measurement; fewer wiring actions alone are not a timing result.
+
 # ADR-106 - Published data outputs and independent visualizations
 
 Date: 2026-09-22. Status: ACCEPTED. Supersedes chart-configuration ownership in ADR-104 for

@@ -1270,6 +1270,15 @@ export interface components {
             /** Contexts */
             contexts?: components["schemas"]["DataContext"][];
         };
+        /** ResultPosition */
+        ResultPosition: {
+            /**
+             * Publication Id
+             * Format: uuid
+             */
+            publication_id: string;
+            position: components["schemas"]["ContainerPosition"];
+        };
         /** RowContextRead */
         RowContextRead: {
             /**
@@ -1603,6 +1612,8 @@ export interface components {
             workbooks?: components["schemas"]["WorkbookContainer"][];
             /** Blocks */
             blocks?: components["schemas"]["CompositeBlock"][];
+            /** Results */
+            results?: components["schemas"]["ResultPosition"][];
         };
         /** WorkflowRead */
         WorkflowRead: {

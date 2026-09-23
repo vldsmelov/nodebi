@@ -141,6 +141,19 @@ def save_graph(
             select(Workflow.result_catalog).where(Workflow.id == workflow.id)
         )
     catalog = payload.result_catalog or ResultCatalog.model_validate(stored_catalog or {})
+    publication_ids = {output.id for output in catalog.outputs}
+    if payload.presentation is None or "results" not in payload.presentation.model_fields_set:
+        presentation = presentation.model_copy(
+            update={
+                "results": [
+                    item
+                    for item in WorkflowPresentation.model_validate(
+                        stored_presentation or {}
+                    ).results
+                    if item.publication_id in publication_ids
+                ]
+            }
+        )
     nodes_by_id = {node.id: node for node in payload.nodes}
     for endpoint in [
         *catalog.outputs,
@@ -165,6 +178,11 @@ def save_graph(
             "PUBLICATION_IN_USE",
             "Reassign visualizations before removing their published result.",
             409,
+        )
+    result_ids = [item.publication_id for item in presentation.results]
+    if len(result_ids) != len(set(result_ids)) or not set(result_ids) <= publication_ids:
+        raise ApplicationError(
+            "INVALID_PRESENTATION", "Result positions must reference distinct published outputs."
         )
     protect_used_visualizations(session, workflow, payload)
     for node in payload.nodes:

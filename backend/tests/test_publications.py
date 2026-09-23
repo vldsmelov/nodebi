@@ -67,6 +67,43 @@ def test_independent_documents_preview_copy_and_workflow_cas(
         )
         assert response.status_code == 200, response.text
         graph = response.json()
+        # Presentation-only result cards share publication identity and graph CAS.
+        position = {"publication_id": publication["id"], "position": {"x": 120, "y": 80}}
+
+        def save_positions(presentation: dict[str, object]) -> dict[str, object]:
+            nonlocal graph
+            saved = client.put(
+                path,
+                json={
+                    "name": graph["name"],
+                    "nodes": graph["nodes"],
+                    "edges": graph["edges"],
+                    "format_version": 3,
+                    "expected_revision": graph["revision"],
+                    "presentation": presentation,
+                },
+            )
+            assert saved.status_code == 200, saved.text
+            graph = saved.json()
+            return graph["presentation"]
+
+        assert save_positions({"results": [position]})["results"] == [position]
+        assert save_positions({})["results"] == [position]
+        assert save_positions({"results": []}).get("results", []) == []
+        assert save_positions({"results": [position]})["results"] == [position]
+        invalid = client.put(
+            path,
+            json={
+                "name": graph["name"],
+                "nodes": graph["nodes"],
+                "edges": graph["edges"],
+                "format_version": 3,
+                "expected_revision": graph["revision"],
+                "presentation": {"results": [position, position]},
+            },
+        )
+        assert invalid.status_code == 422
+        assert client.get(path).json() == graph
         body = {
             "workflow_id": graph["id"],
             "publication_id": publication["id"],

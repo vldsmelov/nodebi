@@ -1,5 +1,14 @@
 # TASKS.md
 
+## Table-driven node authoring (authorized 2026-09-23)
+
+* [x] T1: Publication cards, layout CAS and omission compatibility, independent visualization entry.
+* [x] T2: Join creation from a table with named source/key selection and one undo action.
+* [x] T3: Calculated-column form, explicit division policy and pinned new field output.
+* [x] T4: Browser acceptance, existing financial parity, restart verification and documentation.
+
+Guide: docs/TABLE_AUTHORING.md. No additional header transformations in this scope.
+
 ## Independent visualizations and shared dashboard context (authorized 2026-09-22)
 
 * [x] D1: Format-v3 published table/scalar outputs, shared context declarations, standalone revisioned visualization CRUD/schema/preview/copy and authoring UI.
