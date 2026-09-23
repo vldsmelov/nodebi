@@ -1,5 +1,26 @@
 # DECISIONS.md
 
+# ADR-108 - Guided table authoring and full-input Join feedback
+
+Date: 2026-09-23. Status: ACCEPTED. Extends ADR-107.
+
+Context: creating a calculation was simpler than editing it; the full node catalog competed
+with common actions, and a narrow preview made Join mistakes difficult to inspect.
+Decision: reuse one create/edit calculation dialog, recognizing only its own safe arithmetic
+grammar. Complex expressions stay in formula mode without lossy conversion. Editing preserves
+node and field identities. A Next step panel offers Join, calculation, Group By and publication;
+the full catalog remains available under disclosure. Preview occupies the bottom workspace,
+with optional A/B pins. Captions derive from configuration unless explicitly named by the author.
+
+Join reports full-input matched/unmatched counts, duplicate non-null keys and row expansion,
+using its existing key-count computation. Typed optional preview metadata belongs only to the
+requested Join node; downstream previews must not misrepresent upstream counts. Preview limits
+do not limit this report. Null keys retain existing non-matching semantics.
+
+Alternatives rejected: sampling Join quality from preview rows, a second formula interpreter,
+and hidden deduplication. No persistence migration or workflow-format change is required.
+Human time savings remain unmeasured; automated completion and reduced wiring are narrower claims.
+
 # ADR-107 - Visible results and table-driven node creation
 
 Date: 2026-09-23. Status: ACCEPTED. Extends ADR-106.

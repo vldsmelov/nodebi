@@ -4,6 +4,10 @@ import { listVisualizations } from "@/features/dashboard/api";
 import { IndependentVisualizationDialog } from "@/features/dashboard/IndependentVisualizationDialog";
 import { TableStepDialog, type TableEndpoint } from "./TableStepDialog";
 import { reconcileResults, resultPositions } from "./result-presentation";
+import { NextStepPanel } from "./NextStepPanel";
+import { GroupStepDialog } from "./GroupStepDialog";
+import { PublishResultDialog } from "./PublishResultDialog";
+import { nodeCaption } from "./node-caption";
 import { PublishedResults } from "./PublishedResults";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type SetStateAction } from "react";
@@ -54,7 +58,9 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
   const incompatible = recovered && (recovered.draft.format_version ?? 1) < 2;
   const [graph, updateGraph] = useState<GraphDraft>(recovered?.draft ?? initial);
   const setGraph = useCallback((next: SetStateAction<GraphDraft>) => updateGraph(current => reconcileBlocks(reconcileResults((() => { const value = typeof next === "function" ? next(current) : next; return current.format_version === 3 ? { ...value, format_version: 3, result_catalog: value.result_catalog ?? { outputs: [], contexts: [] } } : value; })()))), []);
-  const [tableStep, setTableStep] = useState<{ mode: "join" | "calculate"; source: TableEndpoint } | null>(null);
+  const [tableStep, setTableStep] = useState<{ mode: "join" | "calculate"; source: TableEndpoint; editNodeId?: string } | null>(null);
+  const [groupSource, setGroupSource] = useState<TableEndpoint | null>(null);
+  const [publicationSource, setPublicationSource] = useState<(TableEndpoint & { kind: "dataset" | "scalar"; name: string }) | null>(null);
   const [createPublication, setCreatePublication] = useState<string | null>(null);
   const visuals = useQuery({ queryKey: ["visualizations", workflow.project_id], queryFn: () => listVisualizations(workflow.project_id) });
   const createFromResult = async (id: string) => {
@@ -133,13 +139,13 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
   const definition = findNodeDefinition(catalog, selectedNode);
   const nodes: FieldCanvasNode[] = useMemo(() => graph.nodes.flatMap(node => {
     const definition = findNodeDefinition(catalog, node);
-    return definition ? [{ id: node.id, type: "fieldNode" as const, position: node.position, selected: node.id === selected, data: { node, definition, schema: choicesSchema?.nodes.find(item => item.node_id === node.id), connected: graph.edges.filter(edge => edge.source_node_id === node.id).map(edge => fieldHandle(edge.source_port, edge.source_column_id)), stale: dirty || !currentSchema,
+    return definition ? [{ id: node.id, type: "fieldNode" as const, position: node.position, selected: node.id === selected, data: { node, definition, caption: nodeCaption(graph, node, choicesSchema, nodeName), schema: choicesSchema?.nodes.find(item => item.node_id === node.id), connected: graph.edges.filter(edge => edge.source_node_id === node.id).map(edge => fieldHandle(edge.source_port, edge.source_column_id)), stale: dirty || !currentSchema,
       largeGraph: graph.nodes.length > 40,
       focusedHandle: activeFocus?.nodeId === node.id ? activeFocus.handle : undefined,
       onFocusOutput: (handle: string) => focusOutput(node.id, handle),
       inputHints: dragSource ? Object.fromEntries(definition.input_ports.map(port => [port.id, inputHint(graph, catalog, dragSource, node.id, port.id, currentSchema)])) : undefined,
     } }] : [];
-  }), [graph, catalog, choicesSchema, selected, dirty, currentSchema, activeFocus, focusOutput, dragSource]);
+  }), [graph, catalog, choicesSchema, selected, dirty, currentSchema, activeFocus, focusOutput, dragSource, nodeName]);
   const edges: Edge[] = graph.edges.flatMap(edge => { const rendered = renderBlockWire(graph, renderBookWire(graph, renderWire(edge))); return rendered ? [{ ...rendered, className: path ? path.has(edge.id) ? "field-path-active" : "field-path-muted" : undefined, style: { stroke: palette.accent, strokeWidth: path?.has(edge.id) ? 3 : 1, opacity: path && !path.has(edge.id) ? 0.18 : 1 } }] : []; });
   const connect = (displayConnection: Connection) => {
     if (cancelledDrag.current) return;
@@ -193,15 +199,11 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
     const wire = renderBlockWire(displayGraph, renderBookWire(graph, { id: resultCanvasId(output.id), source: output.node_id, sourceHandle: output.port, target: resultCanvasId(output.id), targetHandle: "result", deletable: false, selectable: false }));
     if (wire) edges.push(wire);
   }
-  const outputActions = (id: string, port?: string) => {
-    if (!port) return null;
-    const output = currentSchema?.nodes.find(node => node.node_id === id)?.outputs?.[port];
-    if (!output || !["dataset", "scalar"].includes(output.kind)) return null;
-    return <div className="my-3 flex flex-wrap gap-3 text-xs">
-      {output.kind === "dataset" && <><button onClick={() => setTableStep({ mode: "join", source: { nodeId: id, port } })}>{t("Join with\u2026")}</button><button onClick={() => setTableStep({ mode: "calculate", source: { nodeId: id, port } })}>{t("Add calculated field")}</button></>}
-      <button onClick={() => { const name = window.prompt(t("Result name")); if (name?.trim()) setGraph(current => ({ ...current, format_version: 3, result_catalog: { ...current.result_catalog, outputs: [...(current.result_catalog?.outputs ?? []), { id: crypto.randomUUID(), name: name.trim(), node_id: id, port, kind: output.kind as "dataset" | "scalar", context_ids: (current.result_catalog?.contexts ?? []).map(item => item.id) }] } })); }}>{t("Publish this output")}</button>
-    </div>;
-  };
+  const activeEndpoint = selectedNode ? { nodeId: selectedNode.id, port: activeFocus?.nodeId === selectedNode.id ? readHandle(activeFocus.handle).port : definition?.output_ports[0]?.id ?? "" } : null;
+  const activeOutput = currentSchema?.nodes.find(node => node.node_id === activeEndpoint?.nodeId)?.outputs?.[activeEndpoint?.port ?? ""];
+  const selectedCaption = selectedNode ? nodeCaption(graph, selectedNode, choicesSchema, nodeName) : "";
+  const previewPins: [Pin, Pin] = pins.some(Boolean) ? pins : [activeEndpoint ? { id: activeEndpoint.nodeId, port: activeEndpoint.port } : null, null];
+  const applyStep = (next: GraphDraft, id: string) => { setGraph(next); setSelected(id); setTableStep(null); setGroupSource(null); };
   const canvasNodes: CanvasNode[] = [
     ...resultNodes,
     ...nodes.filter(node => !attachedBook(graph, node.id) && !memberBlock(graph, node.id)?.collapsed),
@@ -227,30 +229,42 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
     } })),
   ];
   if (incompatible) return <p role="alert" className="p-6 text-danger">{t("A legacy draft is pending. Restore it in the classic editor first.")}</p>;
-  return <div className="grid h-[calc(100vh-8rem)] grid-cols-[220px_minmax(320px,1fr)_350px] border-t border-outline" onKeyDown={event => { if (event.key === "Escape") { cancelledDrag.current = Boolean(dragSource); setFocusedOutput(null); setDragSource(null); setOperationMenu(null); } }}>
-    {tableStep && currentSchema && <TableStepDialog mode={tableStep.mode} sources={sources} source={tableStep.source} graph={graph} schema={currentSchema} close={() => setTableStep(null)} apply={(next, id) => { setGraph(next); setSelected(id); setTableStep(null); }} />}
+  return <div className="grid h-[calc(100vh-8rem)] grid-cols-[220px_minmax(320px,1fr)_350px] grid-rows-[minmax(0,1fr)_auto] border-t border-outline" onKeyDown={event => { if (event.key === "Escape") { cancelledDrag.current = Boolean(dragSource); setFocusedOutput(null); setDragSource(null); setOperationMenu(null); } }}>
+    {tableStep && currentSchema && <TableStepDialog mode={tableStep.mode} editNodeId={tableStep.editNodeId} sources={sources} source={tableStep.source} graph={graph} schema={currentSchema} close={() => setTableStep(null)} apply={applyStep} />}
+    {groupSource && currentSchema && <GroupStepDialog graph={graph} source={groupSource} columns={currentSchema.nodes.find(node => node.node_id === groupSource.nodeId)?.outputs?.[groupSource.port]?.columns ?? []} close={() => setGroupSource(null)} apply={applyStep} />}
+    {publicationSource && <PublishResultDialog initialName={publicationSource.name} close={() => setPublicationSource(null)} publish={name => {
+      setGraph(current => ({ ...current, format_version: 3, result_catalog: { ...current.result_catalog, outputs: [...(current.result_catalog?.outputs ?? []), { id: crypto.randomUUID(), name, node_id: publicationSource.nodeId, port: publicationSource.port, kind: publicationSource.kind, context_ids: (current.result_catalog?.contexts ?? []).map(item => item.id) }] } })); setPublicationSource(null);
+    }} />}
     {createPublication && <IndependentVisualizationDialog projectId={workflow.project_id} initialSelection={`${workflow.id}/${createPublication}`} close={() => setCreatePublication(null)} />}
     {editingBlock && graph.presentation?.blocks?.some(block => block.id === editingBlock) && <BlockSettings key={editingBlock} graph={graph} block={graph.presentation.blocks.find(block => block.id === editingBlock)!} catalog={catalog} schema={currentSchema} onClose={() => setEditingBlock(null)} onApply={block => { setGraph(current => editBlock(current, block)); setEditingBlock(null); }} />}
     {composeBlock && <BlockComposer graph={graph} onClose={() => setComposeBlock(false)} onPack={(ids, name) => { setGraph(current => packBlock(current, ids, name)); setComposeBlock(false); setSelected(null); }} />}
     {operationMenu && <OperationDropMenu choices={offeredOperations} catalog={catalog} sourceLabel={menuLabel} pending={!currentSchema} onChoose={chooseOperation} onClose={() => setOperationMenu(null)} />}
-    <aside className="overflow-auto bg-panel p-3">
+    <aside className="row-span-2 min-h-0 overflow-auto bg-panel p-3">
       <p className="mb-3 text-xs text-muted">{t(graph.format_version === 3 ? "Prepare data here, publish results, then create visualizations on the dashboard." : "Field editor preview. Existing projects are not converted.")}</p>
-      <NodeFinder nodes={graph.nodes.map(node => ({ id: node.id, label: `${String(node.ui?.label || node.config?.sheet_name || node.config?.name || nodeName(node.type))} · ${nodeName(node.type)}` }))} selected={selected} onSelect={id => {
+      <NodeFinder nodes={graph.nodes.map(node => ({ id: node.id, label: `${nodeCaption(graph, node, choicesSchema, nodeName)} · ${nodeName(node.type)}` }))} selected={selected} onSelect={id => {
         setSelected(id);
         const block = memberBlock(graph, id);
         if (block?.collapsed) { toggleBlock(block.id, false, id); return; }
         const book = attachedBook(graph, id);
         requestAnimationFrame(() => { void flow.current?.fitView({ nodes: [{ id: book ? bookCanvasId(book.id) : id }], maxZoom: 1, padding: 0.3 }); });
       }} />
+      <NextStepPanel label={selectedCaption} kind={activeOutput?.kind} pending={!currentSchema}
+        onJoin={() => { if (activeEndpoint) setTableStep({ mode: "join", source: activeEndpoint }); }}
+        onCalculate={() => { if (activeEndpoint) setTableStep({ mode: "calculate", source: activeEndpoint }); }}
+        onGroup={() => { if (activeEndpoint) setGroupSource(activeEndpoint); }}
+        onPublish={() => { if (activeEndpoint && activeOutput && ["dataset", "scalar"].includes(activeOutput.kind)) setPublicationSource({ ...activeEndpoint, kind: activeOutput.kind as "dataset" | "scalar", name: selectedCaption }); }} />
       <PublishedResults graph={graph} schema={currentSchema} onChange={next => {
         const used = (visuals.data ?? []).filter(item => item.workflow_id === workflow.id && item.publication_id && !(next.result_catalog?.outputs ?? []).some(output => output.id === item.publication_id));
         if (!visuals.data || used.length) { setConnectionIssue(used.length ? `${t("Visualizations")}: ${used.map(item => item.name).join(", ")}` : t("Loading\u2026")); return; }
         setGraph(next);
       }} /><WorkbookBrowser sources={sources} nodes={graph.nodes} onOpen={openSheet} />
+      {graph.format_version === 3 && catalog.filter(item => item.type === "excel_source").map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: nodeName(item.type) })} disabled={!sources.length} onClick={() => add(item)} className="my-2 w-full rounded border border-outline p-2 text-left text-sm">+ {nodeName(item.type)}</button>)}
+      <details open={graph.format_version !== 3}><summary className="my-3 cursor-pointer text-sm">{t("All operations")}</summary>
       <input aria-label={t("Search nodes")} className={control} value={search} onChange={e => setSearch(e.target.value)} />
-      {catalog.filter(item => item.type !== "context_filter" && (graph.format_version !== 3 || item.category !== "visualization")).filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: definitionLabel(catalog, item, nodeName(item.type)) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {definitionLabel(catalog, item, nodeName(item.type))}</button>)}
+      {catalog.filter(item => (graph.format_version !== 3 || item.type !== "excel_source") && item.type !== "context_filter" && (graph.format_version !== 3 || item.category !== "visualization")).filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: definitionLabel(catalog, item, nodeName(item.type)) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {definitionLabel(catalog, item, nodeName(item.type))}</button>)}
+      </details>
     </aside>
-    <section className="flex min-w-0 flex-col bg-page" onDragOver={event => { if (event.dataTransfer.types.includes(sheetDragType)) { event.preventDefault(); event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === "move" ? "move" : "copy"; } }} onDrop={event => {
+    <section className="flex min-h-0 min-w-0 flex-col bg-page" onDragOver={event => { if (event.dataTransfer.types.includes(sheetDragType)) { event.preventDefault(); event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === "move" ? "move" : "copy"; } }} onDrop={event => {
       const selection = readSheetDrag(event.dataTransfer.getData(sheetDragType));
       if (!selection || !flow.current || !(event.target as Element).closest(".react-flow") || (event.target as Element).closest(".react-flow__node")) return;
       event.preventDefault();
@@ -272,7 +286,6 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
           setOperationMenu({ source: activeFocus, position: { x: origin.x + 360, y: origin.y + 80 } });
         }}>{t("Add operation to output")}</button>}
       </div>
-      {activeFocus && !readHandle(activeFocus.handle).column && outputActions(activeFocus.nodeId, readHandle(activeFocus.handle).port)}
       {activeFocus && <p className="px-2 text-xs text-muted">{t("Explicit connections; tracing stops at table transformations.")}</p>}
       {save.error && <div role="alert" className="p-2 text-xs text-danger">{errorText(save.error)} <button onClick={() => void writer.flush()}>{t("Retry save")}</button> <button onClick={() => { if (window.confirm(t("Discard this local draft and load the saved workflow?"))) { sessionStorage.removeItem(writer.key); window.location.reload(); } }}>{t("Discard draft and reload")}</button></div>}
       {connectionIssue && <p role="alert" className="p-2 text-xs text-danger">{t(connectionIssue)}</p>}
@@ -298,12 +311,12 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
           }
         }
       }} isValidConnection={connection => !connectionError(graph, catalog, resolveCanvasConnection(graph, { source: connection.source, target: connection.target, sourceHandle: connection.sourceHandle ?? null, targetHandle: connection.targetHandle ?? null }), currentSchema)} onNodeClick={(_, node) => { if (node.type === "fieldNode") setSelected(node.id); }} onPaneClick={() => setSelected(null)} colorMode={theme} minZoom={0.05} fitView><Background color={palette.grid} /><Controls /></ReactFlow></div>
-      {pins.some(Boolean) && <div className="grid max-h-72 grid-cols-2 gap-3 overflow-auto border-t border-outline p-3">{pins.map((pin, index) => <section key={index} aria-label={index ? "B" : "A"}>{pin && <><div className="flex gap-2 text-xs"><b>{index ? "B" : "A"}</b><span>{String(graph.nodes.find(node => node.id === pin.id)?.ui?.label || nodeName(graph.nodes.find(node => node.id === pin.id)?.type ?? ""))}</span><button onClick={() => setPins(current => index ? [current[0], null] : [null, current[1]])}>{t("Close")}</button></div>{outputActions(pin.id, pin.port)}{graph.nodes.some(node => node.id === pin.id) ? <NodeOutputPanel workflowId={workflow.id} nodeId={pin.id} outputPort={pin.port} revision={save.revision} dirty={dirty} parameters={parameters} issues={[]} /> : <p>{t("Selected node is unavailable.")}</p>}</>}</section>)}</div>}
+
     </section>
-    <aside className="overflow-auto border-l border-outline bg-panel p-4">
+    <aside className="min-h-0 overflow-auto border-l border-outline bg-panel p-4">
       <ParametersConfiguration definitions={graph.parameters ?? []} onChange={items => setGraph(current => ({ ...current, parameters: items }))} values={parameters} onValuesChange={setParameters} />
       {!selectedNode ? <p className="text-sm">{t("Select a node to edit its settings.")}</p> : <>
-        <h2>{nodeName(selectedNode.type)}</h2>
+        <h2>{selectedCaption}</h2>
         {selectedNode.type === "excel_source" && <button className="my-2 rounded border border-outline p-2 text-xs" onClick={() => setGraph(current => groupWorkbook(current, String(selectedNode.config?.source_id), sources.find(source => source.id === selectedNode.config?.source_id)?.original_filename ?? t("Workbook browser")))}>{t("Group workbook sheets")}</button>}
         <label className="block mt-3 text-xs">{t("Node label")}<input aria-label={t("Node label")} className={control} value={String(selectedNode.ui?.label ?? "")} onChange={e => setGraph(current => ({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, ui: { ...node.ui, label: e.target.value } } : node) }))} /></label>
         <input aria-label={t("Search connection fields")} placeholder={t("Search connection fields")} className={`${control} mt-3`} value={wireSearch} onChange={e => setWireSearch(e.target.value)} />
@@ -316,12 +329,25 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
           const inputIssues = inspectorIssues.filter(issue => issue.node_id === selected && issue.field === port.id && issue.severity === "error");
           return <label key={port.id} className="mt-3 block text-xs">{t("Input:")} {t(port.display_name)}<select aria-invalid={inputIssues.length > 0} title={inputIssues.map(errorText).join("\n")} style={inputIssues.length ? { borderColor: "var(--danger)" } : undefined} aria-label={t("Input {0}", { 0: port.id })} className={control} value={active} onChange={e => { if (!e.target.value) setGraph(current => ({ ...current, edges: current.edges.filter(edge => !(edge.target_node_id === selected && edge.target_port === port.id)) })); else { const [source, sourceHandle] = JSON.parse(e.target.value); connect({ source, sourceHandle, target: selectedNode.id, targetHandle: port.id }); } }}><option value="">{t("Disconnected")}</option>{active && <option value={active}>{pinned?.label ?? t("Unavailable connection")}</option>}{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
+        {selectedNode.type === "calculated_column" && <button className="my-3 w-full rounded border border-outline p-2 disabled:opacity-40" disabled={!currentSchema || !graph.edges.some(edge => edge.target_node_id === selectedNode.id && edge.target_port === "input")} onClick={() => {
+          const input = graph.edges.find(edge => edge.target_node_id === selectedNode.id && edge.target_port === "input");
+          if (input) setTableStep({ mode: "calculate", editNodeId: selectedNode.id, source: { nodeId: input.source_node_id, port: input.source_port } });
+        }}>{t("Edit calculation")}</button>}
+        <details open={selectedNode.type !== "calculated_column"} key={`settings:${selectedNode.id}`}><summary className={selectedNode.type === "calculated_column" ? undefined : "hidden"}>{t("Advanced settings")}</summary>
         {(() => { const onChange = (config: Record<string, unknown>) => setGraph(current => reconcileWorkbooks({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, config } : node) })); const incoming = graph.edges.filter(edge => edge.target_node_id === selected); const inputColumns = Object.fromEntries(incoming.map(edge => [edge.target_port, choicesSchema?.nodes.find(node => node.node_id === edge.source_node_id)?.columns ?? null])); return selectedNode.type in fieldDefaults ? <FieldOperationConfiguration issues={inspectorIssues.filter(issue => issue.node_id === selected)} type={selectedNode.type} config={selectedNode.config ?? {}} onChange={onChange} parameters={graph.parameters ?? []} /> : <NodeConfiguration version={selectedNode.version} type={selectedNode.type} config={selectedNode.config ?? {}} sources={sources} columns={inputColumns.table ?? inputColumns.input ?? Object.values(inputColumns)[0] ?? null} inputColumns={inputColumns} onChange={onChange} parameters={graph.parameters ?? []} issues={currentSchema?.issues.filter(issue => issue.node_id === selected)} validationPending={!currentSchema} />; })()}
+        </details>
         {definition?.category === "visualization" && <><button className="mt-4 w-full rounded border border-outline p-2 text-sm" disabled={dirty} onClick={() => setChartRequest({ node: selectedNode.id, revision: save.revision, parameters: parameterKey })}>{t("Preview visualization")}</button>{!dirty && chartRequest?.node === selectedNode.id && chartRequest.revision === save.revision && chartRequest.parameters === parameterKey && <div className="mt-4 h-72"><VisualizationView id={selectedNode.id} revision={save.revision} parameters={parameters} /></div>}</>}
-        {outputActions(selectedNode.id, definition?.output_ports[0]?.id)}
-        <NodeOutputPanel onRuntimeIssues={reportRuntimeIssues} workflowId={workflow.id} nodeId={selectedNode.id} outputPort={definition?.output_ports[0]?.id} revision={save.revision} dirty={dirty} parameters={parameters} issues={currentSchema?.issues.filter(issue => issue.node_id === selected) ?? []} />
+
         <button className="mt-4 text-xs text-danger" onClick={() => { remove(new Set([selectedNode.id])); setSelected(null); }}>{t("Delete selected node")}</button>
       </>}
     </aside>
+    {previewPins.some(Boolean) && <section aria-label={t("Data preview")} className="col-span-2 col-start-2 max-h-[48vh] min-h-0 overflow-auto border-t border-outline bg-panel p-4">
+      <div className={`grid gap-4 ${previewPins.filter(Boolean).length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+        {previewPins.map((pin, index) => pin && <section key={index} aria-label={pins.some(Boolean) ? index ? "B" : "A" : t("Selected output")}>
+          <div className="flex items-center gap-3 text-sm"><strong>{pins.some(Boolean) ? index ? "B" : "A" : t("Data preview")}</strong><span>{graph.nodes.find(node => node.id === pin.id) ? nodeCaption(graph, graph.nodes.find(node => node.id === pin.id)!, choicesSchema, nodeName) : t("Selected node is unavailable.")}</span>{pins.some(Boolean) && <button onClick={() => setPins(current => index ? [current[0], null] : [null, current[1]])}>{t("Close")}</button>}</div>
+          {graph.nodes.some(node => node.id === pin.id) && <NodeOutputPanel onRuntimeIssues={reportRuntimeIssues} workflowId={workflow.id} nodeId={pin.id} outputPort={pin.port} revision={save.revision} dirty={dirty} parameters={parameters} issues={currentSchema?.issues.filter(issue => issue.node_id === pin.id) ?? []} />}
+        </section>)}
+      </div>
+    </section>}
   </div>;
 }

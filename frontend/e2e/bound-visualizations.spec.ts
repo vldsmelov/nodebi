@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -12,7 +13,7 @@ test("build field Bar Chart and scalar KPI through named UI connections and rest
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByRole("button", { name: "New field workflow", exact: true }).click();
     const saved = async () => { await expect(page.getByText("Saved", { exact: true })).toBeVisible(); await expect(page.getByText("Updating fields", { exact: true })).toHaveCount(0); };
-    const add = async (name: string) => { await page.getByTitle(`Add ${name}`, { exact: true }).click(); };
+    const add = async (name: string) => { await showAllOperations(page); await page.getByTitle(`Add ${name}`, { exact: true }).click(); };
     const connect = async (port: string, label: string) => { await page.getByLabel(`Input ${port}`, { exact: true }).selectOption({ label }); await saved(); };
     await add("Excel Source"); await saved();
     await add("Field arithmetic");

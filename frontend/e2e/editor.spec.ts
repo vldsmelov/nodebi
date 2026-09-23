@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -20,9 +21,9 @@ test("slow save acknowledgements cannot discard newer edits", async ({ page, req
       await route.continue();
     });
     await page.goto(`/projects/${project.id}/workflow`);
-    await page.getByTitle("Add Select Columns").click();
+    await showAllOperations(page); await page.getByTitle("Add Select Columns").click();
     await incoming;
-    await page.getByTitle("Add Rename Columns").click();
+    await showAllOperations(page); await page.getByTitle("Add Rename Columns").click();
     await expect(page.locator(".react-flow__node")).toHaveCount(2);
     release();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
@@ -43,7 +44,7 @@ test("navigation before debounce preserves and restores the unsaved draft", asyn
     await expect(page.getByTitle("Add Select Columns")).toBeVisible();
     await page.clock.install();
     await page.clock.pauseAt(new Date());
-    await page.getByTitle("Add Select Columns").click();
+    await showAllOperations(page); await page.getByTitle("Add Select Columns").click();
     const dialog = page.waitForEvent("dialog");
     const leaving = page.getByRole("link", { name: "Project", exact: false }).click();
     await (await dialog).accept();
@@ -70,7 +71,7 @@ test("two tabs reject stale saves without losing the local draft", async ({ page
     await page.goto(`/projects/${project.id}/workflow`);
     await second.goto(`/projects/${project.id}/workflow`);
     await expect(second.getByTitle("Add Rename Columns")).toBeVisible();
-    await page.getByTitle("Add Select Columns").click();
+    await showAllOperations(page); await page.getByTitle("Add Select Columns").click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await second.getByTitle("Add Rename Columns").click();
     await expect(second.getByRole("alert").filter({ hasText: "changed elsewhere" })).toContainText("changed elsewhere");
@@ -92,7 +93,7 @@ test("failed autosave recovers after reload and retries the pending graph", asyn
     await page.route(`**/api/v1/workflows/${workflow.id}`, (route) =>
       fail && route.request().method() === "PUT" ? route.abort("failed") : route.continue());
     await page.goto(`/projects/${project.id}/workflow`);
-    await page.getByTitle("Add Select Columns").click();
+    await showAllOperations(page); await page.getByTitle("Add Select Columns").click();
     await expect(page.getByRole("alert").filter({ hasText: "Failed to fetch" })).toContainText("Failed to fetch");
     fail = false;
     await page.reload();
@@ -117,7 +118,7 @@ test("editor creates, saves, previews and restores an Excel source", async ({ pa
     expect(uploaded.ok()).toBeTruthy();
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByRole("button", { name: "Create workflow", exact: true }).click();
-    await page.getByTitle("Add Excel Source").click();
+    await showAllOperations(page); await page.getByTitle("Add Excel Source").click();
     await expect(page.locator(".react-flow__node")).toHaveCount(1);
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Preview output" })).toBeEnabled();

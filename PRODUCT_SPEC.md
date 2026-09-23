@@ -1,5 +1,14 @@
 # PRODUCT_SPEC.md
 
+## Guided table workflow (2026-09-23, ADR-108)
+
+The field editor offers a Next step panel for Join, calculated field, Group By and publication.
+Other operations remain available in the expandable catalog. Calculated fields use the same
+simple arithmetic form for creation and later editing; complex formulas retain advanced editing.
+An on-demand bottom preview supports pinned A/B views. Join previews report full-input matches,
+unmatched rows and duplicate-key expansion without silently removing records. Node captions
+describe configured data and operations. These changes do not claim measured human speed gains.
+
 ## Table-driven node authoring (2026-09-23)
 
 Table outputs offer Join with another table and Add calculated field. Each action creates

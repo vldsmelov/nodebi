@@ -5,7 +5,7 @@ import { TableStepDialog } from "@/features/workflow/TableStepDialog";
 import type { GraphDraft } from "@/features/workflow/autosave";
 import type { WorkflowSchemaResult } from "@/features/workflow/types";
 
-beforeEach(() => { HTMLDialogElement.prototype.showModal = vi.fn(); });
+beforeEach(() => { HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; }); });
 afterEach(cleanup);
 const graph: GraphDraft = { name: "Sales", format_version: 3, nodes: ["sales", "prices"].map(id => ({ id, type: "excel_source", version: 1, config: { sheet_name: id }, position: { x: 0, y: 0 } })), edges: [] };
 const column = (id: string, type = "float") => ({ column_id: id, engine_name: id, display_name: id, logical_type: type, nullable: true, metadata: {} });
@@ -43,4 +43,30 @@ it("adds a Join and both wires in one graph update, with explicit keys", () => {
   expect(next.nodes[2]).toMatchObject({ type: "join", config: { left_key: "quantity", right_key: "price", how: "left" } });
   expect(next.nodes[2].position.x).toBe(760);
   expect(next.edges.map(edge => [edge.source_node_id, edge.target_port])).toEqual([["sales", "left"], ["prices", "right"]]);
+});
+
+it("reopens the simple form and edits a calculation without replacing its identity or downstream wires", () => {
+  const calculation = { id: "calc", type: "calculated_column", version: 1, config: { name: "Revenue", expression: "[quantity] * [price]" }, position: { x: 800, y: 0 } };
+  const input = { ...graph, nodes: [...graph.nodes, calculation], edges: [{ id: "wire", source_node_id: "sales", source_port: "dataset", target_node_id: "calc", target_port: "input" }] };
+  const apply = vi.fn();
+  render(<TableStepDialog mode="calculate" editNodeId="calc" source={{ nodeId: "sales", port: "dataset" }} graph={input} schema={schema} close={vi.fn()} apply={apply} />);
+  expect(screen.getByLabelText("Left operand")).toHaveValue("quantity");
+  expect(screen.getByLabelText("Right operand")).toHaveValue("price");
+  fireEvent.change(screen.getByLabelText("Operation"), { target: { value: "+" } });
+  fireEvent.change(screen.getByLabelText("Output field name"), { target: { value: "Adjusted" } });
+  fireEvent.click(screen.getByText("Save calculation"));
+  const [next, id] = apply.mock.calls[0];
+  expect(id).toBe("calc"); expect(next.nodes).toHaveLength(3); expect(next.edges).toBe(input.edges);
+  expect(next.nodes[2]).toEqual({ ...calculation, config: { name: "Adjusted", expression: "[quantity] + [price]" } });
+});
+
+it("does not silently replace complex formulas when switching to simple mode", () => {
+  const input = { ...graph, nodes: [...graph.nodes, { id: "calc", type: "calculated_column", version: 1, config: { name: "Revenue", expression: "coalesce([quantity], 0) * [price]" }, position: { x: 0, y: 0 } }] };
+  const apply = vi.fn();
+  render(<TableStepDialog mode="calculate" editNodeId="calc" source={{ nodeId: "sales", port: "dataset" }} graph={input} schema={schema} close={vi.fn()} apply={apply} />);
+  fireEvent.click(screen.getByLabelText("Formula"));
+  expect(screen.getByRole("alert")).toHaveTextContent("It has not been changed");
+  expect(screen.getByLabelText("Expression")).toHaveValue("coalesce([quantity], 0) * [price]");
+  fireEvent.click(screen.getByText("Save calculation"));
+  expect(apply.mock.calls[0][0].nodes[2].config.expression).toBe("coalesce([quantity], 0) * [price]");
 });

@@ -5,6 +5,32 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Current milestone: guided table authoring usability follow-up (ADR-108), implemented.
+Simple calculated-column creation and editing share one form; complex expressions remain intact.
+Next step offers Join, calculation, grouping and publication; the full catalog is expandable.
+Bottom preview supports A/B and full-input Join matching/expansion diagnostics. Captions follow
+configured names and dimensions. No data migration, financial conversion or calculation change.
+
+Checks this session: 379 backend tests passed with PostgreSQL enabled (seven SQLite skips),
+131 frontend tests passed; Ruff/format/mypy, ESLint, TypeScript, OpenAPI and production builds pass.
+Browser checks passed for the expanded two-book authoring journey (including edit and grouping),
+publications, period/navigation, format protection, all five field-editor scenarios and large
+graphs. Scale sample: 168 nodes, 1024-column workbook, 335 handles, 4887 DOM elements, one schema
+request and no eager previews; timing is environment-specific, not human productivity evidence.
+Six financial screens passed browser checks in both themes and three languages. Full 164-slice
+numeric parity remains the previous milestone's evidence and was not rerun this session.
+Retained demo graph, result position, visualization results and dashboard match the saved baseline
+after application rebuild/restart. PostgreSQL was not restarted again this session.
+
+Resolved test issues: modal mock lacked native open state; source caption now uses sheet name;
+old field-editor expectation still asserted v2 although the documented default is v3. Visual
+review also removed a browser-generated Details heading from ordinary configuration forms.
+No known P0/P1 in this delivery. Next task: human operator protocol in docs/TABLE_AUTHORING.md;
+no speedup percentage is claimed. Join remains single-key inner/left; preview reports counts,
+not a separate browsable list of unmatched records. Existing data was not reset.
+
+Previous completed milestone:
+
 Current milestone: table-driven node authoring and visible published results (ADR-107).
 Implemented result cards, named Join creation and calculated-column creation from table outputs.
 Each operation creates ordinary nodes/wires in one undo step. Calculated fields expose a pinned

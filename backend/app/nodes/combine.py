@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema, LogicalType, logical_to_polars
 from app.domain.errors import NodeExecutionError
+from app.domain.join_diagnostics import JoinDiagnostics
 from app.domain.nodes import ExecutionContext, NodeDefinition, PortDefinition, PortKind
 from app.domain.workflows import NodeInstance
 from app.nodes.common import UnaryExecutor, unary_definition
@@ -127,7 +128,37 @@ class JoinExecutor(UnaryExecutor):
             nulls_equal=False,
             maintain_order="left_right",
         )
-        return Dataset(frame.select([c.engine_name for c in schema.columns]), schema)
+        matched = counts.filter(pl.col("n_right").is_not_null())
+        matched_left = int(matched["n_left"].sum())
+        matched_right = int(matched["n_right"].sum())
+        multiplied = matched.filter(pl.col("n_right") > 1)
+        diagnostics = JoinDiagnostics(
+            node_id=node.id,
+            how=config.how,
+            left_rows=left.row_count,
+            right_rows=right.row_count,
+            matched_left_rows=matched_left,
+            unmatched_left_rows=left.row_count - matched_left,
+            matched_right_rows=matched_right,
+            unmatched_right_rows=right.row_count - matched_right,
+            left_duplicate_keys=counts_left.filter(
+                pl.col("key").is_not_null() & (pl.col("n_left") > 1)
+            ).height,
+            right_duplicate_keys=counts_right.filter(
+                pl.col("key").is_not_null() & (pl.col("n_right") > 1)
+            ).height,
+            multiplied_left_rows=int(multiplied["n_left"].sum()),
+            additional_rows=sum(
+                int(a) * (int(b) - 1) for a, b in multiplied.select("n_left", "n_right").iter_rows()
+            ),
+            dropped_left_rows=left.row_count - matched_left if config.how == "inner" else 0,
+            result_rows=frame.height,
+        )
+        return Dataset(
+            frame.select([c.engine_name for c in schema.columns]),
+            schema,
+            {"join_diagnostics": diagnostics.model_dump(mode="json")},
+        )
 
 
 class UnionExecutor(UnaryExecutor):

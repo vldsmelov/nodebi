@@ -66,6 +66,42 @@ def test_join_rejects_expansion_before_materializing_and_mismatched_keys() -> No
         execute("join", {"left_key": "key", "right_key": "value"}, {"left": large, "right": large})
 
 
+@pytest.mark.parametrize("how", ["inner", "left"])
+def test_join_diagnostics_distinguish_records_matches_and_expansion(how: str) -> None:
+    left = dataset([1, 1, 2, None], ["a", "b", "c", "d"])
+    right = dataset([1, 1, 1, 3, None], ["a", "b", "c", "d", "e"])
+    output = execute(
+        "join", {"left_key": "key", "right_key": "key", "how": how}, {"left": left, "right": right}
+    )
+    stats = output.metadata["join_diagnostics"]
+    assert stats["left_rows"] == 4 and stats["right_rows"] == 5
+    assert stats["matched_left_rows"] == 2 and stats["matched_right_rows"] == 3
+    assert stats["unmatched_left_rows"] == stats["unmatched_right_rows"] == 2
+    assert stats["left_duplicate_keys"] == stats["right_duplicate_keys"] == 1
+    assert stats["multiplied_left_rows"] == 2
+    assert stats["additional_rows"] == 4
+    assert stats["dropped_left_rows"] == (2 if how == "inner" else 0)
+    assert stats["result_rows"] == output.row_count == (6 if how == "inner" else 8)
+
+
+@pytest.mark.parametrize(
+    "left_keys,right_keys", [([], []), ([None, None], []), ([], [1, 1]), ([1], [2])]
+)
+def test_join_diagnostics_empty_inputs(left_keys: list, right_keys: list) -> None:
+    inputs = {
+        "left": dataset(left_keys, [None] * len(left_keys)),
+        "right": dataset(right_keys, [None] * len(right_keys)),
+    }
+    output = execute("join", {"left_key": "key", "right_key": "key", "how": "left"}, inputs)
+    stats = output.metadata["join_diagnostics"]
+    assert (
+        stats["matched_left_rows"] == stats["matched_right_rows"] == stats["additional_rows"] == 0
+    )
+    assert stats["unmatched_left_rows"] == len(left_keys)
+    assert stats["unmatched_right_rows"] == len(right_keys)
+    assert stats["result_rows"] == len(left_keys)
+
+
 def test_union_matches_names_in_left_order_and_rejects_incompatible_schemas() -> None:
     left = dataset([1], ["a"])
     normal_right = dataset([2], ["b"])

@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { resolve } from "node:path";
 
@@ -18,9 +19,9 @@ test("author parameters and switch slices without saving the workflow", async ({
     await page.getByLabel("Parameter label 1").fill("Country selection");
     await page.getByLabel("Parameter default 1").fill("Korea");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Excel Source").click();
+    await showAllOperations(page); await page.getByTitle("Add Excel Source").click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Filter").click();
+    await showAllOperations(page); await page.getByTitle("Add Filter").click();
     await page.getByLabel("Input input").selectOption({ index: 1 });
     await page.getByRole("button", { name: "Add condition", exact: true }).click();
     await page.getByLabel("Filter column 1").selectOption({ label: "country · string" });

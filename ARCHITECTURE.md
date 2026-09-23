@@ -1,5 +1,16 @@
 # ARCHITECTURE.md
 
+## Guided authoring and Join diagnostics (ADR-108, 2026-09-23)
+
+NextStepPanel and shared create/edit dialogs write ordinary graph operations through existing
+history/autosave. Group By uses its existing configuration form and executor. Simple calculation
+parsing only populates UI controls; the backend safe expression compiler remains authoritative.
+Unknown expressions stay intact in advanced mode. Publication naming uses a localized dialog.
+Captions and wide bottom/A-B previews are presentation concerns and never trigger eager execution.
+JoinDiagnostics is optional typed PreviewRead metadata calculated over complete Join inputs,
+independent of preview limits. Cached results retain it; only the matching target node exposes
+it. Existing output data, Join semantics, persistence and format v3 are unchanged.
+
 ## Result cards and table-driven authoring (ADR-107, 2026-09-23)
 
 WorkflowPresentation.results stores publication_id and position only, within existing JSON

@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -22,7 +23,7 @@ test("author and verify the reference overview entirely through the constructor"
   const saved = () => expect(page.getByText("Saved", { exact: true })).toBeVisible();
   async function add(kind: string, upstream: string | null, configure: () => Promise<void>) {
     const count = await page.locator(".react-flow__node").count();
-    await page.getByTitle(`Add ${kind}`, { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle(`Add ${kind}`, { exact: true }).click();
     await expect(page.locator(".react-flow__node")).toHaveCount(count + 1);
     const id = await page.locator(".react-flow__node").last().getAttribute("data-id");
     expect(id).toBeTruthy();

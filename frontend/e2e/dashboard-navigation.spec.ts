@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { resolve } from "node:path";
 
@@ -17,19 +18,19 @@ test("build dashboard drill-through in the UI and restore URL slices and history
     await page.getByLabel("Parameter name 1").fill("country");
     await page.getByLabel("Parameter default 1").fill("Korea");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Excel Source").click();
+    await showAllOperations(page); await page.getByTitle("Add Excel Source").click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Table", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Table", { exact: true }).click();
     await page.getByLabel("Input input").selectOption({ index: 1 });
     await page.getByLabel("Chart title").fill("All countries");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Filter", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Filter", { exact: true }).click();
     await page.getByLabel("Input input").selectOption({ index: 1 });
     await page.getByRole("button", { name: "Add condition", exact: true }).click();
     await page.getByLabel("Filter column 1").selectOption({ label: "country · string" });
     await page.getByLabel("Filter value source 1").selectOption("country");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Table", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Table", { exact: true }).click();
     const filter = page.getByLabel("Input input").locator("option").filter({ hasText: "Filter (" });
     await page.getByLabel("Input input").selectOption((await filter.getAttribute("value"))!);
     await page.getByLabel("Chart title").fill("Selected country");

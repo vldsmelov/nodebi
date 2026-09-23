@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -20,9 +21,9 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     await page.getByRole("link", { name: "Project", exact: false }).click();
     await page.getByRole("link", { name: "Workflow", exact: false }).click();
     await page.getByRole("button", { name: "Create workflow", exact: true }).click();
-    await page.getByTitle("Add Excel Source").click();
+    await showAllOperations(page); await page.getByTitle("Add Excel Source").click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Filter").click();
+    await showAllOperations(page); await page.getByTitle("Add Filter").click();
     await page.getByLabel("Input input").selectOption({ index: 1 });
     await expect(page.getByRole("button", { name: "Add condition" })).toBeVisible();
     await page.getByRole("button", { name: "Add condition" }).click();
@@ -30,13 +31,13 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     await page.getByLabel("Filter operator 1").selectOption("equals");
     await page.getByLabel("Filter value 1").fill("Korea");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Calculated Column").click();
+    await showAllOperations(page); await page.getByTitle("Add Calculated Column").click();
     const filterOption = page.getByLabel("Input input").locator("option").filter({ hasText: "Filter (" });
     await page.getByLabel("Input input").selectOption((await filterOption.getAttribute("value"))!);
     await page.getByLabel("Output field name").fill("revenue");
     await page.getByLabel("Expression", { exact: true }).fill("quantity * price");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Group By").click();
+    await showAllOperations(page); await page.getByTitle("Add Group By").click();
     const calcOption = page.getByLabel("Input input").locator("option").filter({ hasText: "Calculated Column (" });
     await page.getByLabel("Input input").selectOption((await calcOption.getAttribute("value"))!);
     await page.getByRole("checkbox", { name: "category", exact: true }).check();
@@ -58,14 +59,14 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     await page.locator(`.react-flow__node[data-id="${group.id}"]`).click();
     await page.getByRole("button", { name: "Preview output" }).click();
     await expect(page.getByRole("table")).toHaveText(preview.replaceAll("\t", "").replaceAll("\n", ""));
-    await page.getByTitle("Add Bar Chart").click();
+    await showAllOperations(page); await page.getByTitle("Add Bar Chart").click();
     const groupOption = page.getByLabel("Input input").locator("option").filter({ hasText: "Group By (" });
     await page.getByLabel("Input input").selectOption((await groupOption.getAttribute("value"))!);
     await page.getByLabel("Chart title").fill("Revenue by category");
     await page.getByLabel("Chart category").selectOption({ label: "category" });
     await page.getByLabel("Chart value").selectOption({ label: "total_revenue" });
     await expect(page.getByRole("img", { name: "Revenue by category", exact: true })).toBeVisible();
-    await page.getByTitle("Add Group By").click();
+    await showAllOperations(page); await page.getByTitle("Add Group By").click();
     const calculation = page.getByLabel("Input input").locator("option").filter({ hasText: "Calculated Column (" });
     await page.getByLabel("Input input").selectOption((await calculation.getAttribute("value"))!);
     await page.getByRole("button", { name: "Add aggregation" }).click();
@@ -75,7 +76,7 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const beforeKpi = await (await request.get(`${api}/api/v1/workflows/${saved.id}`)).json();
     const globalGroup = beforeKpi.nodes.find((node: { type: string; config: { aggregations?: { name: string }[] } }) => node.type === "group_by" && node.config.aggregations?.[0]?.name === "grand_total");
-    await page.getByTitle("Add KPI").click();
+    await showAllOperations(page); await page.getByTitle("Add KPI").click();
     await page.getByLabel("Input input").selectOption(`${globalGroup.id}:dataset`);
     await page.getByLabel("Chart title").fill("Total revenue");
     await page.getByLabel("Chart value").selectOption({ label: "grand_total" });

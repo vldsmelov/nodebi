@@ -5,18 +5,24 @@ import { FormulaEditor } from "./FormulaEditor";
 import type { DataSource } from "@/features/data-sources/api";
 import type { GraphDraft } from "./autosave";
 import type { WorkflowSchemaResult } from "./types";
+import { emptyCalculation, parseSimpleCalculation } from "./simple-calculation";
 
 export type TableEndpoint = { nodeId: string; port: string };
-export function TableStepDialog({ mode, source, graph, schema, sources = [], close, apply }: {
+export function TableStepDialog({ mode, source, graph, schema, sources = [], editNodeId, close, apply }: {
   mode: "join" | "calculate"; source: TableEndpoint; graph: GraphDraft; schema: WorkflowSchemaResult;
-  sources?: DataSource[]; close: () => void; apply: (graph: GraphDraft, id: string) => void;
+  editNodeId?: string; sources?: DataSource[]; close: () => void; apply: (graph: GraphDraft, id: string) => void;
 }) {
   const { t, nodeName } = useI18n(); const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { dialog.current?.showModal(); }, []);
   const columns = schema.nodes.find(node => node.node_id === source.nodeId)?.outputs?.[source.port]?.columns ?? [];
   const [right, setRight] = useState(""), [leftKey, setLeftKey] = useState(""), [rightKey, setRightKey] = useState(""), [how, setHow] = useState("inner");
-  const [name, setName] = useState(""), [advanced, setAdvanced] = useState(false), [formula, setFormula] = useState("");
-  const [a, setA] = useState(""), [b, setB] = useState(""), [ac, setAc] = useState("0"), [bc, setBc] = useState("0"), [operation, setOperation] = useState("*"), [zero, setZero] = useState("");
+  const existing = graph.nodes.find(node => node.id === editNodeId);
+  const originalExpression = String(existing?.config?.expression ?? "");
+  const parsed = parseSimpleCalculation(originalExpression);
+  const initial = parsed ?? emptyCalculation;
+  const [name, setName] = useState(String(existing?.config?.name ?? "")), [advanced, setAdvanced] = useState(Boolean(originalExpression && !parsed)), [formula, setFormula] = useState(originalExpression);
+  const [a, setA] = useState(initial.a), [b, setB] = useState(initial.b), [ac, setAc] = useState(initial.ac), [bc, setBc] = useState(initial.bc), [operation, setOperation] = useState(initial.operation), [zero, setZero] = useState(initial.zero);
+  const [modeError, setModeError] = useState(false);
   const tables = schema.nodes.flatMap(node => Object.entries(node.outputs ?? {}).filter(([, output]) => output.kind === "dataset").map(([port, output]) => {
     const actual = graph.nodes.find(item => item.id === node.node_id)!;
     const book = sources.find(item => item.id === actual.config?.source_id);
@@ -32,6 +38,10 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], clo
   const valid = mode === "join" ? target && leftKey && rightKey && !mismatch : name.trim() && !columns.some(column => column.engine_name === name.trim()) && (advanced ? formula.trim() : a && b && (a !== "constant" || validNumber(ac)) && (b !== "constant" || validNumber(bc)) && (operation !== "/" || zero));
   const submit = () => {
     if (!valid) return;
+    if (existing) {
+      apply({ ...graph, nodes: graph.nodes.map(node => node.id === existing.id ? { ...node, config: { ...node.config, name: name.trim(), expression } } : node) }, existing.id);
+      return;
+    }
     const id = crypto.randomUUID(), parent = graph.nodes.find(node => node.id === source.nodeId)!;
     const rightPosition = mode === "join" ? graph.nodes.find(node => node.id === target?.nodeId)?.position : undefined;
     const connect = (endpoint: TableEndpoint, port: string) => ({ id: crypto.randomUUID(), source_node_id: endpoint.nodeId, source_port: endpoint.port, target_node_id: id, target_port: port });
@@ -39,8 +49,8 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], clo
   };
   const control = "my-2 w-full rounded border border-outline bg-control p-2";
   const selectOperand = (label: string, value: string, change: (value: string) => void, constant: string, changeConstant: (value: string) => void) => <label>{t(label)}<select aria-label={t(label)} className={control} value={value} onChange={e => change(e.target.value)}><option value="">{t("Select field")}</option><option value="constant">{t("Constant")}</option>{columns.filter(column => ["integer", "float", "unknown"].includes(column.logical_type)).map(column => <option key={column.column_id} value={column.column_id}>{column.display_name}</option>)}</select>{value === "constant" && <input aria-label={t(`${label} constant`)} className={control} value={constant} onChange={e => changeConstant(e.target.value)} />}</label>;
-  return <dialog ref={dialog} onCancel={close} className="w-[560px] max-w-[95vw] rounded-xl border border-outline bg-panel p-6 text-main">
-    <h2>{t(mode === "join" ? "Join with…" : "Add calculated field")}</h2>
+  return <dialog ref={dialog} onCancel={close} className="max-h-[85vh] w-[560px] max-w-[95vw] overflow-auto rounded-xl border border-outline bg-panel p-6 text-main">
+    <h2>{t(mode === "join" ? "Join with…" : existing ? "Edit calculation" : "Add calculated field")}</h2>
     <p className="my-2 text-sm">{tables.find(table => table.nodeId === source.nodeId && table.port === source.port)?.label}</p>
     {mode === "join" ? <>
       <label>{t("Right table")}<select aria-label={t("Right table")} className={control} value={right} onChange={e => { setRight(e.target.value); setRightKey(""); }}><option value="">{t("Select output")}</option>{tables.map(table => <option key={table.key} value={table.key}>{table.label}</option>)}</select></label>
@@ -51,7 +61,15 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], clo
       {mismatch && <p role="alert" className="text-danger">{t("Fields must have matching logical types. Convert them explicitly upstream.")}</p>}
     </> : <>
       <label>{t("Output field name")}<input aria-label={t("Output field name")} maxLength={255} className={control} value={name} onChange={e => setName(e.target.value)} /></label>
-      <label><input type="checkbox" checked={advanced} onChange={e => { if (e.target.checked && a && b) setFormula(expression); setAdvanced(e.target.checked); }} /> {t("Formula")}</label>
+      <label><input type="checkbox" checked={advanced} onChange={e => {
+        setModeError(false);
+        if (e.target.checked) { if (a && b) setFormula(expression); setAdvanced(true); return; }
+        const next = parseSimpleCalculation(formula);
+        if (formula.trim() && !next) { setModeError(true); return; }
+        if (next) { setA(next.a); setB(next.b); setAc(next.ac); setBc(next.bc); setOperation(next.operation); setZero(next.zero); }
+        setAdvanced(false);
+      }} /> {t("Formula")}</label>
+      {modeError && <p role="alert">{t("This expression needs formula mode. It has not been changed.")}</p>}
       {advanced ? <FormulaEditor expression={formula} columns={columns} onChange={setFormula} /> : <>
         {selectOperand("Left operand", a, setA, ac, setAc)}
         <label>{t("Operation")}<select aria-label={t("Operation")} className={control} value={operation} onChange={e => setOperation(e.target.value)}>{["+", "-", "*", "/"].map(value => <option key={value}>{value}</option>)}</select></label>
@@ -60,6 +78,6 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], clo
         <p>{t("Missing values remain empty.")}</p>
       </>}
     </>}
-    <div className="mt-4 flex gap-4"><button onClick={close}>{t("Cancel")}</button><button disabled={!valid} className="disabled:opacity-40" onClick={submit}>{t("Add step")}</button></div>
+    <div className="mt-4 flex gap-4"><button onClick={close}>{t("Cancel")}</button><button disabled={!valid} className="disabled:opacity-40" onClick={submit}>{t(existing ? "Save calculation" : "Add step")}</button></div>
   </dialog>;
 }

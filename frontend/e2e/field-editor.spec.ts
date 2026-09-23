@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -11,7 +12,7 @@ test("drop a workbook field to create a connected operation atomically and cance
     expect(upload.ok()).toBe(true);
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByRole("button", { name: "New field workflow", exact: true }).click();
-    await page.getByTitle("Add Excel Source", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Excel Source", { exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Group workbook sheets", exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
@@ -102,7 +103,7 @@ test("choose workbook sheets by name, drag to canvas and reopen without duplicat
   } finally { await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
 });
 
-test("author typed Excel calculation using named fields, pin A/B and restore v2", async ({ page, request }) => {
+test("author typed Excel calculation using named fields, pin A/B and restore current format", async ({ page, request }) => {
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Field editor acceptance" } })).json();
   try {
     const uploaded = await request.post(`${api}/api/v1/projects/${project.id}/sources/excel`, { multipart: { file: { name: "sales.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: readFileSync(resolve("../fixtures/excel/sales.xlsx")) } } });
@@ -110,27 +111,27 @@ test("author typed Excel calculation using named fields, pin A/B and restore v2"
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByRole("button", { name: "New field workflow", exact: true }).click();
     await expect(page).toHaveURL(/mode=fields/);
-    await page.getByTitle("Add Excel Source", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Excel Source", { exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await expect(page.locator('.react-flow__node').getByText(/quantity/)).toBeVisible();
-    await page.getByTitle("Add Field arithmetic", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Field arithmetic", { exact: true }).click();
     await page.getByLabel("Node label", { exact: true }).fill("Revenue expression");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await expect(page.getByText("Updating fields", { exact: true })).toHaveCount(0);
-    const outputHandle = page.locator('.react-flow__node').filter({ hasText: "Excel Source" }).locator('.react-flow__handle[title="quantity"]');
+    const outputHandle = page.locator('.react-flow__node').filter({ hasText: "Sales" }).locator('.react-flow__handle[title="quantity"]');
     const inputHandle = page.locator('.react-flow__node').filter({ hasText: "Revenue expression" }).locator('.react-flow__handle[data-handleid="a"]');
     await outputHandle.dragTo(inputHandle);
     await expect(page.getByLabel("Input a", { exact: true })).not.toHaveValue("");
     await page.getByLabel("Input b", { exact: true }).selectOption({ label: "Excel Source / price" });
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Pin A", exact: true }).click();
-    await page.getByTitle("Add Append field", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Append field", { exact: true }).click();
     await page.getByLabel("Output field name", { exact: true }).fill("Revenue");
     await page.getByLabel("Input table", { exact: true }).selectOption({ label: "Excel Source / Dataset" });
     await page.getByLabel("Input value", { exact: true }).selectOption({ label: "Revenue expression / Value" });
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await expect(page.locator('.react-flow__node').getByText(/Revenue ·/)).toBeVisible();
-    await page.getByTitle("Add Sum field", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Sum field", { exact: true }).click();
     await page.getByLabel("Input table", { exact: true }).selectOption({ label: "Append field / Table" });
     await page.getByLabel("Input value", { exact: true }).selectOption({ label: "Append field / Revenue" });
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
@@ -146,7 +147,7 @@ test("author typed Excel calculation using named fields, pin A/B and restore v2"
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const workflowId = new URL(page.url()).searchParams.get("workflow");
     const saved = await (await request.get(`${api}/api/v1/workflows/${workflowId}`)).json();
-    expect(saved.version).toBe(2);
+    expect(saved.version).toBe(3);
     expect(saved.nodes).toHaveLength(4);
     expect(saved.edges.filter((edge: { source_column_id?: string }) => edge.source_column_id)).toHaveLength(3);
     const total = saved.nodes.find((node: { type: string }) => node.type === "field_sum");
@@ -178,13 +179,13 @@ test("workbook cards retain typed wires through collapse, detach, undo and reloa
     expect(upload.ok()).toBe(true);
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByRole("button", { name: "New field workflow", exact: true }).click();
-    await page.getByTitle("Add Excel Source", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Excel Source", { exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Group workbook sheets", exact: true }).click();
     const book = page.locator(".react-flow__node-workbookNode");
     await expect(book).toHaveCount(1);
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Field arithmetic", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Field arithmetic", { exact: true }).click();
     const workflowId = new URL(page.url()).searchParams.get("workflow");
     const getGraph = async () => (await request.get(`${api}/api/v1/workflows/${workflowId}`)).json();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
@@ -283,15 +284,15 @@ test("field editor keeps newer edits during a slow save and rejects a second tab
       await route.continue();
     });
     await page.goto(url); await other.goto(url);
-    await expect(other.getByTitle("Add Constant", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Constant", { exact: true }).click();
+    await showAllOperations(other); await expect(other.getByTitle("Add Constant", { exact: true })).toBeVisible();
+    await showAllOperations(page); await page.getByTitle("Add Constant", { exact: true }).click();
     await incoming;
     await page.getByLabel("Node label", { exact: true }).fill("Latest label");
     release();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const before = await (await request.get(`${api}/api/v1/workflows/${created.id}`)).json();
     expect(before.nodes[0].ui.label).toBe("Latest label");
-    await other.getByTitle("Add Constant", { exact: true }).click();
+    await showAllOperations(other); await other.getByTitle("Add Constant", { exact: true }).click();
     await expect(other.getByRole("alert").filter({ hasText: "Reload" })).toBeVisible();
     expect(await (await request.get(`${api}/api/v1/workflows/${created.id}`)).json()).toEqual(before);
     await other.reload();

@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
@@ -16,7 +17,7 @@ test("v1 editor cannot overwrite v2 and retains its rejected draft", async ({ pa
     expect(saved.edges).toEqual(edges);
     expect(saved.presentation).toEqual({ ...presentation, results: [] });
     await page.goto(`/projects/${project.id}/workflow`);
-    await page.getByTitle("Add Select Columns").click();
+    await showAllOperations(page); await page.getByTitle("Add Select Columns").click();
     await expect(page.getByRole("alert").filter({ hasText: "supports its format" })).toBeVisible();
     expect(await (await request.get(path)).json()).toEqual(saved);
     const pending = await page.evaluate(id => JSON.parse(sessionStorage.getItem(`nodebi:workflow-draft:${id}`)!).draft, workflow.id);

@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -11,7 +12,7 @@ test("publish prepared data through UI and create an independent chart, copy and
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByRole("button", { name: "New field workflow", exact: true }).click();
     const saved = async () => { await expect(page.getByText("Saved", { exact: true })).toBeVisible(); await expect(page.getByText("Updating fields", { exact: true })).toHaveCount(0); };
-    await page.getByTitle("Add Excel Source", { exact: true }).click(); await saved();
+    await showAllOperations(page); await page.getByTitle("Add Excel Source", { exact: true }).click(); await saved();
     await page.getByText("Published results and filters", { exact: true }).click();
     await page.getByLabel("Result name", { exact: true }).fill("Sales records");
     const options = page.getByLabel("Result output", { exact: true }).locator("option");

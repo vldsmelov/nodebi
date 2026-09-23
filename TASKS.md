@@ -1,5 +1,13 @@
 # TASKS.md
 
+## Guided authoring usability follow-up (2026-09-23, ADR-108)
+
+* [x] U1: Shared simple create/edit calculation form preserving identities and complex formulas.
+* [x] U2: Next step actions, Group By shortcut, localized publication dialog and expandable catalog.
+* [x] U3: Wide on-demand preview, A/B views and typed full-input Join diagnostics with regression tests.
+* [x] U4: Configuration-derived captions; browser authoring and existing editor regression checks.
+* [ ] U5: Measure actions, errors, help requests and completion time with human operators.
+
 ## Table-driven node authoring (authorized 2026-09-23)
 
 * [x] T1: Publication cards, layout CAS and omission compatibility, independent visualization entry.

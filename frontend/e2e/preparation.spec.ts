@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
@@ -19,17 +20,17 @@ test("configure multirow Excel headers and general preparation nodes in the edit
     await expect(page.getByLabel("Worksheet")).toBeVisible();
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByRole("button", { name: "Create workflow", exact: true }).click();
-    await page.getByTitle("Add Excel Source").click();
+    await showAllOperations(page); await page.getByTitle("Add Excel Source").click();
     await page.getByLabel("First header row").fill("3");
     await page.getByLabel("Header row count").fill("2");
     await page.getByLabel("Include source row number").check();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Convert Types").click();
+    await showAllOperations(page); await page.getByTitle("Add Convert Types").click();
     await page.getByLabel("Input input").selectOption({ index: 1 });
     await page.getByRole("button", { name: "Add conversion" }).click();
     await page.getByLabel("Conversion field").selectOption("col_2");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByTitle("Add Window").click();
+    await showAllOperations(page); await page.getByTitle("Add Window").click();
     const convert = page.getByLabel("Input input").locator("option").filter({ hasText: "Convert Types (" });
     await page.getByLabel("Input input").selectOption((await convert.getAttribute("value"))!);
     await page.getByLabel("Output field name").fill("team_total");
@@ -41,7 +42,7 @@ test("configure multirow Excel headers and general preparation nodes in the edit
     const table = page.getByRole("table");
     await expect(table.getByRole("row")).toHaveCount(4);
     expect(await table.innerText()).toContain("40");
-    await page.getByTitle("Add Unpivot").click();
+    await showAllOperations(page); await page.getByTitle("Add Unpivot").click();
     const upstream = page.getByLabel("Input input").locator("option").filter({ hasText: "Convert Types (" });
     await page.getByLabel("Input input").selectOption((await upstream.getAttribute("value"))!);
     await page.getByRole("group", { name: "Identifier fields" }).getByLabel("__source_row__").check();

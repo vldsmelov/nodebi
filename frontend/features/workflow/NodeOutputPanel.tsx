@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api";
 import { useMutation } from "@tanstack/react-query";
 import { previewWorkflowNode } from "./api";
 import type { GraphIssue, NodeSchemaResult } from "./types";
+import { JoinDiagnostics } from "./JoinDiagnostics";
 
 type Props = {
   outputPort?: string;
@@ -48,15 +49,17 @@ function NodeOutputContent({ workflowId, nodeId, revision, dirty, schema, issues
       </div>)}</div>
     </section>}
     {preview.error && !dirty && preview.variables?.revision === revision && <p role="alert" className="mt-4 rounded-xl bg-danger-surface p-3 text-xs text-danger">{errorText(preview.error)}</p>}
-    {result && <section className="mt-6">
+    {result && <section className="mt-3">
       <div className="flex items-center justify-between">
         <h3 className="text-xs uppercase tracking-[0.18em] text-muted">{t("Preview")}</h3>
         <span className="text-[11px] text-muted">{t("Rows: {0} · {1} ms", { 0: cell(result.total_rows), 1: cell(result.duration_ms) })}</span>
       </div>
+      {result.join_diagnostics && <JoinDiagnostics value={result.join_diagnostics} />}
+      {result.truncated && <p className="mt-2 text-xs text-muted">{t("Showing {0} of {1} rows", { 0: cell(result.returned_rows), 1: cell(result.total_rows) })}</p>}
       {result.rows.length === 0 ? <p className="mt-3 text-xs text-muted">{t("The result is empty.")}</p> :
-        <div className="mt-3 overflow-auto rounded-xl border border-outline"><table className="min-w-full text-[11px]">
+        <div className="mt-3 max-h-[30vh] overflow-auto rounded-xl border border-outline"><table className="min-w-full text-xs">
           <thead><tr>{result.columns.map(column => <th key={column.column_id}
-            className="border-b border-outline px-2 py-2 text-left text-muted">{column.display_name}</th>)}</tr></thead>
+            className="sticky top-0 border-b border-outline bg-panel px-3 py-2 text-left text-muted">{column.display_name}<span className="block font-normal">{t(column.logical_type)}</span></th>)}</tr></thead>
           <tbody>{result.rows.map((row, index) => <tr key={index}>{result.columns.map(column =>
             <td key={column.column_id} className="border-b border-outline px-2 py-2 whitespace-nowrap">
               {cell(row[column.engine_name], column.logical_type)}

@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { resolve } from "node:path";
 import { translations } from "../lib/translations";
@@ -85,7 +86,7 @@ test("switching language during autosave retains the active graph and field conf
     await page.goto(`/projects/${project.id}/workflow`);
     await expect(page.getByTitle("Добавить: Сортировка", { exact: true })).toContainText("Сортировка");
     await expect(page.getByRole("heading", { name: "Преобразования", exact: true })).toBeVisible();
-    await page.getByTitle("Добавить: Ограничение строк", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Добавить: Ограничение строк", { exact: true }).click();
     await page.getByLabel("Максимум строк").fill("17");
     await incoming;
     await page.getByLabel("Язык", { exact: true }).selectOption("tt");

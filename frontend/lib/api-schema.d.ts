@@ -845,6 +845,43 @@ export interface components {
             type: "bar_chart" | "kpi" | "table" | "line_chart" | "area_chart" | "pie_chart" | "donut_chart" | "scatter_chart";
             config: components["schemas"]["VisualizationConfig"];
         };
+        /** JoinDiagnostics */
+        JoinDiagnostics: {
+            /**
+             * Node Id
+             * Format: uuid
+             */
+            node_id: string;
+            /**
+             * How
+             * @enum {string}
+             */
+            how: "inner" | "left";
+            /** Left Rows */
+            left_rows: number;
+            /** Right Rows */
+            right_rows: number;
+            /** Matched Left Rows */
+            matched_left_rows: number;
+            /** Unmatched Left Rows */
+            unmatched_left_rows: number;
+            /** Matched Right Rows */
+            matched_right_rows: number;
+            /** Unmatched Right Rows */
+            unmatched_right_rows: number;
+            /** Left Duplicate Keys */
+            left_duplicate_keys: number;
+            /** Right Duplicate Keys */
+            right_duplicate_keys: number;
+            /** Multiplied Left Rows */
+            multiplied_left_rows: number;
+            /** Additional Rows */
+            additional_rows: number;
+            /** Dropped Left Rows */
+            dropped_left_rows: number;
+            /** Result Rows */
+            result_rows: number;
+        };
         /**
          * LogicalType
          * @enum {string}
@@ -1085,6 +1122,7 @@ export interface components {
         };
         /** PreviewRead */
         PreviewRead: {
+            join_diagnostics?: components["schemas"]["JoinDiagnostics"] | null;
             /** Output Port */
             output_port?: string | null;
             /** Value Kind */

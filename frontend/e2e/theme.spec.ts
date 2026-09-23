@@ -1,3 +1,4 @@
+import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
@@ -33,7 +34,7 @@ test("theme changes before autosave preserve graph configuration without extra s
     await expect(page.getByTitle("Add Limit", { exact: true })).toBeVisible();
     await page.clock.install();
     await page.clock.pauseAt(new Date());
-    await page.getByTitle("Add Limit", { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle("Add Limit", { exact: true }).click();
     await page.getByLabel("Maximum rows").fill("17");
     await page.getByLabel("Theme", { exact: true }).selectOption("light");
     await expect(page.getByLabel("Maximum rows")).toHaveValue("17");

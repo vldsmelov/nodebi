@@ -236,6 +236,11 @@ def preview_workflow_node(
     limit = min(payload.limit, settings.max_preview_rows)
     rows = result.output.frame.head(limit).to_dicts()
     return PreviewRead(
+        join_diagnostics=(
+            result.output.metadata.get("join_diagnostics")
+            if result.output.metadata.get("join_diagnostics", {}).get("node_id") == str(node_id)
+            else None
+        ),
         output_port=result.output_port if graph.version >= 2 else None,
         value_kind=result.value_kind if graph.version >= 2 else None,
         revision=workflow.revision,

@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.domain.join_diagnostics import JoinDiagnostics
 from app.domain.parameters import ParameterDefinition, ParameterValue, ParameterValues
 from app.domain.publications import ResultCatalog
 from app.schemas.presentation import WorkflowPresentation
@@ -217,6 +218,9 @@ class NodeValuesRead(BaseModel):
 
 
 class PreviewRead(BaseModel):
+    join_diagnostics: JoinDiagnostics | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     output_port: str | None = Field(default=None, exclude_if=lambda value: value is None)
     value_kind: Literal["dataset", "field", "scalar"] | None = Field(
         default=None, exclude_if=lambda value: value is None
