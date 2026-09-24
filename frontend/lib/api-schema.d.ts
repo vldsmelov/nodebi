@@ -827,6 +827,39 @@ export interface components {
              */
             status: "ok";
         };
+        /** IndependentVisualizationPreview */
+        IndependentVisualizationPreview: {
+            /**
+             * Workflow Id
+             * Format: uuid
+             */
+            workflow_id: string;
+            /**
+             * Publication Id
+             * Format: uuid
+             */
+            publication_id: string;
+            /** Expected Workflow Revision */
+            expected_workflow_revision: number;
+            /**
+             * Expected Revision
+             * @default 1
+             */
+            expected_revision: number;
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "bar_chart" | "kpi" | "table" | "line_chart" | "area_chart" | "pie_chart" | "donut_chart" | "scatter_chart";
+            config: components["schemas"]["VisualizationConfig"];
+            context?: components["schemas"]["ViewContext"];
+            /** Parameters */
+            parameters?: {
+                [key: string]: string | number | boolean | null;
+            };
+        };
         /** IndependentVisualizationSave */
         IndependentVisualizationSave: {
             /**
@@ -3042,7 +3075,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["IndependentVisualizationSave"];
+                "application/json": components["schemas"]["IndependentVisualizationPreview"];
             };
         };
         responses: {

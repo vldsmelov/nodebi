@@ -48,8 +48,9 @@ test("one date binding drives independently authored chart and scalar KPI before
     await page.goto(`/projects/${project.id}/dashboard`);
     await page.getByRole("button", { name: "Create dashboard", exact: true }).click();
     for (const [result, title] of [["Sales by service", "Amounts"], ["Sales total", "Total amount"], ["Sales by service", "Services"]]) {
+      await page.getByRole("button", { name: "Add chart", exact: true }).click();
       await page.getByRole("button", { name: "Create visualization", exact: true }).click();
-      const dialog = page.getByRole("dialog", { name: "Independent visualization" });
+      const dialog = page.getByRole("complementary", { name: "Visualization settings" });
       await dialog.getByLabel("Visualization name").fill(title);
       const published = dialog.getByLabel("Published result", { exact: true });
       await published.selectOption({ label: await published.locator("option").filter({ hasText: result }).innerText() });
@@ -58,12 +59,14 @@ test("one date binding drives independently authored chart and scalar KPI before
         await dialog.getByLabel("Chart category", { exact: true }).selectOption({ label: "service" });
         await dialog.getByLabel("Chart value", { exact: true }).selectOption({ label: "Total" });
       }
+      await dialog.getByRole("tab", { name: "Appearance", exact: true }).click();
       await dialog.getByLabel("Chart title").fill(title);
-      await dialog.getByRole("button", { name: "Save visualization", exact: true }).click();
+      await dialog.getByRole("button", { name: "Apply visualization", exact: true }).click();
       await expect(dialog).toHaveCount(0);
       await page.getByRole("button", { name: "Save dashboard", exact: true }).click(); await saved();
     }
     await expect(page.getByTestId("kpi-value")).toHaveText("210.00");
+    await page.getByText("Advanced dashboard settings", { exact: true }).click();
     await page.getByLabel("Show shared period", { exact: true }).check();
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click(); await saved();
     for (const [start, end, total] of [["2026-01-01", "2026-01-31", "30.00"], ["2026-02-01", "2026-02-28", "70.00"]]) {
@@ -95,9 +98,11 @@ test("one date binding drives independently authored chart and scalar KPI before
     const overviewName = await page.getByLabel("Dashboard name", { exact: true }).inputValue();
     await page.getByRole("button", { name: "New dashboard", exact: true }).click();
     await page.getByLabel("Dashboard name", { exact: true }).fill("Service details");
+    await page.getByRole("button", { name: "Add chart", exact: true }).click();
     await page.getByText("Services · Table", { exact: true }).locator("..").getByRole("button", { name: "Add widget", exact: true }).click();
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click(); await saved();
     const widget = page.locator("[data-widget-id]");
+    await widget.getByLabel("Widget actions", { exact: true }).click();
     await widget.getByRole("button", { name: "Configure navigation", exact: true }).click();
     const navigation = page.getByRole("dialog", { name: "Configure navigation", exact: true });
     await navigation.getByLabel("Destination dashboard").selectOption({ label: overviewName });

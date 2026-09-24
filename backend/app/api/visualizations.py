@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.workflows import AppSettings, ExecutionCache, Registry, Storage
 from app.infrastructure.database import get_session
 from app.schemas.dashboards import (
+    IndependentVisualizationPreview,
     IndependentVisualizationSave,
     PublicationSchema,
     VisualizationRead,
@@ -103,7 +104,7 @@ def copy_visualization(
 )
 def preview_visualization(
     project_id: uuid.UUID,
-    payload: IndependentVisualizationSave,
+    payload: IndependentVisualizationPreview,
     session: Database,
     registry: Registry,
     storage: Storage,
@@ -111,7 +112,17 @@ def preview_visualization(
     cache: ExecutionCache,
 ) -> VisualizationResult:
     draft = IndependentVisualizationService(session).draft(project_id, payload)
-    return render_visualization(session, draft.id, registry, storage, settings, cache, draft=draft)
+    return render_visualization(
+        session,
+        draft.id,
+        registry,
+        storage,
+        settings,
+        cache,
+        parameters=payload.parameters,
+        view=payload.context,
+        draft=draft,
+    )
 
 
 @router.get("/api/v1/visualizations/{identity}/uses", response_model=list[VisualizationUse])

@@ -1,5 +1,13 @@
 # TASKS.md
 
+## Dashboard workspace (authorized 2026-09-24)
+
+* [x] Compact headers, right panel, reusable visualization editor and explicit placement controls.
+* [x] Context-aware draft preview, local appearance updates, shared copy and conflict recovery.
+* [x] On-demand library, free-space placement, recoverable layout history and dirty-layout creation.
+* [x] Browser regression, language/theme review, persistence and operator guide.
+
+
 ## Simple dashboard constructor (authorized 2026-09-24)
 
 Plan: docs/SIMPLE_DASHBOARDS_PLAN.md. All users can author; no account system or new navigation.

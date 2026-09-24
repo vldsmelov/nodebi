@@ -5,7 +5,30 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Current milestone: simple dashboard constructor S1-S5 completed (ADR-109/110).
+Current milestone: dashboard workspace UX completed (ADR-111).
+Last completed: compact widget headers, right-side data/appearance/placement editor, contextual
+in-place previews, shared-copy disclosure, conflict recovery, on-demand library, free-space
+placement, keyboard positioning and undo/redo of local layout changes. Guide: docs/DASHBOARD_WORKSPACE.md.
+
+Checks: 401 backend tests passed with PostgreSQL (7 SQLite-only skips), 141 frontend tests passed.
+Ruff/format/mypy, ESLint, TypeScript, OpenAPI consistency and Docker production builds pass.
+Seven targeted browser scenarios passed across final runs: workspace authoring/conflicts/copy,
+publications, both table-authoring joins, four-book P&L, shared period and six financial screens.
+Workspace checks include table selection/order, series, local currency preview without execution,
+three locales, both themes, narrow viewport, keyboard controls and canvas/panel separation.
+
+Fresh financial regression: 164 slices / 1551 widget pages match (.backups/dashboard-workspace-financial-parity.json).
+After restarting PostgreSQL/backend and deploying the frontend, all 12 captured documents and
+60 visualization results restored (.backups/dashboard-workspace-restart.json); workspace browser
+acceptance passed again. Snapshots capture the current project revisions; older restart snapshots
+can be stale and must not be used to revert live graphs. No user data was reset or converted.
+
+No known P0/P1 in this delivery. Historical node-owned charts retain their compatibility dialog;
+independent visualizations use the new panel. Layout and shared visualization saves remain separate.
+Human economist timings are unmeasured. Next: operator trials and real-workbook mapping/rule confirmation.
+Screenshots: .backups/dashboard-workspace-ru-light.png and dashboard-workspace-ru-dark.png.
+
+Previous delivery evidence (simple dashboard constructor S1-S5, ADR-109/110):
 Last completed: generic safe expressions, condition form, Window v2, Calendar, Excel row bounds,
 Join diagnostic record pages, independent Bar/Line series and synthetic four-book P&L authoring.
 The retained editable example has 28 nodes, 3 publications, 5 visualizations; six monthly rows

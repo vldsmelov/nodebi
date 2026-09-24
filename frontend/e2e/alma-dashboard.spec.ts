@@ -157,7 +157,7 @@ test("four books to editable P&L, shared series and a simple dashboard", async (
     await page.goto(`/projects/${project.id}/dashboard`);
     await page.getByRole("button", { name: "Create dashboard", exact: true }).click();
     await page.getByLabel("Dashboard name", { exact: true }).fill("Synthetic P&L - four workbooks");
-    for (const spec of visualSpecs) await page.getByText(new RegExp(`^${spec.name}`)).first().locator("..").getByRole("button", { name: "Add widget", exact: true }).click();
+    for (const spec of visualSpecs) { await page.getByRole("button", { name: "Add chart", exact: true }).click(); await page.getByText(new RegExp(`^${spec.name}`)).first().locator("..").getByRole("button", { name: "Add widget", exact: true }).click(); }
     await page.getByRole("button", { name: "Layout templates", exact: true }).click();
     await page.getByRole("button", { name: "Apply layout template", exact: true }).click();
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click(); await author.saved();

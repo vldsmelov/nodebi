@@ -118,6 +118,7 @@ for (const multikey of [false, true]) test(`two books, ${multikey ? "composite" 
     await page.goto(`/projects/${project.id}/dashboard`);
     await page.getByRole("button", { name: "Create dashboard", exact: true }).click();
     for (const name of ["Revenue chart", "Revenue table"]) {
+      await page.getByRole("button", { name: "Add chart", exact: true }).click();
       await page.getByText(new RegExp(`^${name}`)).first().locator("..").getByRole("button", { name: "Add widget", exact: true }).click();
     }
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click(); await saved();

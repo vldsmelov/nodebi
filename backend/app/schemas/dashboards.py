@@ -132,6 +132,11 @@ class IndependentVisualizationSave(BaseModel):
     config: VisualizationConfig
 
 
+class IndependentVisualizationPreview(IndependentVisualizationSave):
+    context: ViewContext = Field(default_factory=ViewContext)
+    parameters: ParameterValues = Field(default_factory=dict)
+
+
 class DashboardNavigationSave(BaseModel):
     workflow_id: uuid.UUID
     widget_id: uuid.UUID

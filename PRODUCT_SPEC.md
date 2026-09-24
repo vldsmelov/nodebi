@@ -1,5 +1,14 @@
 # PRODUCT_SPEC.md
 
+## Dashboard workspace UX (2026-09-24)
+
+Dashboard editing is explicitly in scope: compact widget headers, settings in a right panel,
+in-place draft preview, on-demand chart library, free-space placement and local undo/redo.
+Independent visualizations retain shared ownership and explicit save; dashboard layout saves
+separately. Creation/copy preserves unsaved layout. See docs/DASHBOARD_WORKSPACE.md.
+This supersedes deferral of dashboard UI redesign only; node editor redesign, new interactive
+filters, transitions and users remain outside this iteration.
+
 ## Simple configurable dashboards (2026-09-24)
 
 Priority: workbooks -> node calculations -> published results -> configured visualizations ->

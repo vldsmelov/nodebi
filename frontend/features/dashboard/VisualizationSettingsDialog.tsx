@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/lib/i18n";
 import { getWorkflow, getWorkflowSchema, saveWorkflow } from "@/features/workflow/api";
@@ -8,7 +8,7 @@ import { VisualizationConfiguration } from "@/features/workflow/VisualizationCon
 import { listDashboards, type Dashboard, type Visualization } from "./api";
 
 type Snapshot = { workflow: Workflow; schema: WorkflowSchemaResult; dashboards: Dashboard[] };
-export function VisualizationSettingsDialog({ visualization, projectId, close }: { visualization: Visualization; projectId: string; close: () => void }) {
+export function VisualizationSettingsDialog({ visualization, projectId, close, placement }: { visualization: Visualization; projectId: string; close: () => void; placement?: ReactNode }) {
   const { t, errorText } = useI18n(); const client = useQueryClient();
   const dialog = useRef<HTMLDialogElement>(null);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null), [config, setConfig] = useState<Record<string, unknown>>({});
@@ -61,6 +61,7 @@ export function VisualizationSettingsDialog({ visualization, projectId, close }:
       {uses.length > 1 ? <label className="my-3 flex gap-2 text-sm"><input type="checkbox" checked={sharedAcknowledged} onChange={event => setSharedAcknowledged(event.target.checked)} />{t("Apply these settings to all listed widgets")}</label> : null}
       <VisualizationConfiguration version={node.version} type={node.type} config={config} columns={columns} parameters={snapshot.workflow.parameters} onChange={setConfig} />
     </fieldset> : null}
+    {placement}
     <div className="sticky -bottom-6 -mx-6 -mb-6 mt-4 flex gap-4 border-t border-outline bg-panel p-4"><button disabled={!dirty || busy || uses.length > 1 && !sharedAcknowledged} className="rounded bg-primary p-2 text-on-primary disabled:opacity-40" onClick={() => void save()}>{busy ? t("Saving…") : t("Save visualization")}</button><button disabled={busy} onClick={cancel}>{t("Cancel")}</button></div>
   </dialog>;
 }

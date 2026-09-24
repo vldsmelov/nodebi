@@ -1,5 +1,17 @@
 # ARCHITECTURE.md
 
+## Dashboard workspace (ADR-111, 2026-09-24)
+
+VisualizationEditor supplies the standalone dialog and dashboard side panel. Dashboard owns
+panel selection and an isolated selected-widget preview; global query results are not modified
+by draft appearance. Data/context keys gate responses and cancellation; pure appearance changes
+reuse materialized results. IndependentVisualizationPreview extends the save input with context
+and parameters, forwarded to render_visualization without persistence. Saved APIs are unchanged.
+WidgetPlacement and placement helpers enforce bounded, nonoverlapping keyboard edits and
+first-free placement. The grid does not silently compact manual positions. A bounded in-memory
+layout history and existing session draft retain local edits independently from visualization CAS.
+Shared copy replaces only the selected draft widget reference. No new schema migration is needed.
+
 ## Generic P&L preparation and series (ADR-110, 2026-09-24)
 
 Calculated Column and field expressions share the same typed allowlist, including conditions,

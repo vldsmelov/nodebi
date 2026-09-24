@@ -1,5 +1,31 @@
 # DECISIONS.md
 
+# ADR-111 - Dashboard workspace and contextual draft rendering
+
+Date: 2026-09-24. Status: ACCEPTED. Extends ADR-106/109.
+
+Context: chart settings were available from dashboards but hidden among permanently visible
+widget controls. Modal editing obscured layout; dirty layout unnecessarily prevented independent
+visualization creation. Draft preview did not receive the dashboard view context.
+
+Decision: reuse one independent visualization editor in the dashboard right panel and standalone
+dialog. Separate data, appearance and local placement; put secondary actions in an overflow menu.
+Visualization owns semantic configuration; dashboard owns references, layout and local titles.
+Keep explicit separate saves and CAS, rather than suggesting a cross-document atomic save.
+Create/copy into the current recoverable layout draft. Failed existing visualization drafts remain
+recoverable; switching requires apply/discard/continue. Shared edits disclose multiple placements.
+
+Preview accepts ViewContext and parameter values, through the same renderer as saved charts.
+Only presentation fields patch existing results locally. Field/context changes debounce 400 ms,
+abort obsolete requests and gate responses by request identity. Layout history contains no chart
+configuration. Placement fills free grid space; keyboard controls reject collisions and bounds.
+
+Alternatives: a gear opening the old modal does not solve context switching; automatic shared
+saves risk unintended cross-dashboard changes; dashboard copies of chart config split ownership.
+Consequences: no database migration; additive preview contract and regenerated OpenAPI types.
+Existing node-owned charts retain their compatibility dialog. No new analytics, filters or
+navigation features. Human productivity remains a separate measured acceptance activity.
+
 # ADR-110 - Generic operations for simple multi-book dashboards
 
 Date: 2026-09-24. Status: ACCEPTED. Extends ADR-109.

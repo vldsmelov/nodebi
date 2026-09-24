@@ -6,7 +6,7 @@ import { IndependentVisualizationDialog } from "@/features/dashboard/Independent
 import { apiRequest } from "@/lib/api";
 import { getWorkflow, listWorkflows } from "@/features/workflow/api";
 
-vi.mock("@/lib/api", () => ({ apiRequest: vi.fn() }));
+vi.mock("@/lib/api", async importOriginal => ({ ...await importOriginal<typeof import("@/lib/api")>(), apiRequest: vi.fn() }));
 vi.mock("@/features/workflow/api", () => ({ getWorkflow: vi.fn(), listWorkflows: vi.fn() }));
 const output = { id: "publication", node_id: "constant", port: "value", name: "Total", kind: "scalar" as const };
 const workflow = { id: "flow", project_id: "project", name: "Calculation", version: 3, revision: 5, nodes: [], edges: [], created_at: "2026-01-01", updated_at: "2026-01-01", result_catalog: { outputs: [output] } };
