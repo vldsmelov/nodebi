@@ -1,5 +1,11 @@
 # TASKS.md
 
+## Synthetic business walkthrough (2026-09-24)
+
+* [x] Write the economist guide before dashboard construction; define independent expected values.
+* [x] Generate three public sales/cost/plan books with documented business assumptions.
+* [x] Follow the guide through the UI, retain an editable six-widget dashboard and verify reload.
+
 ## Reliable report cycle (2026-09-24)
 
 * [x] Immutable source versions, staged mapping and atomic complete replacement.

@@ -5,6 +5,21 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Current task completed: guide-first synthetic sales/gross-profit business example.
+Guide: docs/BUSINESS_SALES_GUIDE.md; three public workbooks, generator and independent oracle
+under fixtures. Authored through the UI: 14 calculation nodes, 3 publications, 6 visualizations
+and a saved dashboard. Monthly/region/total values and reload verified by business-sales.spec.ts;
+TypeScript, focused ESLint and generator Ruff/format checks pass. Application code, API and
+database schema did not change; the full-suite results below belong to the preceding delivery.
+No known defect in the example; two automation issues (canvas click timing and an already-matched
+layout template) were corrected without changing application behavior. No human speed claim.
+Local project: 11e9479a-d363-4f34-994a-3203ea4c9323.
+Dashboard: /projects/11e9479a-d363-4f34-994a-3203ea4c9323/dashboard?dashboard=879cad4b-dbdb-4ed5-8466-2c4051d4c1f4&mode=view
+Next: economist walkthrough using this guide, followed by the regular-report operator trial.
+Real second-report data and participants remain unavailable acceptance inputs.
+
+## Previous delivery: reliable report cycle
+
 Current delivery: reliable report cycle implemented and technically verified (ADR-113).
 Last completed: immutable source versions, mapped atomic updates, period collections/history,
 full-data checks, provenance, frozen releases and restoration into independent editable projects.

@@ -1,5 +1,13 @@
 # Node BI
 
+Start with the public business example: [sales and gross profit, step-by-step guide](docs/BUSINESS_SALES_GUIDE.md).
+Three synthetic workbooks and independent expected totals are in `fixtures/excel/business-*`.
+Generate them with `backend/.venv/Scripts/python.exe fixtures/build_business_demo.py`.
+Run `npx playwright test e2e/business-sales.spec.ts` from `frontend` to follow the guide through
+the UI; set `NODEBI_KEEP_BUSINESS_DEMO=1` to retain the resulting editable project.
+The test provisions the project/uploads through the public API; all graph calculations,
+publications, visualization settings and dashboard placement are authored through the UI.
+
 Regular workbook updates, report checks and frozen releases:
 [operator guide](docs/REPORT_CYCLE.md). The report-cycle worker currently requires a single
 backend process. Back up both PostgreSQL and source storage before applying migrations.
