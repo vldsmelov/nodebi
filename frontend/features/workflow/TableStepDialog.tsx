@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { JoinKeysConfiguration, type JoinKey } from "./JoinKeysConfiguration";
 import { FormulaEditor } from "./FormulaEditor";
 import type { DataSource } from "@/features/data-sources/api";
 import type { GraphDraft } from "./autosave";
@@ -15,7 +16,9 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], edi
   const { t, nodeName } = useI18n(); const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { dialog.current?.showModal(); }, []);
   const columns = schema.nodes.find(node => node.node_id === source.nodeId)?.outputs?.[source.port]?.columns ?? [];
-  const [right, setRight] = useState(""), [leftKey, setLeftKey] = useState(""), [rightKey, setRightKey] = useState(""), [how, setHow] = useState("inner");
+  const [right, setRight] = useState(""), [how, setHow] = useState("inner");
+  const [keys, setKeys] = useState<JoinKey[]>([{ left_key: "", right_key: "" }]);
+  const [relationship, setRelationship] = useState("many_to_many");
   const existing = graph.nodes.find(node => node.id === editNodeId);
   const originalExpression = String(existing?.config?.expression ?? "");
   const parsed = parseSimpleCalculation(originalExpression);
@@ -29,13 +32,16 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], edi
     return { key: JSON.stringify([node.node_id, port]), nodeId: node.node_id, port, columns: output.columns ?? [], label: [book?.original_filename, String(actual.ui?.label || actual.config?.sheet_name || nodeName(actual.type))].filter(Boolean).join(" / ") };
   }));
   const target = tables.find(table => table.key === right);
-  const leftType = columns.find(column => column.column_id === leftKey)?.logical_type;
-  const rightType = target?.columns.find(column => column.column_id === rightKey)?.logical_type;
-  const mismatch = leftType && rightType && leftType !== rightType && leftType !== "unknown" && rightType !== "unknown";
+  const mismatch = keys.some(key => {
+    const l = columns.find(column => column.column_id === key.left_key)?.logical_type;
+    const r = target?.columns.find(column => column.column_id === key.right_key)?.logical_type;
+    return l && r && l !== r && l !== "unknown" && r !== "unknown";
+  });
+  const validKeys = keys.every(key => columns.some(column => column.column_id === key.left_key) && target?.columns.some(column => column.column_id === key.right_key)) && ["left_key", "right_key"].every(side => new Set(keys.map(key => key[side as keyof JoinKey])).size === keys.length);
   const operand = (field: string, constant: string) => field === "constant" ? `(${constant})` : `[${field}]`;
   const expression = advanced ? formula : operation === "/" && zero === "null" ? `(${operand(a, ac)}) / nullif(${operand(b, bc)}, 0)` : `${operand(a, ac)} ${operation} ${operand(b, bc)}`;
   const validNumber = (value: string) => /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value) && Number.isFinite(Number(value));
-  const valid = mode === "join" ? target && leftKey && rightKey && !mismatch : name.trim() && !columns.some(column => column.engine_name === name.trim()) && (advanced ? formula.trim() : a && b && (a !== "constant" || validNumber(ac)) && (b !== "constant" || validNumber(bc)) && (operation !== "/" || zero));
+  const valid = mode === "join" ? target && validKeys && !mismatch : name.trim() && !columns.some(column => column.engine_name === name.trim()) && (advanced ? formula.trim() : a && b && (a !== "constant" || validNumber(ac)) && (b !== "constant" || validNumber(bc)) && (operation !== "/" || zero));
   const submit = () => {
     if (!valid) return;
     if (existing) {
@@ -45,7 +51,7 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], edi
     const id = crypto.randomUUID(), parent = graph.nodes.find(node => node.id === source.nodeId)!;
     const rightPosition = mode === "join" ? graph.nodes.find(node => node.id === target?.nodeId)?.position : undefined;
     const connect = (endpoint: TableEndpoint, port: string) => ({ id: crypto.randomUUID(), source_node_id: endpoint.nodeId, source_port: endpoint.port, target_node_id: id, target_port: port });
-    apply({ ...graph, nodes: [...graph.nodes, { id, type: mode === "join" ? "join" : "calculated_column", version: 1, position: { x: Math.max(parent.position.x, rightPosition?.x ?? parent.position.x) + 360, y: parent.position.y + 120 }, config: mode === "join" ? { left_key: leftKey, right_key: rightKey, how } : { name: name.trim(), expression }, ui: {} }], edges: [...graph.edges, ...(mode === "join" ? [connect(source, "left"), connect(target!, "right")] : [connect(source, "input")])] }, id);
+    apply({ ...graph, nodes: [...graph.nodes, { id, type: mode === "join" ? "join" : "calculated_column", version: mode === "join" ? 2 : 1, position: { x: Math.max(parent.position.x, rightPosition?.x ?? parent.position.x) + 360, y: parent.position.y + 120 }, config: mode === "join" ? { keys, relationship, how } : { name: name.trim(), expression }, ui: {} }], edges: [...graph.edges, ...(mode === "join" ? [connect(source, "left"), connect(target!, "right")] : [connect(source, "input")])] }, id);
   };
   const control = "my-2 w-full rounded border border-outline bg-control p-2";
   const selectOperand = (label: string, value: string, change: (value: string) => void, constant: string, changeConstant: (value: string) => void) => <label>{t(label)}<select aria-label={t(label)} className={control} value={value} onChange={e => change(e.target.value)}><option value="">{t("Select field")}</option><option value="constant">{t("Constant")}</option>{columns.filter(column => ["integer", "float", "unknown"].includes(column.logical_type)).map(column => <option key={column.column_id} value={column.column_id}>{column.display_name}</option>)}</select>{value === "constant" && <input aria-label={t(`${label} constant`)} className={control} value={constant} onChange={e => changeConstant(e.target.value)} />}</label>;
@@ -53,9 +59,8 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], edi
     <h2>{t(mode === "join" ? "Join with…" : existing ? "Edit calculation" : "Add calculated field")}</h2>
     <p className="my-2 text-sm">{tables.find(table => table.nodeId === source.nodeId && table.port === source.port)?.label}</p>
     {mode === "join" ? <>
-      <label>{t("Right table")}<select aria-label={t("Right table")} className={control} value={right} onChange={e => { setRight(e.target.value); setRightKey(""); }}><option value="">{t("Select output")}</option>{tables.map(table => <option key={table.key} value={table.key}>{table.label}</option>)}</select></label>
-      <label>{t("Left key")}<select aria-label={t("Left key")} className={control} value={leftKey} onChange={e => setLeftKey(e.target.value)}><option value="">{t("Select field")}</option>{columns.map(column => <option key={column.column_id} value={column.column_id}>{column.display_name}</option>)}</select></label>
-      <label>{t("Right key")}<select aria-label={t("Right key")} className={control} value={rightKey} onChange={e => setRightKey(e.target.value)}><option value="">{t("Select field")}</option>{target?.columns.map(column => <option key={column.column_id} value={column.column_id}>{column.display_name}</option>)}</select></label>
+      <label>{t("Right table")}<select aria-label={t("Right table")} className={control} value={right} onChange={e => { setRight(e.target.value); setKeys(current => current.map(key => ({ ...key, right_key: "" }))); }}><option value="">{t("Select output")}</option>{tables.map(table => <option key={table.key} value={table.key}>{table.label}</option>)}</select></label>
+      <JoinKeysConfiguration keys={keys} left={columns} right={target?.columns ?? []} relationship={relationship} onKeys={setKeys} onRelationship={setRelationship} />
       <label>{t("Join type")}<select aria-label={t("Join type")} className={control} value={how} onChange={e => setHow(e.target.value)}><option value="inner">{t("Inner — matching rows")}</option><option value="left">{t("Left — retain all left rows")}</option></select></label>
       <p>{t("Repeated keys can produce multiple rows. No duplicates are removed.")}</p>
       {mismatch && <p role="alert" className="text-danger">{t("Fields must have matching logical types. Convert them explicitly upstream.")}</p>}

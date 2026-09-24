@@ -1,5 +1,14 @@
 # PRODUCT_SPEC.md
 
+## Simple configurable dashboards (2026-09-24)
+
+Priority: workbooks -> node calculations -> published results -> configured visualizations ->
+saved dashboard layout. All functions remain accessible to everyone. This supersedes the
+viewer-only proposal. New navigation, hierarchical drill-down, category filters and redesign
+are deferred. Existing period filtering is optional for the first delivery. Reuse simple tables,
+KPI and charts. See docs/SIMPLE_DASHBOARDS_PLAN.md for the staged implementation and examples.
+Join supports multiple explicit key pairs in v2, with user-selected relationship validation.
+
 ## Guided table workflow (2026-09-23, ADR-108)
 
 The field editor offers a Next step panel for Join, calculated field, Group By and publication.

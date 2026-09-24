@@ -1,5 +1,14 @@
 # ARCHITECTURE.md
 
+## Composite Join (ADR-109, 2026-09-24)
+
+Join v2 accepts keys[{left_key,right_key}], how and relationship. Its typed registry config
+forbids unknown fields and validates unique key selections. Join v1 adapts to one pair with
+many-to-many semantics. The shared Polars executor counts composite tuples, checks declared
+cardinality and estimates result size before materialization. Full-input diagnostics reuse
+these counts. Creation and inspection use one schema-aware field-pair form. Existing revision,
+undo, source cache and published-output contracts remain unchanged.
+
 ## Guided authoring and Join diagnostics (ADR-108, 2026-09-23)
 
 NextStepPanel and shared create/edit dialogs write ordinary graph operations through existing

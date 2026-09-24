@@ -1,5 +1,21 @@
 # DECISIONS.md
 
+# ADR-109 - Simple dashboards and explicit composite Join
+
+Date: 2026-09-24. Status: ACCEPTED. Extends ADR-107/108.
+
+The owner prioritizes authoring basic configurable dashboards over viewer-only productization,
+navigation and interactive drill-down. Scope and remaining tasks: docs/SIMPLE_DASHBOARDS_PLAN.md.
+Join v2 declares an ordered list of key pairs and expected relationship (many-to-many by default,
+many-to-one or one-to-one). All pairs compare together; any null key component prevents matching.
+Repeated key fields are invalid. Uniqueness checks cover complete keys over entire inputs,
+including unmatched keys, before result allocation. Existing output limits remain enforced.
+Join v1 is retained with its original single-key semantics and shares the common executor.
+No concatenated string keys, automatic deduplication or financial-specific joining are introduced.
+The wizard creates v2; existing nodes are not automatically upgraded. The form is shared with
+the inspector. Both key fields remain in the result and right-field IDs retain their old scheme.
+No database migration or workflow-format change is needed; node versions already persist.
+
 # ADR-108 - Guided table authoring and full-input Join feedback
 
 Date: 2026-09-23. Status: ACCEPTED. Extends ADR-107.

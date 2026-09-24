@@ -1,5 +1,17 @@
 /** English source keys are stable UI messages, never user-provided names or data. */
 export const translations: Record<string, readonly [string, string]> = {
+  "Key pair {0}": ["Пара ключей {0}", "Ачкычлар пары {0}"],
+  "Left key {0}": ["Левый ключ {0}", "Сул ачкыч {0}"],
+  "Right key {0}": ["Правый ключ {0}", "Уң ачкыч {0}"],
+  "Add key pair": ["Добавить пару ключей", "Ачкычлар парын өстәргә"],
+  "Remove key pair": ["Удалить пару ключей", "Ачкычлар парын бетерергә"],
+  "Expected relationship": ["Ожидаемое соответствие", "Көтелгән бәйләнеш"],
+  "Many to many — allow repeated keys": ["Многие ко многим — разрешить повторы", "Күптән күпкә — кабатланулар рөхсәт ителә"],
+  "Many to one — right keys must be unique": ["Многие к одному — уникальные ключи справа", "Күптән бергә — уң ачкычлар уникаль"],
+  "One to one — both sides must be unique": ["Один к одному — уникальные ключи с обеих сторон", "Бердән бергә — ике якта да уникаль ачкычлар"],
+  "Right join keys are not unique. Correct the keys or explicitly allow multiple matches.": ["Ключи справа повторяются. Исправьте ключи или явно разрешите несколько совпадений.", "Уң ачкычлар кабатлана. Ачкычларны төзәтегез яки берничә туры килүне рөхсәт итегез."],
+  "Left join keys are not unique. Correct the keys or change the expected relationship.": ["Ключи слева повторяются. Исправьте ключи или измените ожидаемое соответствие.", "Сул ачкычлар кабатлана. Ачкычларны төзәтегез яки көтелгән бәйләнешне үзгәртегез."],
+  "Join key fields must be unique on each side.": ["Каждое поле ключа можно выбрать только один раз с каждой стороны.", "Һәр ачкыч кырын һәр якта бер генә тапкыр сайлап була."],
   "Detailed counts": ["Подробные показатели", "Тулырак күрсәткечләр"],
   "Advanced settings": ["Расширенные настройки", "Өстәмә көйләүләр"],
   "Data preview": ["Просмотр данных", "Мәгълүматны карау"],

@@ -3,11 +3,13 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
-test("two books, Join, calculated field, result card and shared dashboard visualizations", async ({ page, request }) => {
+for (const multikey of [false, true]) test(`two books, ${multikey ? "composite" : "single"} Join, calculated field and shared dashboard visualizations`, async ({ page, request }) => {
   test.setTimeout(150000);
+  const keep = process.env.NODEBI_KEEP_TABLE_DEMO === "1" || (multikey && process.env.NODEBI_KEEP_MULTIKEY_DEMO === "1");
+  const prefix = multikey ? "multikey" : "join";
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Table authoring acceptance" } })).json();
   try {
-    for (const name of ["join-orders", "join-prices"]) {
+    for (const name of [`${prefix}-orders`, `${prefix}-prices`]) {
       const upload = await request.post(`${api}/api/v1/projects/${project.id}/sources/excel`, { multipart: { file: { name: `${name}.xlsx`, mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: readFileSync(resolve(`../fixtures/excel/${name}.xlsx`)) } } });
       expect(upload.ok()).toBeTruthy();
     }
@@ -16,7 +18,7 @@ test("two books, Join, calculated field, result card and shared dashboard visual
     await expect(page.getByRole("region", { name: "Next step", exact: true })).toBeVisible();
     await expect(page.getByTitle("Add Field arithmetic", { exact: true })).toBeHidden();
     const saved = async () => { await expect(page.getByText("Saved", { exact: true })).toBeVisible(); await expect(page.getByText("Updating fields", { exact: true })).toHaveCount(0); };
-    for (const name of ["join-orders.xlsx", "join-prices.xlsx"]) {
+    for (const name of [`${prefix}-orders.xlsx`, `${prefix}-prices.xlsx`]) {
       const book = page.getByRole("region", { name: "Workbook browser" }).locator("article").filter({ hasText: name });
       await book.getByRole("button", { name: new RegExp(name) }).click();
       await book.getByTitle("Add sheet to graph", { exact: true }).click(); await saved();
@@ -24,9 +26,15 @@ test("two books, Join, calculated field, result card and shared dashboard visual
     await page.locator(".react-flow__node").filter({ hasText: "Orders" }).first().click();
     await page.getByRole("button", { name: "Join with…", exact: true }).click();
     const step = page.getByRole("dialog");
-    await step.getByLabel("Right table", { exact: true }).selectOption({ label: "join-prices.xlsx / Prices" });
+    await step.getByLabel("Right table", { exact: true }).selectOption({ label: `${prefix}-prices.xlsx / Prices` });
     await step.getByLabel("Left key", { exact: true }).selectOption({ label: "Product" });
     await step.getByLabel("Right key", { exact: true }).selectOption({ label: "Product" });
+    if (multikey) {
+      await step.getByRole("button", { name: "Add key pair", exact: true }).click();
+      await step.getByLabel("Left key 2", { exact: true }).selectOption({ label: "Month" });
+      await step.getByLabel("Right key 2", { exact: true }).selectOption({ label: "Month" });
+      await step.getByLabel("Expected relationship", { exact: true }).selectOption("many_to_one");
+    }
     await step.getByRole("button", { name: "Add step", exact: true }).click(); await saved();
     await page.getByRole("button", { name: "Preview output", exact: true }).click();
     const report = page.getByRole("region", { name: "Join report", exact: true });
@@ -87,7 +95,7 @@ test("two books, Join, calculated field, result card and shared dashboard visual
       await visual.getByLabel("Visualization name", { exact: true }).fill(type === "table" ? "Revenue table" : "Revenue chart");
       await visual.getByLabel("Visualization type", { exact: true }).selectOption(type);
       if (type === "bar_chart") {
-        await visual.getByLabel("Chart category", { exact: true }).selectOption({ label: "Product" });
+        await visual.getByLabel("Chart category", { exact: true }).selectOption({ label: multikey ? "Month" : "Product" });
         await visual.getByLabel("Chart value", { exact: true }).selectOption({ label: "Revenue" });
       }
       await visual.getByRole("button", { name: "Save visualization", exact: true }).click();
@@ -109,6 +117,9 @@ test("two books, Join, calculated field, result card and shared dashboard visual
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click(); await saved();
     await page.reload(); await expect(page.locator("[data-widget-id]")).toHaveCount(2);
     expect(await (await request.get(path)).json()).toEqual(before);
-    if (process.env.NODEBI_KEEP_TABLE_DEMO === "1") writeFileSync(resolve("../.backups/table-authoring-demo.json"), JSON.stringify({ projectId: project.id, workflowId, graph: before, url: page.url() }));
-  } finally { if (process.env.NODEBI_KEEP_TABLE_DEMO !== "1") await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
+    await page.getByRole("button", { name: "View dashboard", exact: true }).click();
+    await expect(page.locator("[data-widget-id] table")).toContainText("60");
+    await page.screenshot({ path: test.info().outputPath("dashboard.png"), fullPage: true });
+    if (keep) writeFileSync(resolve(multikey ? "../.backups/multikey-demo.json" : "../.backups/table-authoring-demo.json"), JSON.stringify({ projectId: project.id, workflowId, graph: before, url: page.url() }));
+  } finally { if (!keep) await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
 });

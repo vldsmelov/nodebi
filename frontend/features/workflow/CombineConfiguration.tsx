@@ -2,10 +2,12 @@
 
 import { useI18n } from "@/lib/i18n";
 
+import { JoinKeysConfiguration, type JoinKey } from "./JoinKeysConfiguration";
 import type { ResolvedColumn } from "./types";
 
 type Props = {
   type: string;
+  version?: number;
   config: Record<string, unknown>;
   columns: ResolvedColumn[] | null;
   inputColumns?: Record<string, ResolvedColumn[] | null>;
@@ -13,11 +15,12 @@ type Props = {
 };
 const control = "mt-2 w-full rounded-lg border border-outline bg-control px-2 py-2 text-xs";
 
-export function CombineConfiguration({ type, config, columns, inputColumns = {}, onChange }: Props) {
+export function CombineConfiguration({ type, version = 1, config, columns, inputColumns = {}, onChange }: Props) {
   const { t } = useI18n();
   if (type === "union") return <div className="mt-6"><h2>{t("Union")}</h2><p className="mt-3 text-xs leading-5 text-muted">{t("Connect both inputs. Fields match by name and logical type, in left input order. Rows from the right follow rows from the left. Convert incompatible types upstream.")}</p></div>;
   if (type === "join") return <div className="mt-6"><h2>{t("Join")}</h2>
-    {(["left", "right"] as const).map(port => <label key={port} className="mt-3 block text-xs">{port === "left" ? t("Left key") : t("Right key")}<select aria-label={t("{0} join key", {"0": t(port)})} className={control} value={String(config[`${port}_key`] ?? "")} onChange={e => onChange({ ...config, [`${port}_key`]: e.target.value })}><option value="">{t("Select key")}</option>{inputColumns[port]?.map(c => <option key={c.column_id} value={c.column_id}>{c.display_name} · {t(c.logical_type)}</option>)}</select></label>)}
+    {version >= 2 ? <JoinKeysConfiguration keys={(config.keys as JoinKey[] | undefined) ?? [{ left_key: "", right_key: "" }]} left={inputColumns.left ?? []} right={inputColumns.right ?? []} relationship={String(config.relationship ?? "many_to_many")} onKeys={keys => onChange({ ...config, keys })} onRelationship={relationship => onChange({ ...config, relationship })} /> : (["left", "right"] as const).map(port => <label key={port} className="mt-3 block text-xs">{port === "left" ? t("Left key") : t("Right key")}<select aria-label={t("{0} join key", {"0": t(port)})} className={control} value={String(config[`${port}_key`] ?? "")} onChange={e => onChange({ ...config, [`${port}_key`]: e.target.value })}><option value="">{t("Select key")}</option>{inputColumns[port]?.map(c => <option key={c.column_id} value={c.column_id}>{c.display_name} · {t(c.logical_type)}</option>)}</select></label>)}
+
     <label className="mt-3 block text-xs">{t("Join type")}<select aria-label={t("Join type")} className={control} value={String(config.how ?? "inner")} onChange={e => onChange({ ...config, how: e.target.value })}><option value="inner">{t("Inner — matching rows")}</option><option value="left">{t("Left — retain all left rows")}</option></select></label>
     <p className="mt-3 text-xs leading-5 text-muted">{t("Keys must have matching types. Empty keys never match. Duplicate keys produce all matching pairs. Conflicting right fields receive a __right suffix; both keys remain.")}</p>
   </div>;

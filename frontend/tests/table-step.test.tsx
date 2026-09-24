@@ -11,6 +11,26 @@ const graph: GraphDraft = { name: "Sales", format_version: 3, nodes: ["sales", "
 const column = (id: string, type = "float") => ({ column_id: id, engine_name: id, display_name: id, logical_type: type, nullable: true, metadata: {} });
 const schema = { revision: 1, nodes: graph.nodes.map(node => ({ node_id: node.id, outputs: { dataset: { kind: "dataset", columns: [column("quantity"), column("price")] } } })), issues: [] } as unknown as WorkflowSchemaResult;
 
+it("requires complete unique composite keys and preserves relationship in one graph action", () => {
+  const apply = vi.fn();
+  render(<TableStepDialog mode="join" source={{ nodeId: "sales", port: "dataset" }} graph={graph} schema={schema} close={vi.fn()} apply={apply} />);
+  fireEvent.change(screen.getByLabelText("Right table"), { target: { value: JSON.stringify(["prices", "dataset"]) } });
+  fireEvent.change(screen.getByLabelText("Left key"), { target: { value: "quantity" } });
+  fireEvent.change(screen.getByLabelText("Right key"), { target: { value: "quantity" } });
+  fireEvent.click(screen.getByText("Add key pair"));
+  expect(screen.getByText("Add step")).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Left key 2"), { target: { value: "quantity" } });
+  fireEvent.change(screen.getByLabelText("Right key 2"), { target: { value: "price" } });
+  expect(screen.getByText("Add step")).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Left key 2"), { target: { value: "price" } });
+  fireEvent.change(screen.getByLabelText("Expected relationship"), { target: { value: "one_to_one" } });
+  fireEvent.click(screen.getByText("Add step"));
+  expect(apply).toHaveBeenCalledTimes(1);
+  const next = apply.mock.calls[0][0] as GraphDraft;
+  expect(next.nodes[2]).toMatchObject({ version: 2, config: { keys: [{ left_key: "quantity", right_key: "quantity" }, { left_key: "price", right_key: "price" }], relationship: "one_to_one" } });
+  expect(next.edges).toHaveLength(2);
+});
+
 it("creates one calculated step with explicit null division and preserves existing branches", () => {
   const apply = vi.fn();
   render(<TableStepDialog mode="calculate" source={{ nodeId: "sales", port: "dataset" }} graph={graph} schema={schema} close={vi.fn()} apply={apply} />);
@@ -40,7 +60,7 @@ it("adds a Join and both wires in one graph update, with explicit keys", () => {
   fireEvent.change(screen.getByLabelText("Join type"), { target: { value: "left" } });
   fireEvent.click(screen.getByText("Add step"));
   const next = apply.mock.calls[0][0] as GraphDraft;
-  expect(next.nodes[2]).toMatchObject({ type: "join", config: { left_key: "quantity", right_key: "price", how: "left" } });
+  expect(next.nodes[2]).toMatchObject({ type: "join", version: 2, config: { keys: [{ left_key: "quantity", right_key: "price" }], relationship: "many_to_many", how: "left" } });
   expect(next.nodes[2].position.x).toBe(760);
   expect(next.edges.map(edge => [edge.source_node_id, edge.target_port])).toEqual([["sales", "left"], ["prices", "right"]]);
 });

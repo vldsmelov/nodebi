@@ -1,9 +1,32 @@
 # Node BI Development Status
 
-Last updated: 2026-09-23
+Last updated: 2026-09-24
 Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
+
+Current milestone: simple dashboard constructor, S1 completed; S2-S5 remain open.
+Approved plan: docs/SIMPLE_DASHBOARDS_PLAN.md. Prior viewer-only proposal is superseded;
+everyone can author, with no new account system, navigation or hierarchical reporting UI.
+Join v2 supports up to 32 distinct field pairs and many-to-many/many-to-one/one-to-one checks.
+Its create/inspect forms share configuration; old Join v1 retains existing behavior and IDs.
+Null key components never match; declared uniqueness is checked across complete input keys,
+including unmatched keys. Cardinality and resource checks run before Join materialization.
+
+Checks: 385 backend tests passed with PostgreSQL enabled (seven SQLite-only skips), 132 frontend
+tests passed. Ruff/format/mypy, TypeScript, ESLint, OpenAPI consistency and Docker production
+builds pass. Browser acceptance covers single and composite Join -> calculated field -> shared
+publication -> independent chart + table -> saved dashboard; edit, undo/redo and reload included.
+Public monthly-price fixtures distinguish a correct total of 80 from a single-key total of 150.
+Retained demo location is in .backups/multikey-demo.json (private runtime evidence).
+Financial project was not edited; full 164-slice parity and database restart were not repeated.
+
+Next: S2 safe conditional/text/date expressions, conditional-field form and cumulative Window;
+then diagnostic record views/source bounds, multiple series and synthetic AlMaBi P&L acceptance.
+The two-book demo proves the basic constructor path, not completion of AlMaBi or the whole plan.
+No known P0/P1 in the delivered Join feature. No data reset. Human usability remains unmeasured.
+
+Previous completed milestone:
 
 Current milestone: guided table authoring usability follow-up (ADR-108), implemented.
 Simple calculated-column creation and editing share one form; complex expressions remain intact.
