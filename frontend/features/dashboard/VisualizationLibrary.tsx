@@ -16,13 +16,16 @@ export function VisualizationLibrary({ items, dashboards, busy, onAdd, onEdit }:
     try { await apiRequest(`/api/v1/visualizations/${item.id}?expected_revision=${item.revision}`, { method: "DELETE" }); await client.invalidateQueries({ queryKey: ["visualizations"] }); }
     catch (error) { setError(error); } finally { setDeleting(false); }
   };
+  const filtered = items.filter(item => item.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
   return <details className="my-4 rounded border border-outline p-3" open>
     <summary>{t("Available visualizations")}</summary>
     <input aria-label={t("Search visualizations")} placeholder={t("Search visualizations")} value={search} onChange={e => setSearch(e.target.value)} className="my-3 w-full rounded border border-outline bg-control p-2" />
+    {!filtered.length && <p role="status" className="my-3 text-sm text-muted">{t(items.length ? "No matching visualizations." : "Create a visualization from a published result to begin.")}</p>}
+    {search && <button className="mb-3 text-sm underline" onClick={() => setSearch("")}>{t("Clear search")}</button>}
     {error ? <p role="alert" className="text-danger">{errorText(error)}</p> : null}
-    <div className="max-h-80 overflow-auto">{items.filter(item => item.name.toLocaleLowerCase().includes(search.toLocaleLowerCase())).map(item => {
+    <div className="max-h-80 overflow-auto">{filtered.map(item => {
       const used = dashboards.some(board => board.widgets.some(widget => widget.visualization_id === item.id));
-      return <div key={item.id} className="border-t border-outline py-2"><div className="flex flex-wrap items-center gap-3 text-sm"><span className="flex-1">{item.name} · {nodeName(item.type)}</span><button disabled={busy || deleting} onClick={() => onAdd(item.id)}>{t("Add widget")}</button><button onClick={() => setPreview(preview === item.id ? null : item.id)}>{t("Preview visualization")}</button><button disabled={busy || deleting} onClick={() => onEdit(item)}>{t("Settings")}</button>{item.publication_id && <button disabled={busy || deleting || used} title={used ? t("Remove placements before deleting this visualization.") : undefined} onClick={() => void remove(item)} className="text-danger">{t("Delete visualization")}</button>}</div>{preview === item.id && <div className="h-64"><VisualizationView id={item.id} revision={item.revision} /></div>}</div>;
+      return <div key={item.id} className="border-t border-outline py-2"><div className="flex flex-wrap items-center gap-3 text-sm"><span className="flex-1">{item.name} · {nodeName(item.type)}</span><button className="rounded bg-primary px-3 py-2 text-on-primary disabled:opacity-40" disabled={busy || deleting} onClick={() => onAdd(item.id)}>{t("Add widget")}</button><button onClick={() => setPreview(preview === item.id ? null : item.id)}>{t("Preview visualization")}</button><button disabled={busy || deleting} onClick={() => onEdit(item)}>{t("Settings")}</button>{item.publication_id && <button disabled={busy || deleting || used} title={used ? t("Remove placements before deleting this visualization.") : undefined} onClick={() => void remove(item)} className="text-danger">{t("Delete visualization")}</button>}</div>{preview === item.id && <div className="h-64"><VisualizationView id={item.id} revision={item.revision} /></div>}</div>;
     })}</div>
   </details>;
 }

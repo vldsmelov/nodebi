@@ -1,5 +1,12 @@
 # PRODUCT_SPEC.md
 
+## Authoring usability follow-up (2026-09-24)
+
+Project entry explains Data -> Workflow -> Dashboard; the visualization library remains accessible.
+Incomplete chart forms explain missing selections before requesting preview or allowing save.
+Tables use a single searchable ordered column selection; workbook actions and editor tabs support
+keyboard interaction. No automatic analytics or new product subsystem is introduced.
+
 ## Dashboard workspace UX (2026-09-24)
 
 Dashboard editing is explicitly in scope: compact widget headers, settings in a right panel,

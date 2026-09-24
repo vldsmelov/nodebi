@@ -1,5 +1,13 @@
 # TASKS.md
 
+## Authoring usability review (2026-09-24, ADR-112)
+
+* [x] Reproduce premature preview; add explicit completeness guidance without implicit calculations.
+* [x] Consolidate table columns, add search feedback and clarify project/import next steps.
+* [x] Keyboard workbook actions, visible focus, tab navigation and one dashboard undo history.
+* [x] Component/browser regression, production build and review documentation.
+* [ ] Human operator comparison: time, errors, completion and help requests; no unmeasured speed claim.
+
 ## Dashboard workspace (authorized 2026-09-24)
 
 * [x] Compact headers, right panel, reusable visualization editor and explicit placement controls.

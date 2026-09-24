@@ -12,6 +12,7 @@ export function NextStepPanel({ label, kind, pending, onJoin, onCalculate, onGro
     <h2 className="font-semibold">{t("Next step")}</h2>
     <p className="my-2 break-words text-xs text-muted">{label || t("Select a table or open a workbook sheet.")}</p>
     {pending && label && <p className="text-xs text-muted">{t("Updating fields")}</p>}
+    {label && !table && !pending && <p className="text-xs text-muted">{t("Table actions require a table output. A scalar can be published directly.")}</p>}
     <button className={button} disabled={pending || !table} onClick={onJoin}>{t("Join with…")}</button>
     <button className={button} disabled={pending || !table} onClick={onCalculate}>{t("Add calculated field")}</button>
     <button className={button} disabled={pending || !table} onClick={onGroup}>{t("Summarize data")}</button>

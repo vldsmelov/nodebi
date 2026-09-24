@@ -1,5 +1,12 @@
 # ARCHITECTURE.md
 
+## Authoring guidance (ADR-112, 2026-09-24)
+
+The shared visualization editor gates requests with schema-based form completeness hints.
+These are presentation checks, not a parallel calculation/type validation engine. Backend
+validation remains authoritative. TableColumns owns only search/selection ordering; stable
+column IDs remain in the existing visualization config. No storage/API changes are required.
+
 ## Dashboard workspace (ADR-111, 2026-09-24)
 
 VisualizationEditor supplies the standalone dialog and dashboard side panel. Dashboard owns

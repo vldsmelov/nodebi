@@ -1,5 +1,19 @@
 # DECISIONS.md
 
+# ADR-112 - Guided authoring without implicit analytics
+
+Date: 2026-09-24. Status: ACCEPTED. Extends ADR-111.
+
+Context: new charts requested execution before mandatory fields were selected; table selection
+was duplicated, and workbook actions were not keyboard accessible.
+Decision: add schema-aware completeness guidance before preview/save, a single searchable
+ordered column control, semantic keyboard controls and a three-step project entry path.
+The server still validates types, aggregation requirements and execution. No default fields
+or implicit aggregation are inferred. Existing data and API contracts remain unchanged.
+Alternative: auto-select likely fields; rejected because a syntactically valid chart can be
+analytically wrong. Consequence: incomplete forms explain the next action without execution;
+usability gains are structural until measured with operators. See docs/USABILITY_REVIEW.md.
+
 # ADR-111 - Dashboard workspace and contextual draft rendering
 
 Date: 2026-09-24. Status: ACCEPTED. Extends ADR-106/109.

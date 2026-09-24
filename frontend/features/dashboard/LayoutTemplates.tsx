@@ -4,8 +4,8 @@ import { useI18n } from "@/lib/i18n";
 import type { Visualization, Widget } from "./api";
 import { arrangeWidgets, layoutSignature, type LayoutTemplate } from "./layout-templates";
 
-export function LayoutTemplates({ widgets, visualizations, busy, onChange }: {
-  widgets: Widget[]; visualizations: Visualization[]; busy?: boolean; onChange: (widgets: Widget[]) => void;
+export function LayoutTemplates({ widgets, visualizations, busy, onChange, showUndo = true }: {
+  showUndo?: boolean; widgets: Widget[]; visualizations: Visualization[]; busy?: boolean; onChange: (widgets: Widget[]) => void;
 }) {
   const { t } = useI18n();
   const [template, setTemplate] = useState<LayoutTemplate>("overview");
@@ -16,11 +16,11 @@ export function LayoutTemplates({ widgets, visualizations, busy, onChange }: {
   useEffect(() => { if (open) dialog.current?.showModal(); else dialog.current?.close(); }, [open]);
   return <div className="my-4 flex gap-3 text-sm">
     <button disabled={busy || !widgets.length} className="rounded border border-outline px-3 py-2 disabled:opacity-40" onClick={() => setOpen(true)}>{t("Layout templates")}</button>
-    <button disabled={busy || !undo || undo.after !== layoutSignature(widgets)} className="rounded border border-outline px-3 py-2 disabled:opacity-40" onClick={() => {
+    {showUndo && <button disabled={busy || !undo || undo.after !== layoutSignature(widgets)} className="rounded border border-outline px-3 py-2 disabled:opacity-40" onClick={() => {
       if (!undo || undo.after !== layoutSignature(widgets)) return;
       const previous = new Map(undo.before.map(item => [item.id, item]));
       onChange(widgets.map(item => { const old = previous.get(item.id)!; return { ...item, x: old.x, y: old.y, width: old.width, height: old.height }; })); setUndo(null);
-    }}>{t("Undo layout template")}</button>
+    }}>{t("Undo layout template")}</button>}
     <dialog ref={dialog} aria-label={t("Layout templates")} onCancel={event => { event.preventDefault(); setOpen(false); }} className="m-auto max-h-[90vh] w-[min(760px,94vw)] overflow-auto rounded-xl border border-outline bg-panel p-6 text-foreground backdrop:bg-black/60">
       <h2 className="text-lg">{t("Layout templates")}</h2>
       <p className="my-3 text-sm text-muted">{t("Preview placement. Applying changes only widget positions and sizes in the dashboard draft.")}</p>

@@ -1,5 +1,6 @@
 "use client";
 
+import { TableColumns } from "./TableColumns";
 import { useI18n } from "@/lib/i18n";
 
 import type { ResolvedColumn, WorkflowParameter } from "./types";
@@ -32,8 +33,7 @@ export function VisualizationConfiguration({ type, config, columns, onChange, pa
     {bound && <p className="mt-3 text-xs text-muted">{t(type === "kpi" ? "Connect a numeric or text scalar to Value. Use Sum field for a total." : "Connect Table, Category and Value from the same table output. Aggregate upstream.")}</p>}
     </div><div hidden={section === "data"}>
     {type === "bar_chart" ? <label className="mt-3 block text-xs">{t("Orientation")}<select aria-label={t("Orientation")} className={control} value={String(config.orientation ?? "vertical")} onChange={event => onChange({ ...config, orientation: event.target.value })}><option value="vertical">{t("Vertical")}</option><option value="horizontal">{t("Horizontal")}</option></select></label> : null}
-    {type === "table" ? <div className="mt-3 space-y-2">{columns?.map(c => <label key={c.column_id} className="flex gap-2 text-xs"><input type="checkbox" checked={selected.includes(c.column_id)} onChange={() => onChange({ ...config, column_ids: selected.includes(c.column_id) ? selected.filter(id => id !== c.column_id) : [...selected, c.column_id] })} />{c.display_name}</label>)}</div> : null}
-    {type === "table" && <div className="my-3 space-y-2">{selected.map((id, index) => <div key={String(id)} className="flex items-center gap-2 text-xs"><span className="flex-1">{columns?.find(c => c.column_id === id)?.display_name}</span>{[-1, 1].map(direction => <button key={direction} aria-label={t(direction < 0 ? "Move column up" : "Move column down")} disabled={index + direction < 0 || index + direction >= selected.length} onClick={() => { const next = [...selected]; [next[index], next[index + direction]] = [next[index + direction], next[index]]; onChange({ ...config, column_ids: next }); }}>{direction < 0 ? "\u2191" : "\u2193"}</button>)}</div>)}</div>}
+    {type === "table" && <TableColumns columns={columns ?? []} selected={selected} onChange={column_ids => onChange({ ...config, column_ids })} />}
     {type === "table" ? <fieldset className="mt-4"><legend className="text-xs">{t("Column formats")}</legend>{columns?.filter(column => selected.includes(column.column_id) && ["integer", "float"].includes(column.logical_type)).map(column => {
       const key = column.column_id, settings = formats[key];
       const update = (patch: object) => onChange({ ...config, column_formats: { ...formats, [key]: { number_format: "number", decimals: 2, currency: "USD", ...settings, ...patch } } });

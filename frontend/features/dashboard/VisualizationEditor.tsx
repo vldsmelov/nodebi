@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
+import { useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiRequest } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -7,11 +7,12 @@ import type { components } from "@/lib/api-schema";
 import { getWorkflow, listWorkflows } from "@/features/workflow/api";
 import { VisualizationConfiguration } from "@/features/workflow/VisualizationConfiguration";
 import { VisualizationResultView } from "./VisualizationView";
+import { chartSetupHints, chartPurpose } from "./authoring-guidance";
 import { appearancePreview, executionConfig } from "./editor-preview";
 import type { Visualization, VisualizationResult } from "./api";
 
 export type EditorHandle = { leave: (action: () => void) => void };
-export type DraftPreview = { result?: VisualizationResult; loading?: boolean; error?: unknown };
+export type DraftPreview = { result?: VisualizationResult; loading?: boolean; error?: unknown; message?: string };
 export type VisualizationEditorProps = {
   projectId: string; visualization?: Visualization; initialSelection?: string; copy?: boolean;
   close: () => void; onCreated?: (value: Visualization) => void;
@@ -23,6 +24,7 @@ export type VisualizationEditorProps = {
 
 export function VisualizationEditor({ projectId, visualization, initialSelection, copy = false, close, onCreated, embedded = false, placement, context, onPreview, onCopy, onBusyChange, blocked = false, editorRef }: VisualizationEditorProps) {
   const { t, nodeName, errorText } = useI18n(); const client = useQueryClient();
+  const tabId = useId();
   const [base, setBase] = useState(visualization);
   const [selection, setSelection] = useState(visualization ? `${visualization.workflow_id}/${visualization.publication_id}` : initialSelection ?? "");
   const [name, setName] = useState(visualization?.name ?? ""), [type, setType] = useState<Visualization["type"]>(visualization?.type ?? "bar_chart"), [config, setConfig] = useState<Record<string, unknown>>(visualization?.config ?? {});
@@ -51,7 +53,9 @@ export function VisualizationEditor({ projectId, visualization, initialSelection
   const requestKey = JSON.stringify([current?.key, schema.data?.workflow_revision, effectiveType, executionConfig(config), context, retry]);
   const latestBody = useRef(body); useEffect(() => { latestBody.current = body; });
   const notify = useRef(onPreview); useEffect(() => { notify.current = onPreview; });
-  const ready = !!body;
+  const setupHints = schema.data ? chartSetupHints(effectiveType, schema.data.kind, config, schema.data.columns) : [];
+  const setupMessage = setupHints.join(" ");
+  const ready = !!body && !setupHints.length;
   useEffect(() => {
     if (!embedded || !ready) return;
     const controller = new AbortController();
@@ -65,13 +69,14 @@ export function VisualizationEditor({ projectId, visualization, initialSelection
   const configKey = JSON.stringify({ ...config, title: config.title || name });
   useEffect(() => {
     if (!embedded) return;
+    if (setupMessage) { notify.current?.({ message: "Complete the field selection to see a preview." }); return; }
     try {
       notify.current?.(preview?.key === requestKey ? { result: preview.result ? appearancePreview(preview.result, JSON.parse(configKey)) : undefined, error: preview.error } : { loading: true });
     } catch (error) { notify.current?.({ error }); }
-  }, [embedded, requestKey, preview, configKey]);
+  }, [embedded, requestKey, preview, configKey, setupMessage]);
 
   const save = async (asCopy = copy): Promise<boolean> => {
-    if (!body || !name.trim() || busy || blocked || visualization && !asCopy && (uses.isPending || uses.isError || shared && !acknowledged)) return false;
+    if (!ready || !body || !name.trim() || busy || blocked || visualization && !asCopy && (uses.isPending || uses.isError || shared && !acknowledged)) return false;
     setBusy(true); setError(null);
     try {
       const path = visualization && !asCopy ? `/api/v1/visualizations/${visualization.id}` : asCopy && visualization ? `/api/v1/visualizations/${visualization.id}/copy` : `/api/v1/projects/${projectId}/visualizations`;
@@ -101,29 +106,37 @@ export function VisualizationEditor({ projectId, visualization, initialSelection
   return <div>
     <div className="flex items-center justify-between gap-2"><h2 className="text-lg">{t(embedded ? "Visualization settings" : "Independent visualization")}</h2><button aria-label={t("Close settings")} disabled={busy} onClick={() => leave(close)}>×</button></div>
     <p className="my-2 text-xs text-muted">{t(dirty ? "Visualization has unapplied changes." : "Visualization settings are saved separately from the dashboard layout.")}</p>
-    {embedded && <div role="tablist" aria-label={t("Visualization settings")} className="my-4 flex gap-3">{(["data", "appearance", ...(placement ? ["placement"] : [])] as const).map(value => <button role="tab" aria-selected={tab === value} key={value} onClick={() => setTab(value as typeof tab)} className={tab === value ? "border-b-2 border-accent pb-2 text-accent" : "pb-2 text-muted"}>{t(value === "data" ? "Data" : value === "appearance" ? "Appearance" : "Placement")}</button>)}</div>}
+    {embedded && <div role="tablist" aria-label={t("Visualization settings")} className="my-4 flex gap-3">{(["data", "appearance", ...(placement ? ["placement"] : [])] as const).map(value => <button role="tab" id={`${tabId}-${value}`} aria-controls={`${tabId}-panel`} tabIndex={tab === value ? 0 : -1} aria-selected={tab === value} key={value} onKeyDown={event => {
+      const tabs = Array.from(event.currentTarget.parentElement!.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+      const index = tabs.indexOf(event.currentTarget);
+      const next = event.key === "ArrowRight" ? (index + 1) % tabs.length : event.key === "ArrowLeft" ? (index + tabs.length - 1) % tabs.length : event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : -1;
+      if (next >= 0) { event.preventDefault(); tabs[next].click(); tabs[next].focus(); }
+    }} onClick={() => setTab(value as typeof tab)} className={tab === value ? "border-b-2 border-accent pb-2 text-accent" : "pb-2 text-muted"}>{t(value === "data" ? "Data" : value === "appearance" ? "Appearance" : "Placement")}</button>)}</div>}
     {(error || flows.error || schema.error || uses.error) ? <p role="alert" className="text-danger">{errorText(error || flows.error || schema.error || uses.error)}</p> : null}
     {error instanceof ApiError && error.status === 409 && <div className="my-3"><button onClick={() => void reload()}>{t("Reload saved settings")}</button></div>}
     {draftKey && <details className="my-2 text-xs"><summary>{t("Draft recovery")}</summary><button onClick={restore}>{t("Restore last failed draft")}</button></details>}
     {!flows.isPending && !choices.length && <p>{t("Publish a table or scalar result in the workflow first.")}</p>}
-    <fieldset disabled={busy || blocked}>
+    {!!setupHints.length && <div role="status" className="my-3 rounded border border-outline bg-accent/5 p-3 text-sm"><p className="font-medium">{t("Finish setting up your chart")}</p><ul className="mt-2 list-inside list-disc">{setupHints.map(hint => <li key={hint}>{t(hint)}</li>)}</ul></div>}
+    {!flows.isPending && selection && !current && choices.length > 0 && <p role="alert" className="my-3 text-danger">{t("The selected result is unavailable. Choose another published result.")}</p>}
+    <div role={embedded ? "tabpanel" : undefined} id={`${tabId}-panel`} aria-labelledby={embedded ? `${tabId}-${tab}` : undefined}><fieldset disabled={busy || blocked}>
       <div hidden={embedded && tab !== "data"}>
         <label>{t("Visualization name")}<input aria-label={t("Visualization name")} className={control} value={name} onChange={e => setName(e.target.value)} /></label>
         <label>{t("Published result")}<select aria-label={t("Published result")} className={control} value={current?.key ?? ""} onChange={e => { setSelection(e.target.value); setConfig({}); }}><option value="" disabled>{t("Select field")}</option>{choices.map(item => <option key={item.key} value={item.key}>{item.flow.name} / {item.output.name}</option>)}</select></label>
         <label>{t("Visualization type")}<select aria-label={t("Visualization type")} className={control} value={effectiveType} onChange={e => { setType(e.target.value as Visualization["type"]); if (!["bar_chart", "line_chart"].includes(e.target.value)) setConfig({ ...config, additional_series: [] }); }}>{["table", "kpi", "bar_chart", "line_chart", "area_chart", "pie_chart", "donut_chart", "scatter_chart"].filter(value => current?.output.kind !== "scalar" || value === "kpi").map(value => <option key={value} value={value}>{nodeName(value)}</option>)}</select></label>
+        <p className="my-3 text-sm text-muted">{t(chartPurpose[effectiveType])}</p>
       </div>
       {schema.data && tab !== "placement" && <VisualizationConfiguration section={embedded ? tab : "all"} version={schema.data.kind === "scalar" ? 2 : 1} type={effectiveType} columns={schema.data.columns} config={config} parameters={schema.data.roles} onChange={setConfig} />}
       {tab === "placement" && placement}
-      {shared && <details open className="my-4 rounded border border-outline p-3 text-xs"><summary>{t("Used in saved dashboards")}</summary><ul>{uses.data?.map(item => <li key={item.widget_id}>{item.name}</li>)}</ul><label className="mt-2 flex gap-2"><input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} />{t("Apply these settings to all listed widgets")}</label>{onCopy && <button disabled={!body || !name.trim()} className="mt-3 underline disabled:opacity-40" onClick={async () => { if (await save(true)) { if (pending) pending(); else close(); } }}>{t("Independent copy")}</button>}</details>}
-    </fieldset>
-    {inlinePreview && <div className="h-72"><VisualizationResultView result={inlinePreview} /></div>}
+      {shared && <details open className="my-4 rounded border border-outline p-3 text-xs"><summary>{t("Used in saved dashboards")}</summary><ul>{uses.data?.map(item => <li key={item.widget_id}>{item.name}</li>)}</ul><label className="mt-2 flex gap-2"><input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} />{t("Apply these settings to all listed widgets")}</label>{onCopy && <button disabled={!ready || !name.trim()} className="mt-3 underline disabled:opacity-40" onClick={async () => { if (await save(true)) { if (pending) pending(); else close(); } }}>{t("Independent copy")}</button>}</details>}
+    </fieldset></div>
+    {!setupHints.length && inlinePreview && <div className="h-72"><VisualizationResultView result={inlinePreview} /></div>}
     {inlineError ? <p role="alert" className="text-danger">{errorText(inlineError)}</p> : null}
     {preview?.key === requestKey && preview.error ? <p role="alert" className="text-danger">{errorText(preview.error)}</p> : null}
-    <button className="my-3 text-sm underline" disabled={!body || busy} onClick={async () => {
+    <button className="my-3 text-sm underline" disabled={!ready || busy} onClick={async () => {
       if (embedded) { setRetry(value => value + 1); return; }
       try { const result = await apiRequest<VisualizationResult>(`/api/v1/projects/${projectId}/visualizations/preview`, { method: "POST", body: JSON.stringify(body) }); setPreview({ key: requestKey, result }); } catch (error) { setError(error); }
     }}>{t("Preview visualization")}</button>
     {pending && <div role="alert" className="my-3 rounded border border-outline p-3"><p>{t("Apply, discard or continue editing these settings.")}</p><button className="mr-3 underline" onClick={() => { const action = pending; setPending(null); action(); }}>{t("Discard changes")}</button><button className="underline" onClick={() => setPending(null)}>{t("Continue editing")}</button></div>}
-    <div className="sticky bottom-0 flex gap-3 border-t border-outline bg-panel py-4"><button className="rounded bg-primary p-2 text-on-primary disabled:opacity-40" disabled={busy || blocked || !schema.data || !name.trim() || !!visualization && !copy && (!dirty || uses.isPending || uses.isError || shared && !acknowledged)} onClick={() => void apply()}>{t(embedded ? "Apply visualization" : "Save visualization")}</button><button disabled={busy} onClick={() => leave(close)}>{t(dirty || !embedded ? "Cancel" : "Close")}</button></div>
+    <div className="sticky bottom-0 flex gap-3 border-t border-outline bg-panel py-4"><button className="rounded bg-primary p-2 text-on-primary disabled:opacity-40" disabled={busy || blocked || !ready || !name.trim() || !!visualization && !copy && (!dirty || uses.isPending || uses.isError || shared && !acknowledged)} onClick={() => void apply()}>{t(embedded ? "Apply visualization" : "Save visualization")}</button><button disabled={busy} onClick={() => leave(close)}>{t(dirty || !embedded ? "Cancel" : "Close")}</button></div>
   </div>;
 }

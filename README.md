@@ -1,6 +1,7 @@
 # Node BI
 
 Dashboard editing: [right-side settings, in-place preview, placement and shared copies](docs/DASHBOARD_WORKSPACE.md).
+Usability review: [findings and limits](docs/USABILITY_REVIEW.md); focused check: `npx playwright test usability.spec.ts`.
 Browser acceptance: `npm run test:e2e -- e2e/dashboard-workspace.spec.ts` in `frontend`.
 
 Simple multi-book dashboard: [four-book P&L, rules and operator walkthrough](docs/ALMA_SIMPLE_DASHBOARD.md).

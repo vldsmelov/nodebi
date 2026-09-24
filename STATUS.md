@@ -5,6 +5,26 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+
+Current milestone: authoring usability follow-up (ADR-112).
+Last completed: reproducible premature-preview fix, chart purpose/completeness guidance,
+searchable ordered table columns including deleted-field repair, three-step project entry,
+import-to-calculation link, accessible upload/delete, keyboard tabs and search empty states.
+Review and limits: docs/USABILITY_REVIEW.md. Dashboard guide updated.
+
+Current checks: 144 frontend tests pass; ESLint, TypeScript (production build), OpenAPI
+consistency and Docker frontend production build pass. Four targeted browser scenarios passed:
+workspace editing (three locales, both themes, conflicts/copy/reload/narrow screen), single-key
+and composite-key two-book authoring, and the new guided keyboard/import/chart scenario.
+After the final frontend deployment, workspace and guided authoring passed again.
+Backend execution/API/storage did not change; the previous backend/PostgreSQL and 164-slice
+regression results below are historical evidence, not newly rerun tests in this session.
+No data reset, project conversion or migrations. No known P0/P1 introduced by this delivery.
+Remaining: human usability measurements, large-graph novice tasks and full screen-reader audit.
+Next task: operator comparison with real workbook/rule confirmation; no speed percentage claimed.
+
+## Previous delivery: dashboard workspace
+
 Current milestone: dashboard workspace UX completed (ADR-111).
 Last completed: compact widget headers, right-side data/appearance/placement editor, contextual
 in-place previews, shared-copy disclosure, conflict recovery, on-demand library, free-space
