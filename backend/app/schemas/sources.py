@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.datasets import LogicalType
 
@@ -28,6 +28,8 @@ class DataSourceRead(BaseModel):
     file_size: int
     status: str
     workbook: WorkbookInfoRead
+    periods: list[str] = Field(default_factory=list)
+    logical_sheets: list[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

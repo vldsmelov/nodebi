@@ -1,3 +1,4 @@
+import { isExcelSourceType } from "./source-types";
 import type { WorkflowNode, WorkflowEdge, WorkflowSchemaResult } from "./types";
 
 export type FieldOrigin = { source: string; sheet: string; column: string; headers: string[] };
@@ -36,7 +37,7 @@ export function fieldProvenance(nodes: WorkflowNode[], edges: WorkflowEdge[], sc
     const follow = (port: string, id: string) => trace(input(port), id, depth + 1);
     const refs = Array.isArray(column.metadata.source_columns) ? column.metadata.source_columns.filter((id): id is string => typeof id === "string") : null;
     let result: FieldProvenance;
-    if (node.type === "excel_source") {
+    if (isExcelSourceType(node.type)) {
       const source = sources.find(source => source.id === node.config?.source_id);
       const sourceName = source ? sources.some(other => other.id !== source.id && other.original_filename === source.original_filename)
         ? `${source.original_filename} (${source.id})` : source.original_filename : String(node.config?.source_id ?? "");

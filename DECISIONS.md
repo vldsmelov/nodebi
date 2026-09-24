@@ -1,5 +1,35 @@
 # DECISIONS.md
 
+# ADR-113 - Versioned Excel and immutable report releases
+
+Date: 2026-09-24. Status: ACCEPTED.
+
+Context: regular reports need safe multi-book refresh and reproducible historical results.
+Replacing a file in place or saving only preview rows cannot preserve historical meaning.
+
+Decision: retain logical source IDs; append immutable SourceVersion artifacts. Store typed
+report-cycle documents in a revisioned JSON envelope, with separate source-version rows.
+Pin source sets for execution; bind physical columns to logical fields by reading profile.
+Apply all source pointers under one project transaction after check fingerprint and CAS.
+Advance referencing workflow revisions in that transaction to invalidate existing schema/preview
+contracts, including full replacement without a node-type change. Node identities stay unchanged.
+Use the existing Union primitive for period collections, surfaced as an Excel-period node.
+Use full-data generic checks and published scalar controls; no financial-specific service.
+
+Freeze materialized widget results and configuration in bounded StorageProvider artifacts.
+Reserve artifact keys and persist cleanup intent before writing. Publish artifact references
+atomically; recover only into a new project with copied files and remapped identities.
+Keep the current single-worker deployment; durable jobs have explicit restart interruption,
+progress and cancellation checkpoints. Multi-worker coordination is deferred, not simulated.
+
+Alternatives: in-place overwrite loses history; preview-only snapshots lose rows; recomputing
+historical graphs with current code cannot guarantee frozen releases. A distributed queue and
+many document tables add unnecessary infrastructure for the current local single-worker scope.
+
+Consequences: retained source history consumes storage. Release byte limits are explicit;
+no silent truncation. Full checks can be slower than preview. Period labels do not synthesize
+dates. Human usability validation and real second-report data remain separate acceptance gates.
+
 # ADR-112 - Guided authoring without implicit analytics
 
 Date: 2026-09-24. Status: ACCEPTED. Extends ADR-111.

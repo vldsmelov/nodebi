@@ -36,8 +36,8 @@ class DashboardService:
             raise ApplicationError("DASHBOARD_NOT_FOUND", "Dashboard does not exist.", 404)
         return row
 
-    def read(self, identity: uuid.UUID) -> DashboardRead:
-        row = self.get(identity, lock=True)
+    def read(self, identity: uuid.UUID, *, lock: bool = True) -> DashboardRead:
+        row = self.get(identity, lock=lock)
         widgets = self.session.scalars(
             select(DashboardWidget)
             .where(DashboardWidget.dashboard_id == row.id)

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     storage_root: Path = Path("./storage")
     max_upload_bytes: int = Field(default=52_428_800, gt=0)
     max_preview_rows: int = Field(default=200, gt=0, le=10_000)
+    max_release_bytes: int = Field(default=268_435_456, gt=0)
     log_level: str = "INFO"
     cors_origins: list[str] = ["http://localhost:3000"]
 

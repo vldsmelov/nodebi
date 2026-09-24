@@ -8,6 +8,13 @@ const graph: GraphDraft = { name: "Main", format_version: 2, nodes: [
   { id: "multiply", type: "field_arithmetic", version: 1, position: { x: 500, y: 40 }, config: {} },
 ], edges: [{ id: "wire", source_node_id: "source", source_port: "dataset", source_column_id: 'a:["same"]', target_node_id: "multiply", target_port: "a" }], presentation: { blocks: [], workbooks: [] } };
 
+it("keeps the workbook and its wires after switching to a period collection", () => {
+  const grouped = groupWorkbook(graph, "book", "Sales.xlsx");
+  const periods = { ...grouped, nodes: grouped.nodes.map(node => node.id === "source" ? { ...node, type: "excel_periods" } : node) };
+  expect(reconcileWorkbooks(periods).presentation).toEqual(grouped.presentation);
+  expect(groupWorkbook(periods, "book", "Periods").presentation).toEqual(grouped.presentation);
+});
+
 it("groups without altering computational nodes or edges and reverses proxy handles exactly", () => {
   const grouped = groupWorkbook(graph, "book", "Sales.xlsx");
   expect(grouped.nodes).toBe(graph.nodes);

@@ -38,6 +38,7 @@ export const nodeNames: Record<string, string> = {
   field_filter: "Filter by field", field_sum: "Sum field",
   calendar: "Calendar",
   convert_types: "Convert Types", unpivot: "Unpivot", window: "Window",
+  excel_periods: "Excel by period",
   excel_source: "Excel Source", select_columns: "Select Columns", rename_columns: "Rename Columns",
   filter: "Filter", sort: "Sort", limit: "Limit", calculated_column: "Calculated Column", group_by: "Group By",
   join: "Join", union: "Union", pivot: "Pivot", table: "Table", kpi: "KPI", bar_chart: "Bar Chart",

@@ -23,6 +23,7 @@ services:
       STORAGE_ROOT: ${STORAGE_ROOT:-/data/sources}
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-52428800}
       MAX_PREVIEW_ROWS: ${MAX_PREVIEW_ROWS:-200}
+      MAX_RELEASE_BYTES: ${MAX_RELEASE_BYTES:-268435456}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     command: ["sh", "-c", "python -m app.infrastructure.wait_database && alembic upgrade head && python -m app.services.file_cleanup && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     ports:

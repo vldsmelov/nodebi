@@ -1,4 +1,5 @@
 "use client";
+import { isExcelSourceType } from "./source-types";
 
 import { definitionKey, definitionLabel } from "./node-catalog";
 
@@ -216,9 +217,9 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
   useEffect(() => { writer.change(graph); }, [graph, writer]);
   const addNode = (definition: NodeDefinition) => {
     const firstSource = sources[0];
-    if (definition.type === "excel_source" && !firstSource?.workbook.sheets[0]) return;
+    if (isExcelSourceType(definition.type) && !firstSource?.workbook.sheets[0]) return;
     const id = crypto.randomUUID();
-    const config = definition.type === "excel_source" ? { source_id: firstSource.id, sheet_name: firstSource.workbook.sheets[0].name } : {};
+    const config = isExcelSourceType(definition.type) ? { source_id: firstSource.id, sheet_name: firstSource.workbook.sheets[0].name } : {};
     setNodes((current) => [...current.map(node => ({ ...node, selected: false })), { id, selected: true, type: "workflowNode", position: { x: 80 + (current.length % 3) * 310, y: 80 + Math.floor(current.length / 3) * 180 }, data: { definition, config } }]);
     selectNode(id);
   };
@@ -338,7 +339,7 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
         <div className="mt-5 space-y-5">
           {(["source", "transform", "visualization"] as const).map((category) => {
             const definitions = visibleDefinitions.filter((item) => item.category === category);
-            return <section key={category}><h2 className="mb-2 text-[10px] uppercase tracking-[0.2em] text-muted">{t(category)}</h2>{definitions.length === 0 ? <p className="rounded-lg border border-dashed border-outline px-3 py-2 text-xs text-muted">{t("No nodes yet")}</p> : definitions.map((definition) => { const disabled = definition.type === "excel_source" && sources.length === 0; return <button key={`${definition.type}:${definition.version}`} disabled={disabled} title={disabled ? t("Upload a workbook first") : t("Add {0}", {"0": definitionLabel(catalog, definition, nodeName(definition.type))})} onClick={() => addNode(definition)} className="mb-2 flex w-full items-center gap-3 rounded-xl border border-outline bg-raised p-3 text-left hover:border-accent/40 hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-35"><Plus size={15} className="text-accent" /><span><span className="block text-sm">{definitionLabel(catalog, definition, nodeName(definition.type))}</span><span className="block text-[11px] text-muted">{disabled ? t("Upload a workbook first") : t(definition.description)}</span></span></button>; })}</section>;
+            return <section key={category}><h2 className="mb-2 text-[10px] uppercase tracking-[0.2em] text-muted">{t(category)}</h2>{definitions.length === 0 ? <p className="rounded-lg border border-dashed border-outline px-3 py-2 text-xs text-muted">{t("No nodes yet")}</p> : definitions.map((definition) => { const disabled = isExcelSourceType(definition.type) && sources.length === 0; return <button key={`${definition.type}:${definition.version}`} disabled={disabled} title={disabled ? t("Upload a workbook first") : t("Add {0}", {"0": definitionLabel(catalog, definition, nodeName(definition.type))})} onClick={() => addNode(definition)} className="mb-2 flex w-full items-center gap-3 rounded-xl border border-outline bg-raised p-3 text-left hover:border-accent/40 hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-35"><Plus size={15} className="text-accent" /><span><span className="block text-sm">{definitionLabel(catalog, definition, nodeName(definition.type))}</span><span className="block text-[11px] text-muted">{disabled ? t("Upload a workbook first") : t(definition.description)}</span></span></button>; })}</section>;
           })}
         </div>
       </aside>

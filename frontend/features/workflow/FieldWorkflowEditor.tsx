@@ -1,4 +1,5 @@
 "use client";
+import { isExcelSourceType } from "./source-types";
 import { ResultNodeCard, resultCanvasId, type ResultCanvasNode } from "./ResultNodeCard";
 import { listVisualizations } from "@/features/dashboard/api";
 import { IndependentVisualizationDialog } from "@/features/dashboard/IndependentVisualizationDialog";
@@ -164,9 +165,9 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
   };
   const add = (item: NodeDefinition) => {
     const source = sources[0], sheet = source?.workbook.sheets[0];
-    if (item.type === "excel_source" && !sheet) return;
+    if (isExcelSourceType(item.type) && !sheet) return;
     const id = crypto.randomUUID();
-    setGraph(current => ({ ...current, nodes: [...current.nodes, { id, type: item.type, version: item.version, position: { x: 40 + current.nodes.length % 3 * 340, y: 40 + Math.floor(current.nodes.length / 3) * 480 }, config: item.type === "excel_source" ? { source_id: source.id, sheet_name: sheet.name } : { ...(fieldDefaults[item.type] ?? {}) }, ui: {} }] }));
+    setGraph(current => ({ ...current, nodes: [...current.nodes, { id, type: item.type, version: item.version, position: { x: 40 + current.nodes.length % 3 * 340, y: 40 + Math.floor(current.nodes.length / 3) * 480 }, config: isExcelSourceType(item.type) ? { source_id: source.id, sheet_name: sheet.name } : { ...(fieldDefaults[item.type] ?? {}) }, ui: {} }] }));
     setSelected(id);
   };
   const openSheet = (selection: SheetSelection, dropPosition?: { x: number; y: number }) => {
@@ -241,7 +242,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
     {operationMenu && <OperationDropMenu choices={offeredOperations} catalog={catalog} sourceLabel={menuLabel} pending={!currentSchema} onChoose={chooseOperation} onClose={() => setOperationMenu(null)} />}
     <aside className="row-span-2 min-h-0 overflow-auto bg-panel p-3">
       <p className="mb-3 text-xs text-muted">{t(graph.format_version === 3 ? "Prepare data here, publish results, then create visualizations on the dashboard." : "Field editor preview. Existing projects are not converted.")}</p>
-      <NodeFinder nodes={graph.nodes.map(node => ({ id: node.id, label: `${nodeCaption(graph, node, choicesSchema, nodeName)} · ${nodeName(node.type)}` }))} selected={selected} onSelect={id => {
+      <NodeFinder nodes={graph.nodes.map(node => ({ id: node.id, terms: [...(choicesSchema?.nodes.find(item => item.node_id === node.id)?.columns ?? []).map(column => column.display_name), ...(graph.result_catalog?.outputs ?? []).filter(output => output.node_id === node.id).map(output => output.name)].join(" "), label: `${nodeCaption(graph, node, choicesSchema, nodeName)} · ${nodeName(node.type)}` }))} selected={selected} onSelect={id => {
         setSelected(id);
         const block = memberBlock(graph, id);
         if (block?.collapsed) { toggleBlock(block.id, false, id); return; }
@@ -258,10 +259,10 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
         if (!visuals.data || used.length) { setConnectionIssue(used.length ? `${t("Visualizations")}: ${used.map(item => item.name).join(", ")}` : t("Loading\u2026")); return; }
         setGraph(next);
       }} /><WorkbookBrowser sources={sources} nodes={graph.nodes} onOpen={openSheet} />
-      {graph.format_version === 3 && catalog.filter(item => item.type === "excel_source").map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: nodeName(item.type) })} disabled={!sources.length} onClick={() => add(item)} className="my-2 w-full rounded border border-outline p-2 text-left text-sm">+ {nodeName(item.type)}</button>)}
+      {graph.format_version === 3 && catalog.filter(item => isExcelSourceType(item.type)).map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: nodeName(item.type) })} disabled={!sources.length} onClick={() => add(item)} className="my-2 w-full rounded border border-outline p-2 text-left text-sm">+ {nodeName(item.type)}</button>)}
       <details open={graph.format_version !== 3}><summary className="my-3 cursor-pointer text-sm">{t("All operations")}</summary>
       <input aria-label={t("Search nodes")} className={control} value={search} onChange={e => setSearch(e.target.value)} />
-      {catalog.filter(item => (graph.format_version !== 3 || item.type !== "excel_source") && item.type !== "context_filter" && (graph.format_version !== 3 || item.category !== "visualization")).filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: definitionLabel(catalog, item, nodeName(item.type)) })} disabled={item.type === "excel_source" && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {definitionLabel(catalog, item, nodeName(item.type))}</button>)}
+      {catalog.filter(item => (graph.format_version !== 3 || !isExcelSourceType(item.type)) && item.type !== "context_filter" && (graph.format_version !== 3 || item.category !== "visualization")).filter(item => nodeName(item.type).toLowerCase().includes(search.toLowerCase())).map(item => <button key={definitionKey(item)} title={t("Add {0}", { 0: definitionLabel(catalog, item, nodeName(item.type)) })} disabled={isExcelSourceType(item.type) && !sources.length} onClick={() => add(item)} className="mt-2 w-full rounded border border-outline p-2 text-left text-sm disabled:opacity-40">+ {definitionLabel(catalog, item, nodeName(item.type))}</button>)}
       </details>
     </aside>
     <section className="flex min-h-0 min-w-0 flex-col bg-page" onDragOver={event => { if (event.dataTransfer.types.includes(sheetDragType)) { event.preventDefault(); event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === "move" ? "move" : "copy"; } }} onDrop={event => {
@@ -317,7 +318,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
       <ParametersConfiguration definitions={graph.parameters ?? []} onChange={items => setGraph(current => ({ ...current, parameters: items }))} values={parameters} onValuesChange={setParameters} />
       {!selectedNode ? <p className="text-sm">{t("Select a node to edit its settings.")}</p> : <>
         <h2>{selectedCaption}</h2>
-        {selectedNode.type === "excel_source" && <button className="my-2 rounded border border-outline p-2 text-xs" onClick={() => setGraph(current => groupWorkbook(current, String(selectedNode.config?.source_id), sources.find(source => source.id === selectedNode.config?.source_id)?.original_filename ?? t("Workbook browser")))}>{t("Group workbook sheets")}</button>}
+        {isExcelSourceType(selectedNode.type) && <button className="my-2 rounded border border-outline p-2 text-xs" onClick={() => setGraph(current => groupWorkbook(current, String(selectedNode.config?.source_id), sources.find(source => source.id === selectedNode.config?.source_id)?.original_filename ?? t("Workbook browser")))}>{t("Group workbook sheets")}</button>}
         <label className="block mt-3 text-xs">{t("Node label")}<input aria-label={t("Node label")} className={control} value={String(selectedNode.ui?.label ?? "")} onChange={e => setGraph(current => ({ ...current, nodes: current.nodes.map(node => node.id === selected ? { ...node, ui: { ...node.ui, label: e.target.value } } : node) }))} /></label>
         <input aria-label={t("Search connection fields")} placeholder={t("Search connection fields")} className={`${control} mt-3`} value={wireSearch} onChange={e => setWireSearch(e.target.value)} />
         {definition?.input_ports.map(port => {

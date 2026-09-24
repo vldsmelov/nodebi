@@ -1,3 +1,4 @@
+import { isExcelSourceType } from "./source-types";
 import type { Connection, Edge } from "@xyflow/react";
 import type { components } from "@/lib/api-schema";
 import type { GraphDraft } from "./autosave";
@@ -25,7 +26,7 @@ export function resolveBookConnection(graph: GraphDraft, connection: Connection)
 export function groupWorkbook(graph: GraphDraft, sourceId: string, label: string): GraphDraft {
   const books = graph.presentation?.workbooks ?? [];
   const blockMembers = new Set(graph.presentation?.blocks?.flatMap(block => block.node_ids) ?? []);
-  const members = graph.nodes.filter(node => node.type === "excel_source" && node.config?.source_id === sourceId && !blockMembers.has(node.id));
+  const members = graph.nodes.filter(node => isExcelSourceType(node.type) && node.config?.source_id === sourceId && !blockMembers.has(node.id));
   if (!members.length) return graph;
   const existing = books.find(book => book.source_id === sourceId);
   const book: WorkbookContainer = existing ? { ...existing, node_ids: members.map(node => node.id) } : { id: crypto.randomUUID(), label: label.slice(0, 200), source_id: sourceId, node_ids: members.map(node => node.id), detached_node_ids: [], collapsed: false, position: { ...members[0].position } };
@@ -36,7 +37,7 @@ export function groupWorkbook(graph: GraphDraft, sourceId: string, label: string
 export function reconcileWorkbooks(graph: GraphDraft): GraphDraft {
   if (!graph.presentation?.workbooks?.length) return graph;
   const workbooks = graph.presentation.workbooks.flatMap(book => {
-    const node_ids = book.node_ids.filter(id => graph.nodes.some(node => node.id === id && node.type === "excel_source" && node.config?.source_id === book.source_id));
+    const node_ids = book.node_ids.filter(id => graph.nodes.some(node => node.id === id && isExcelSourceType(node.type) && node.config?.source_id === book.source_id));
     return node_ids.length ? [{ ...book, node_ids, detached_node_ids: (book.detached_node_ids ?? []).filter(id => node_ids.includes(id)) }] : [];
   });
   return { ...graph, presentation: { ...graph.presentation, workbooks } };

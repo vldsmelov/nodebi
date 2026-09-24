@@ -30,6 +30,13 @@ def _source_read(source: DataSource) -> DataSourceRead:
         file_size=source.file_size,
         status=source.status,
         workbook=source.source_metadata["workbook"],
+        periods=[member["period"] for member in source.source_metadata.get("periods", [])],
+        logical_sheets=sorted(
+            {
+                key.split(":WorksheetLayout", 1)[0]
+                for key in source.source_metadata.get("bindings", {})
+            }
+        ),
         created_at=source.created_at,
         updated_at=source.updated_at,
     )

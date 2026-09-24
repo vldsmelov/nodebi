@@ -186,7 +186,7 @@ def save_graph(
         )
     protect_used_visualizations(session, workflow, payload)
     for node in payload.nodes:
-        if node.type != "excel_source" or not node.config.get("source_id"):
+        if node.type not in {"excel_source", "excel_periods"} or not node.config.get("source_id"):
             continue
         try:
             source_id = uuid.UUID(str(node.config["source_id"]))
@@ -358,6 +358,7 @@ def execution_context(
     settings: Settings,
     cache: InMemoryExecutionCache,
     parameters: dict[str, ParameterValue] | None = None,
+    sources: ProjectSourceAccess | None = None,
 ) -> ExecutionContext:
     definitions = tuple(ParameterDefinition.model_validate(item) for item in workflow.parameters)
     try:
@@ -368,7 +369,7 @@ def execution_context(
         workflow.project_id,
         workflow.id,
         uuid.uuid4(),
-        sources=ProjectSourceAccess(workflow.project_id, session, storage, cache),
+        sources=sources or ProjectSourceAccess(workflow.project_id, session, storage, cache),
         cache=cache,
         logger=default_execution_logger(),
         settings=settings,

@@ -8,8 +8,11 @@ from app.models.persistence import (
     WorkflowEdge,
     WorkflowNode,
 )
+from app.models.reporting import ReportDocument, SourceVersion
 
 __all__ = [
+    "ReportDocument",
+    "SourceVersion",
     "Dashboard",
     "DashboardWidget",
     "DataSource",

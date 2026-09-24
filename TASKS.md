@@ -1,5 +1,14 @@
 # TASKS.md
 
+## Reliable report cycle (2026-09-24)
+
+* [x] Immutable source versions, staged mapping and atomic complete replacement.
+* [x] Period collections, duplicate protection, history and compatible rollback.
+* [x] Full-data quality checks, previous control values, lineage and operator route.
+* [x] Frozen full-result releases and restoration into a separate editable project.
+* [x] Expanded PostgreSQL/browser/regression acceptance, documentation and operator protocol.
+* [ ] Five-economist trial (requires participants); real second-report acceptance awaits data.
+
 ## Authoring usability review (2026-09-24, ADR-112)
 
 * [x] Reproduce premature preview; add explicit completeness guidance without implicit calculations.

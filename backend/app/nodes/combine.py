@@ -214,46 +214,49 @@ class JoinExecutor(UnaryExecutor):
         )
 
 
+def union_schema(left: DatasetSchema, right: DatasetSchema) -> DatasetSchema:
+    if {c.engine_name for c in left.columns} != {c.engine_name for c in right.columns}:
+        raise ValueError("Union requires matching field names on both inputs.")
+    columns = []
+    for field in left.columns:
+        other = right.by_name(field.engine_name)
+        columns.append(
+            replace(
+                field,
+                logical_type=compatible(field.logical_type, other.logical_type),
+                nullable=field.nullable or other.nullable,
+                metadata={
+                    **field.metadata,
+                    "source_columns": [field.column_id, other.column_id],
+                },
+            )
+        )
+    return DatasetSchema(tuple(columns))
+
+
+def union_datasets(left: Dataset, right: Dataset) -> Dataset:
+    """Shared bounded Union; no deduplication or financial logic."""
+    schema = union_schema(left.schema, right.schema)
+    check_size(left.row_count + right.row_count, len(schema.columns))
+    frames = [
+        source.frame.select(
+            [pl.col(c.engine_name).cast(logical_to_polars(c.logical_type)) for c in schema.columns]
+        )
+        for source in (left, right)
+    ]
+    return Dataset(pl.concat(frames, how="vertical"), schema)
+
+
 class UnionExecutor(UnaryExecutor):
     def infer_schema(
         self, node: NodeInstance, input_schemas: dict[str, DatasetSchema], context: ExecutionContext
     ) -> DatasetSchema:
-        left, right = pair(input_schemas)
-        if {c.engine_name for c in left.columns} != {c.engine_name for c in right.columns}:
-            raise ValueError("Union requires matching field names on both inputs.")
-        columns = []
-        for field in left.columns:
-            other = right.by_name(field.engine_name)
-            columns.append(
-                replace(
-                    field,
-                    logical_type=compatible(field.logical_type, other.logical_type),
-                    nullable=field.nullable or other.nullable,
-                    metadata={
-                        **field.metadata,
-                        "source_columns": [field.column_id, other.column_id],
-                    },
-                )
-            )
-        return DatasetSchema(tuple(columns))
+        return union_schema(*pair(input_schemas))
 
     def execute(
         self, node: NodeInstance, inputs: dict[str, Dataset], context: ExecutionContext
     ) -> Dataset:
-        schema = self.infer_schema(
-            node, {key: value.schema for key, value in inputs.items()}, context
-        )
-        check_size(sum(source.row_count for source in inputs.values()), len(schema.columns))
-        frames = [
-            inputs[port].frame.select(
-                [
-                    pl.col(c.engine_name).cast(logical_to_polars(c.logical_type))
-                    for c in schema.columns
-                ]
-            )
-            for port in ("left", "right")
-        ]
-        return Dataset(pl.concat(frames, how="vertical"), schema)
+        return union_datasets(inputs["left"], inputs["right"])
 
 
 def combine_definitions() -> tuple[NodeDefinition, ...]:

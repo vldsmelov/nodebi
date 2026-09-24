@@ -55,7 +55,7 @@ def validate_presentation(
                 source_id = UUID(str(node.config.get("source_id")))
             except ValueError:
                 source_id = None
-            if node.type != "excel_source" or source_id != book.source_id:
+            if node.type not in {"excel_source", "excel_periods"} or source_id != book.source_id:
                 invalid("Workbook members must be Excel nodes using the workbook source.")
 
     for block in presentation.blocks:

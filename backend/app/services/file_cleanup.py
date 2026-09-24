@@ -34,4 +34,16 @@ if __name__ == "__main__":
     from app.infrastructure.storage import get_storage_provider
 
     with SessionFactory() as database_session:
+        # Executed once before the single application worker starts, never during jobs.
+        from app.models import ReportDocument
+
+        for intent in database_session.scalars(
+            select(ReportDocument).where(
+                ReportDocument.kind == "artifact", ReportDocument.status == "staging"
+            )
+        ).all():
+            for artifact_key in intent.payload.get("artifact_keys", []):
+                enqueue_deletion(database_session, artifact_key)
+            database_session.delete(intent)
+        database_session.commit()
         print(f"Removed {drain_deletions(database_session, get_storage_provider())} artifacts")

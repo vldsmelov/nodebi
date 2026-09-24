@@ -1,5 +1,6 @@
 "use client";
 
+import { LineageDialog } from "@/features/report-cycle/LineageDialog";
 import { useI18n } from "@/lib/i18n";
 
 import { getWorkflow } from "@/features/workflow/api";
@@ -42,6 +43,7 @@ export function DashboardEditor({ rawPeriod = null, onPeriodChange, viewOnly = f
     return initial;
   });
   const [past, setPast] = useState<Dashboard[]>([]), [future, setFuture] = useState<Dashboard[]>([]);
+  const [lineageId, setLineageId] = useState<string | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [editingBusy, setEditingBusy] = useState(false);
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null);
@@ -170,6 +172,7 @@ export function DashboardEditor({ rawPeriod = null, onPeriodChange, viewOnly = f
           <button aria-label={t("Edit visualization")} title={t("Settings")} disabled={busy} className="rounded p-2 hover:bg-accent/10" onClick={() => { const value = visualizations.find(item => item.id === widget.visualization_id); if (value) editVisualization(value, widget.id); }}><Settings size={17} /></button>
           <details className="relative"><summary aria-label={t("Widget actions")} className="cursor-pointer list-none rounded p-2"><MoreHorizontal size={17} /></summary><div className="absolute right-0 top-8 z-20 grid w-52 gap-3 rounded border border-outline bg-panel p-3 text-xs shadow-lg">
             <button disabled={busy} onClick={() => switchPanel(() => { closePanel(); setNavigationWidgetId(widget.id); })}>{t("Configure navigation")}</button>
+            <button onClick={() => switchPanel(() => setLineageId(widget.visualization_id))}>{t("How calculated")}</button>
             {visualizations.find(item => item.id === widget.visualization_id) && <Link href={`/projects/${initial.project_id}/workflow?workflow=${encodeURIComponent(visualizations.find(item => item.id === widget.visualization_id)!.workflow_id)}&mode=fields&node=${encodeURIComponent(visualizations.find(item => item.id === widget.visualization_id)!.node_id)}`} onClick={event => { event.preventDefault(); const href = event.currentTarget.href; leave(() => { window.location.href = href; }); }}>{t("Open calculation")}</Link>}
             <button disabled={busy || dirty && !visualizations.find(item => item.id === widget.visualization_id)?.publication_id} aria-label={t("Independent visualization copy")} onClick={() => switchPanel(() => { const value = visualizations.find(item => item.id === widget.visualization_id); if (value) { closePanel(); setAuthoring({ copy: { visualization: value, widgetId: widget.id } }); setSelectedWidget(widget.id); } })}>{t("Independent copy")}</button>
             <button aria-label={t("Remove widget")} disabled={busy} className="text-danger" onClick={() => switchPanel(() => { closePanel(); change(current => ({ ...current, widgets: current.widgets.filter(w => w.id !== widget.id) })); })}>{t("Remove widget")}</button>
@@ -178,5 +181,6 @@ export function DashboardEditor({ rawPeriod = null, onPeriodChange, viewOnly = f
         <div className="min-h-0 flex-1 overflow-hidden rounded-b-xl">{!viewError && selectedWidget === widget.id && draftPreview ? <div className="flex h-full flex-col"><p className="px-3 text-xs text-accent">{t("Preview")}</p>{draftPreview.message ? <p role="status" className="p-4 text-sm text-muted">{t(draftPreview.message)}</p> : draftPreview.loading ? <p role="status">{t("Updating preview")}</p> : draftPreview.error ? <p role="alert" className="p-3 text-danger">{errorText(draftPreview.error)}</p> : draftPreview.result ? <div className="min-h-0 flex-1"><VisualizationResultView result={draftPreview.result} titleOverride={widget.title ?? undefined} hideTitle={widget.config?.show_title === false} /></div> : null}</div> : !viewError ? <VisualizationView id={widget.visualization_id} revision={visualizations.find(v => v.id === widget.visualization_id)?.revision} context={visualizations.find(v => v.id === widget.visualization_id)?.publication_id ? { period, values, highlight_only: widget.config?.highlight_only } : undefined} parameters={workflowValues(config, visualizations.find(v => v.id === widget.visualization_id)?.workflow_id ?? "", values)} onSelect={widget.config?.action ? row => navigate(widget.config!.action!, row) : undefined} titleOverride={widget.title ?? undefined} hideTitle={widget.config?.show_title === false} /> : null}</div>
       </div>)}
     </GridLayout> : null}</div>
+    {lineageId && <LineageDialog id={lineageId} close={() => setLineageId(null)} />}
   </main>;
 }

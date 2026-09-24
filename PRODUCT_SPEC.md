@@ -1,5 +1,15 @@
 # PRODUCT_SPEC.md
 
+## Regular report cycle (approved 2026-09-24)
+
+The financial and multi-workbook reports must support immutable Excel versions, staged complete
+replacement or explicit period accumulation, field mapping, full-data quality checks, atomic
+application, compatible rollback, frozen releases and restoration into a new editable project.
+The operator route is Data → Checks → Dashboard → Release. All calculations remain generic
+workflow operations. Releases preserve complete visible datasets and frozen context, independent
+of later edits. Users/permissions, scheduling, new connectors and new navigation are excluded.
+Detailed behavior and operating limits: docs/REPORT_CYCLE.md.
+
 ## Authoring usability follow-up (2026-09-24)
 
 Project entry explains Data -> Workflow -> Dashboard; the visualization library remains accessible.

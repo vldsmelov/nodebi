@@ -27,6 +27,7 @@ from app.services.execution import (
 )
 from app.services.independent_visualizations import publication
 from app.services.publication_execution import compile_publication
+from app.services.source_access import ProjectSourceAccess
 from app.services.workflow_validation import InvalidWorkflowError
 from app.services.workflows import domain_graph, execution_context
 
@@ -43,6 +44,7 @@ def render_visualization(
     parameters: dict[str, ParameterValue] | None = None,
     view: ViewContext | None = None,
     draft: Visualization | None = None,
+    sources: ProjectSourceAccess | None = None,
 ) -> VisualizationResult:
     visualization = draft or session.get(Visualization, visualization_id)
     if visualization is None:
@@ -56,7 +58,7 @@ def render_visualization(
     node: NodeInstance | None
     applied: list[str] = []
     unsupported: list[str] = []
-    context = execution_context(workflow, session, storage, settings, cache, parameters)
+    context = execution_context(workflow, session, storage, settings, cache, parameters, sources)
     try:
         if visualization.publication_id:
             published = publication(workflow, visualization.publication_id)

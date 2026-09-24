@@ -1,3 +1,4 @@
+from dataclasses import replace
 from functools import lru_cache
 
 from app.domain.nodes import NodeRegistry
@@ -34,6 +35,14 @@ def get_node_registry() -> NodeRegistry:
     registry.register(unpivot_definition())
     registry.register(convert_types_definition())
     registry.register(excel_source_definition())
+    registry.register(
+        replace(
+            excel_source_definition(),
+            type="excel_periods",
+            display_name="Excel by period",
+            description="Append explicitly selected workbook periods with Union semantics.",
+        )
+    )
     registry.register(filter_definition())
     registry.register(rename_columns_definition())
     registry.register(select_columns_definition())

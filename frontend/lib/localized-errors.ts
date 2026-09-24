@@ -26,6 +26,8 @@ function configurationField(locale: Locale, path: string): string {
 }
 
 const messagePatterns: readonly [RegExp, string][] = [
+  [/^Choose the incoming field for (.+)\.$/, "Choose the incoming field for {0}."],
+  [/^Field type changed: (.+)\. Use explicit conversion or correct the workbook\.$/, "Field type changed: {0}. Use explicit conversion or correct the workbook."],
   [/^Workflow parameter '(.+)' is not declared\.$/, "Workflow parameter '{0}' is not declared."],
   [/^Connected field (.+) no longer exists\.$/, "Connected field {0} no longer exists."],
   [/^Dashboard parameter '(.+)' is required\.$/, "Dashboard parameter '{0}' is required."],
@@ -44,7 +46,7 @@ const messagePatterns: readonly [RegExp, string][] = [
   [/^Operator '([\s\S]+)' is not valid for ([\s\S]+)\.$/, "Operator '{0}' is not valid for {1}."],
   [/^Value '([\s\S]+)' is invalid for ([\s\S]+)\.$/, "Value '{0}' is invalid for {1}."],
 ];
-function translateKnownMessage(locale: Locale, message: string): string | undefined {
+export function translateKnownMessage(locale: Locale, message: string): string | undefined {
   if (translations[message]) return translate(locale, message);
   for (const [pattern, key] of messagePatterns) {
     const match = message.match(pattern);

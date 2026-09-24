@@ -1,3 +1,4 @@
+import hashlib
 import uuid
 from dataclasses import asdict
 from pathlib import PurePosixPath
@@ -21,7 +22,7 @@ from app.infrastructure.excel import (
     WorksheetNotFoundError,
 )
 from app.infrastructure.storage import StorageProvider
-from app.models import DataSource, Project, Workflow, WorkflowNode
+from app.models import DataSource, Project, ReportDocument, SourceVersion, Workflow, WorkflowNode
 from app.services.file_cleanup import drain_deletions, enqueue_deletion
 from app.services.projects import ProjectService
 
@@ -59,6 +60,7 @@ class SourceService:
                 "UNSUPPORTED_FILE_TYPE", "Upload an .xlsx or .xlsm workbook.", 415
             )
         total = 0
+        digest = hashlib.sha256()
         with SpooledTemporaryFile(
             max_size=min(settings.max_upload_bytes, 8 * 1024 * 1024)
         ) as buffer:
@@ -69,6 +71,7 @@ class SourceService:
                         "UPLOAD_TOO_LARGE", "Workbook exceeds the upload limit.", 413
                     )
                 buffer.write(chunk)
+                digest.update(chunk)
             buffer.seek(0)
             key = self.storage.save(cast(BinaryIO, buffer), suffix=suffix)
         try:
@@ -84,6 +87,17 @@ class SourceService:
                 source_metadata={"workbook": asdict(workbook)},
             )
             self.session.add(source)
+            self.session.flush()
+            self.session.add(
+                SourceVersion(
+                    source_id=source.id,
+                    storage_key=key,
+                    filename=source.original_filename,
+                    file_size=total,
+                    sha256=digest.hexdigest(),
+                    workbook=asdict(workbook),
+                )
+            )
             self.session.commit()
         except Exception as exc:
             self.session.rollback()
@@ -108,6 +122,26 @@ class SourceService:
             raise ApplicationError(
                 "SOURCE_IN_USE", "Remove this source from its workflow before deleting it.", 409
             )
+        history = self.session.scalars(
+            select(ReportDocument).where(
+                ReportDocument.project_id == source.project_id,
+                ReportDocument.kind.in_(["release", "update"]),
+            )
+        )
+        if any(
+            row.kind == "release"
+            or any(item.get("source_id") == str(source.id) for item in row.payload.get("items", []))
+            for row in history
+        ):
+            raise ApplicationError(
+                "SOURCE_HISTORY_IN_USE",
+                "This project has report history. Preserve its sources.",
+                409,
+            )
+        for key in self.session.scalars(
+            select(SourceVersion.storage_key).where(SourceVersion.source_id == source.id)
+        ):
+            enqueue_deletion(self.session, key)
         enqueue_deletion(self.session, source.storage_key)
         self.session.delete(source)
         self.session.commit()
@@ -115,6 +149,17 @@ class SourceService:
 
     def delete_project(self, project: Project) -> None:
         project = ProjectService(self.session).lock(project.id)
+        for key in self.session.scalars(
+            select(SourceVersion.storage_key)
+            .join(DataSource)
+            .where(DataSource.project_id == project.id)
+        ):
+            enqueue_deletion(self.session, key)
+        for document in self.session.scalars(
+            select(ReportDocument).where(ReportDocument.project_id == project.id)
+        ):
+            for key in document.payload.get("artifact_keys", []):
+                enqueue_deletion(self.session, key)
         for key in self.session.scalars(
             select(DataSource.storage_key).where(DataSource.project_id == project.id)
         ):

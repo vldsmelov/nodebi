@@ -5,6 +5,32 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
+Current delivery: reliable report cycle implemented and technically verified (ADR-113).
+Last completed: immutable source versions, mapped atomic updates, period collections/history,
+full-data checks, provenance, frozen releases and restoration into independent editable projects.
+Operator entry: project -> report cycle. Guide: docs/REPORT_CYCLE.md.
+
+Checks: 419 backend tests passed with PostgreSQL; 7 SQLite variants intentionally skipped
+because their migration/concurrency equivalents run on PostgreSQL. 149 frontend tests passed.
+Ruff, formatting, mypy, ESLint, TypeScript, OpenAPI consistency and Docker production builds pass.
+Six targeted browser scenarios passed across runs: report cycle, mapped two-book update,
+dashboard workspace, both Join authoring journeys and synthetic four-book P&L.
+Coverage includes three languages, both themes, keyboard controls and narrow viewport.
+
+Fresh financial regression: 164 slices / 1551 widget pages match
+(.backups/report-cycle-financial-parity.json). PostgreSQL/backend restart restored 12 existing
+documents and 60 visualization results. Separate release restart verification restored all
+1205 table rows, a pending draft, version history and editable project/view bookmarks.
+Migration 0010 was tested on clean PostgreSQL and applied locally after database/file backups.
+Existing user projects were not reset or automatically converted.
+
+No known P0/P1 in the tested delivery. Deployment supports one backend worker; job cancellation
+is cooperative between stages. Historical files are retained and require storage capacity planning.
+Next task: five-economist operator trial and confirmation on real second-report workbooks.
+Those acceptance items remain open: second-report evidence is synthetic only, no human timings
+or productivity improvement percentage is claimed. Protocol: docs/UX_OPERATOR_PROTOCOL.md.
+
+## Previous delivery: authoring usability
 
 Current milestone: authoring usability follow-up (ADR-112).
 Last completed: reproducible premature-preview fix, chart purpose/completeness guidance,

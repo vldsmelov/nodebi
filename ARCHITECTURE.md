@@ -1,5 +1,29 @@
 # ARCHITECTURE.md
 
+## Reliable report cycle (ADR-113, 2026-09-24)
+
+DataSource retains its logical ID and active storage pointer. SourceVersion owns immutable
+file metadata; migration 0010 backfills existing artifacts. ReportDocument is a revisioned,
+kind-validated persistence envelope for update drafts, rules, jobs, releases and artifact intents.
+SourceUpdateService prepares explicit per-sheet/layout field bindings and applies a complete
+source set under the project lock and revision CAS. Execution pins all source pointers in one
+query. Historical files remain available; source cache keys include bindings and version sets.
+Applied source updates also advance every referencing workflow revision atomically, invalidating
+existing preview/schema clients and conflicting with stale authoring tabs without changing node IDs.
+Excel-period execution reuses Union, without hidden financial expressions or deduplication.
+
+Quality rules inspect complete generic outputs. Checks carry a fingerprint of source sets,
+workflow/visualization/dashboard revisions and rule revisions. Errors block apply/publication;
+warnings require recorded acknowledgment. Published scalar metrics provide previous baselines.
+Report lineage uses actual dependency branches. Frontend contains no calculation engine.
+
+Persisted jobs use the single application worker and cooperative cancellation. Restart marks
+unfinished jobs interrupted. Release artifacts contain complete widget data, frozen contexts,
+checks, rules and project configuration. Reserved storage keys have durable cleanup intents
+before writing; final publication removes the intent in the release transaction. Startup cleanup
+runs before accepting work. Restoration remaps identities and copies files into a new project.
+See docs/REPORT_CYCLE.md for boundaries and operation; no multi-worker scheduler is implied.
+
 ## Authoring guidance (ADR-112, 2026-09-24)
 
 The shared visualization editor gates requests with schema-based form completeness hints.

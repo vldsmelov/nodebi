@@ -16,6 +16,14 @@ class InvalidStorageKeyError(StorageError):
 
 
 class StorageProvider(ABC):
+    def reserve_key(self, *, suffix: str = "") -> str:
+        """Allocate a key without writing; permits durable intent before artifact creation."""
+        safe = suffix.lower() if suffix.startswith(".") and suffix[1:].isalnum() else ""
+        return f"{uuid.uuid4().hex[:2]}/{uuid.uuid4().hex}{safe}"
+
+    def save_reserved(self, key: str, content: BinaryIO) -> None:
+        raise StorageError("This storage provider does not support recoverable report artifacts.")
+
     @abstractmethod
     def save(self, content: BinaryIO, *, suffix: str = "") -> str: ...
 
@@ -41,8 +49,11 @@ class LocalStorageProvider(StorageProvider):
         return candidate
 
     def save(self, content: BinaryIO, *, suffix: str = "") -> str:
-        safe_suffix = suffix.lower() if suffix.startswith(".") and suffix[1:].isalnum() else ""
-        key = f"{uuid.uuid4().hex[:2]}/{uuid.uuid4().hex}{safe_suffix}"
+        key = self.reserve_key(suffix=suffix)
+        self.save_reserved(key, content)
+        return key
+
+    def save_reserved(self, key: str, content: BinaryIO) -> None:
         destination = self._resolve_key(key)
         destination.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -52,7 +63,6 @@ class LocalStorageProvider(StorageProvider):
         except Exception:
             destination.unlink(missing_ok=True)
             raise
-        return key
 
     def open(self, key: str) -> BinaryIO:
         return self._resolve_key(key).open("rb")

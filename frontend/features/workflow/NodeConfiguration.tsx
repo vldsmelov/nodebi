@@ -3,6 +3,7 @@
 import type { ProvenanceMap } from "./field-provenance";
 import { useI18n } from "@/lib/i18n";
 
+import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { VisualizationConfiguration } from "./VisualizationConfiguration";
 import { ConvertTypesConfiguration, UnpivotConfiguration, WindowConfiguration } from "./PreparationConfiguration";
@@ -37,6 +38,7 @@ const configurations: Record<string, ComponentType<Props>> = {
   unpivot: UnpivotConfiguration,
   window: WindowConfiguration,
   excel_source: ExcelSourceConfiguration,
+  excel_periods: ExcelSourceConfiguration,
   select_columns: SelectColumnsConfiguration,
   rename_columns: RenameColumnsConfiguration,
   filter: FilterConfiguration,
@@ -121,8 +123,9 @@ function ExcelSourceConfiguration({ config, sources, onChange }: { config: Recor
   return (
     <div className="mt-6 space-y-5">
       <div><h2 className="text-lg font-medium">{t("Excel Source")}</h2><p className="mt-1 text-xs leading-5 text-muted">{t("Choose the persisted workbook and worksheet read by this node.")}</p></div>
+      {!!selectedSource?.periods?.length && <div className="rounded border border-outline p-3"><h3>{t("Excel by period")}</h3><ul>{selectedSource.periods.map(period => <li key={period}>{period}</li>)}</ul><Link className="underline" href={`/projects/${selectedSource.project_id}/reports`}>{t("Update data")}</Link></div>}
       <label className="block text-xs text-muted">{t("Workbook")}<select aria-label={t("Workbook")} value={sourceId} onChange={(event) => { const source = sources.find((item) => item.id === event.target.value); onChange({ source_id: event.target.value, sheet_name: source?.workbook.sheets[0]?.name ?? "" }); }} className="mt-2 w-full rounded-xl border border-outline bg-control px-3 py-2.5 text-sm text-foreground"><option value="">{t("Select workbook")}</option>{sources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select></label>
-      <label className="block text-xs text-muted">{t("Worksheet")}<select aria-label={t("Worksheet")} value={sheetName} disabled={!selectedSource} onChange={(event) => onChange({ ...config, sheet_name: event.target.value })} className="mt-2 w-full rounded-xl border border-outline bg-control px-3 py-2.5 text-sm text-foreground disabled:opacity-40"><option value="">{t("Select worksheet")}</option>{selectedSource?.workbook.sheets.map((sheet) => <option key={sheet.name} value={sheet.name}>{sheet.name}</option>)}</select></label>
+      <label className="block text-xs text-muted">{t("Worksheet")}<select aria-label={t("Worksheet")} value={sheetName} disabled={!selectedSource} onChange={(event) => onChange({ ...config, sheet_name: event.target.value })} className="mt-2 w-full rounded-xl border border-outline bg-control px-3 py-2.5 text-sm text-foreground disabled:opacity-40"><option value="">{t("Select worksheet")}</option>{[...new Set([...(selectedSource?.logical_sheets ?? []), ...(selectedSource?.workbook.sheets.map(sheet => sheet.name) ?? [])])].map(name => <option key={name} value={name}>{name}</option>)}</select></label>
       {([['header_row', 'First header row', 250000], ['header_rows', 'Header row count', 10]] as const).map(([key, label, max]) => <label key={key} className="block text-xs text-muted">{t(label)}<input aria-label={t(label)} type="number" min={1} max={max} value={Number(config[key] ?? 1)} onChange={event => onChange({ ...config, [key]: Number(event.target.value) })} className="mt-2 w-full rounded-xl border border-outline bg-control px-3 py-2 text-foreground" /></label>)}
       {([['skip_data_rows', 'Skip rows after headers'], ['drop_tail_rows', 'Exclude final rows']] as const).map(([key, label]) => <label key={key} className="block text-xs">{t(label)}<input type="number" min={0} max={250000} value={Number(config[key] ?? 0)} onChange={event => onChange({ ...config, [key]: Number(event.target.value) })} className="mt-2 w-full rounded border border-outline bg-control p-2" /></label>)}
       <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" checked={config.include_row_number === true} onChange={event => onChange({ ...config, include_row_number: event.target.checked })} />{t("Include source row number")}</label>
