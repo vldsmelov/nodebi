@@ -30,7 +30,7 @@ class CalculatedColumnExecutor(UnaryExecutor):
         config = CalculatedColumnConfig.model_validate(node.config)
         if config.name in {column.engine_name for column in schema.columns}:
             raise ValueError("Output field name already exists.")
-        compiled = compile_formula(config.expression, schema)
+        compiled = compile_formula(config.expression, schema, allow_predicates=True)
         column = ColumnSchema(
             f"calc_{node.id.hex}",
             config.name,
@@ -47,8 +47,14 @@ class CalculatedColumnExecutor(UnaryExecutor):
         source = inputs["input"]
         schema = self.infer_schema(node, {"input": source.schema}, context)
         config = CalculatedColumnConfig.model_validate(node.config)
-        compiled = compile_formula(config.expression, source.schema)
-        frame = source.frame.with_columns(compiled.expression.alias(config.name))
+        compiled = compile_formula(config.expression, source.schema, allow_predicates=True)
+        try:
+            frame = source.frame.with_columns(compiled.expression.alias(config.name))
+        except (pl.exceptions.InvalidOperationError, pl.exceptions.ComputeError) as exc:
+            raise NodeExecutionError(
+                "Formula could not convert or process a value. Check text, date formats and "
+                "patterns; use Convert Types to inspect invalid values."
+            ) from exc
         if (
             compiled.logical_type == LogicalType.FLOAT
             and frame.select((~pl.col(config.name).is_finite()).any()).item()

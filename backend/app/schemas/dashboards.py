@@ -32,7 +32,15 @@ class VisualizationList(BaseModel):
     items: list[VisualizationRead]
 
 
+class SeriesField(BaseModel):
+    field: str
+    name: str
+
+
 class VisualizationResult(BaseModel):
+    additional_series: list[SeriesField] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
     visualization_revision: int = 1
     applied_context: list[str] = Field(default_factory=list)
     unsupported_filters: list[str] = Field(default_factory=list)

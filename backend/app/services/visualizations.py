@@ -185,6 +185,8 @@ def render_visualization(
         and config.category_column_id != config.value_column_id
     ):
         fields.insert(0, result.schema.by_id(config.category_column_id))
+    fields.extend(result.schema.by_id(series.column_id) for series in config.additional_series)
+    fields = list({column.column_id: column for column in fields}.values())
     included = {column.column_id for column in fields}
     context_columns = list(config.context_column_ids)
     if config.highlight_column_id and (
@@ -206,6 +208,13 @@ def render_visualization(
     else:
         offset, limit = 0, result.output.row_count
     return VisualizationResult(
+        additional_series=[
+            {
+                "field": result.schema.by_id(series.column_id).engine_name,
+                "name": series.name or result.schema.by_id(series.column_id).display_name,
+            }
+            for series in config.additional_series
+        ],
         visualization_revision=visualization.revision,
         applied_context=applied,
         unsupported_filters=unsupported,

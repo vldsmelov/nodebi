@@ -47,5 +47,10 @@ test("converted financial dashboards retain six screens and real row/KPI transit
       await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
     }
   }
-  expect(await (await request.get(`${api}/api/v1/workflows/${record.workflowId}`)).json()).toEqual(graph);
+  // Node/edge arrays represent a DAG; PostgreSQL does not promise SELECT order.
+  const normalized = (value: typeof graph) => ({ ...value,
+    nodes: [...value.nodes].sort((a: {id: string}, b: {id: string}) => a.id.localeCompare(b.id)),
+    edges: [...value.edges].sort((a: {id: string}, b: {id: string}) => a.id.localeCompare(b.id)),
+  });
+  expect(normalized(await (await request.get(`${api}/api/v1/workflows/${record.workflowId}`)).json())).toEqual(normalized(graph));
 });

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
+from app.domain.errors import ApplicationError
 from app.domain.nodes import (
     NodeDefinition,
     NodeRegistry,
@@ -41,6 +42,7 @@ from app.services.execution import (
     WorkflowExecutionService,
     get_execution_cache,
 )
+from app.services.join_records import join_records
 from app.services.node_values import node_values
 from app.services.workflow_validation import GraphIssue, WorkflowSchemaResolver
 from app.services.workflows import (
@@ -201,8 +203,12 @@ def preview_workflow_node(
     graph = _domain_graph(session, workflow)
     context = _execution_context(workflow, session, storage, settings, cache, payload.parameters)
     try:
-        result = WorkflowExecutionService(registry).execute(
-            graph, node_id, context, output_port=payload.output_port
+        result = (
+            join_records(graph, node_id, payload.diagnostic, context, registry)
+            if payload.diagnostic
+            else WorkflowExecutionService(registry).execute(
+                graph, node_id, context, output_port=payload.output_port
+            )
         )
     except ExecutionFailure as exc:
         raise HTTPException(
@@ -216,6 +222,8 @@ def preview_workflow_node(
                 "issues": [_issue_read(issue).model_dump(mode="json") for issue in exc.issues],
             },
         ) from exc
+    except ApplicationError:
+        raise
     except Exception as exc:
         if context.logger:
             context.logger.exception(
@@ -234,7 +242,7 @@ def preview_workflow_node(
             },
         ) from exc
     limit = min(payload.limit, settings.max_preview_rows)
-    rows = result.output.frame.head(limit).to_dicts()
+    rows = result.output.frame.slice(payload.offset, limit).to_dicts()
     return PreviewRead(
         join_diagnostics=(
             result.output.metadata.get("join_diagnostics")
@@ -251,7 +259,7 @@ def preview_workflow_node(
         rows=rows,
         returned_rows=len(rows),
         total_rows=result.output.row_count,
-        truncated=result.output.row_count > len(rows),
+        truncated=result.output.row_count > payload.offset + len(rows),
         duration_ms=round(result.duration_ms, 3),
         metadata=result.metadata,
         warnings=list(result.warnings),

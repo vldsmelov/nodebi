@@ -40,6 +40,12 @@ for (const multikey of [false, true]) test(`two books, ${multikey ? "composite" 
     const report = page.getByRole("region", { name: "Join report", exact: true });
     await expect(report).toBeVisible();
     await expect(report).toContainText("Inner join excluded");
+    await page.getByLabel("Join records", { exact: true }).selectOption("left_unmatched");
+    await page.getByRole("button", { name: "Preview output", exact: true }).click();
+    await expect(page.locator("table")).toContainText("C");
+    await page.getByLabel("Join records", { exact: true }).selectOption("");
+    await page.getByRole("button", { name: "Preview output", exact: true }).click();
+    await expect(report).toBeVisible();
     const previewWidth = (await page.getByRole("region", { name: "Data preview", exact: true }).boundingBox())!.width;
     expect(previewWidth).toBeGreaterThan(900);
     await page.getByRole("button", { name: "Add calculated field", exact: true }).click();

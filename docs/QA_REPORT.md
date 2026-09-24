@@ -950,3 +950,30 @@ ux-navigation-context-e2e.log. Full browser/restart result: 34 passed, 10 opt-in
 Six-dashboard restoration after application/PostgreSQL restart, three languages and both themes
 pass. No required check remains failing. No migration/new dependency;
 original project/data unchanged. U4 view mode/grid templates remain unfinished.
+
+
+## Simple multi-book dashboards, 2026-09-24 (ADR-110)
+
+399 backend tests passed (PostgreSQL + SQLite, seven SQLite-only skips); 135 frontend tests pass.
+Ruff/format/mypy, TypeScript, ESLint, OpenAPI and Docker production build pass. Fourteen targeted
+browser scenarios pass across relevant runs, including four-book P&L built through the UI,
+calendar/conditional fields, diagnostic Join records, publications, shared period, two tabs,
+slow saves, workbook operations and theme/language checks. Scale: 168 nodes, 1024 fields,
+335 handles, 4887 DOM elements, one schema request and no eager previews; sampled ready time
+2170 ms, navigation 623 ms. These are environment-specific automation timings.
+
+P&L: 28 ordinary nodes, 3 publications, 5 visualizations, 6 monthly rows matching independent
+Decimal expectations; total net profit 693.76. Automated construction sample 79.85 seconds.
+Human economists have not been timed. Baseline financial project: fresh 164-slice comparison,
+1551 widget-page comparisons; no value, series, row, format or highlight mismatch.
+
+Restarted PostgreSQL/backend/frontend. 12 persisted documents and 60 visualization results
+match the captured baseline across financial, multi-key and P&L projects. Post-restart P&L
+URL viewing and all language/theme combinations pass. Private evidence stays in .backups.
+
+Acceptance found and fixed a compact-widget title input collapsing to zero width. A diagnostic
+preview with a deleted Join key now returns an actionable 422 rather than 500. Tests were adapted
+to field-editor connection selectors and to unordered DAG arrays; numeric checks were preserved.
+The documented 127.0.0.1 PostgreSQL URL avoids a reproduced localhost connection delay (5.14 s),
+which had triggered two existing 5-second synchronization deadlines. Unchanged assertions pass.
+No data reset, no new auth/navigation scope, no report-specific production calculations.

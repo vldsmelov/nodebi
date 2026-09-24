@@ -1,5 +1,10 @@
 # Node BI
 
+Simple multi-book dashboard: [four-book P&L, rules and operator walkthrough](docs/ALMA_SIMPLE_DASHBOARD.md).
+Recreate public fixtures with `backend/.venv/Scripts/python.exe fixtures/build_alma_demo.py`.
+Browser authoring acceptance: `npm run test:e2e -- e2e/alma-dashboard.spec.ts` in `frontend`.
+Set `NODEBI_KEEP_ALMA_DEMO=1` to retain its editable project in the local database.
+
 New authoring walkthrough: [two Excel books, Join, calculated field and visible result cards](docs/TABLE_AUTHORING.md).
 
 Primary dashboard workflow: [published results, independent visualizations and shared period](docs/PUBLISHED_DASHBOARDS.md).

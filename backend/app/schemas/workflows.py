@@ -189,6 +189,10 @@ class WorkflowSchemaRead(BaseModel):
 
 
 class PreviewRequest(BaseModel):
+    diagnostic: (
+        Literal["left_unmatched", "right_unmatched", "left_duplicates", "right_duplicates"] | None
+    ) = None
+    offset: int = Field(default=0, ge=0, le=250000)
     output_port: str | None = Field(default=None, min_length=1, max_length=100)
     parameters: ParameterValues = Field(default_factory=dict)
     limit: int = Field(default=100, ge=1, le=10_000)

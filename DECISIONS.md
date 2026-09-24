@@ -1,5 +1,26 @@
 # DECISIONS.md
 
+# ADR-110 - Generic operations for simple multi-book dashboards
+
+Date: 2026-09-24. Status: ACCEPTED. Extends ADR-109.
+
+Context: the second report needs explicit classification, ordered loss history, multiple books,
+source bounds and comparisons of prepared measures. A special financial API would bypass the
+constructor and could not demonstrate its ability to build the report.
+
+Decision: extend the shared typed formula compiler; version ordered Window operations as v2;
+add a bounded calendar source; expose source-row exclusions and diagnostic Join record pages;
+allow multiple series in independent Bar/Line visualizations. Financial semantics, signs,
+rates and reconciliation choices remain in editable project configuration. Strict composite
+joins replace implicit fallback matching in the synthetic example. Missing plans remain null.
+The example's explicit BU tax base and other differences are recorded in docs/ALMA_SIMPLE_DASHBOARD.md.
+
+Alternatives rejected: Python financial executors, hidden report coefficients, frontend totals,
+automatic deduplication and fabricated plans. Consequences: initial preparation still requires
+analytical expertise; ordinary chart creation reuses shared publications. Existing presentation
+and calculation JSON provides persistence without a new migration. Empty-series defaults remain
+absent in old API results. Human speed is measured separately from automated browser execution.
+
 # ADR-109 - Simple dashboards and explicit composite Join
 
 Date: 2026-09-24. Status: ACCEPTED. Extends ADR-107/108.

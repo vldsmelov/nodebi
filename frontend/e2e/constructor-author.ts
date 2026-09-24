@@ -24,13 +24,19 @@ export class ConstructorAuthor {
     await expect(page.locator(".react-flow__node")).toHaveCount(count + 1);
     const id = (await page.locator(".react-flow__node").last().getAttribute("data-id"))!;
     this.created.push(id);
-    if (upstream) await page.getByLabel("Input input", { exact: true }).selectOption(`${upstream}:dataset`);
+    if (upstream) {
+      const input = page.getByLabel("Input input", { exact: true });
+      const fieldValue = JSON.stringify([upstream, "dataset"]);
+      const values = await input.locator("option").evaluateAll(options => options.map(option => (option as HTMLOptionElement).value));
+      await input.selectOption(values.includes(fieldValue) ? fieldValue : `${upstream}:dataset`);
+    }
     await this.closeDetails();
+    if (kind === "Calculated Column" && await page.getByText("Advanced settings", { exact: true }).count()) await page.getByText("Advanced settings", { exact: true }).click();
     await configure(); await this.saved(); return id;
   }
 
   private async closeDetails() {
-    const open = this.page.locator("aside").last().locator("details[open]");
+    const open = this.page.locator("aside").last().locator("details[open]").filter({ has: this.page.locator("summary:visible") });
     while (await open.count()) await open.first().locator("summary").first().click();
   }
 

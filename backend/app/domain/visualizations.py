@@ -47,7 +47,15 @@ class VisualizationAppearance(NumberFormatConfig):
     show_labels: bool = False
 
 
+class AdditionalSeries(BaseModel):
+    column_id: str = Field(min_length=1)
+    name: str = Field(default="", max_length=200)
+
+
 class VisualizationConfig(VisualizationAppearance):
+    additional_series: list[AdditionalSeries] = Field(
+        default_factory=list, max_length=7, exclude_if=lambda value: not value
+    )
     value_column_id: str | None = Field(default=None, min_length=1)
     category_column_id: str | None = Field(default=None, min_length=1)
     column_ids: list[str] | None = None

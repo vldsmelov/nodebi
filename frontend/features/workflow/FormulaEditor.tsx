@@ -56,7 +56,7 @@ export function FormulaEditor({ expression, columns, onChange, provenance, issue
     </details> : null}
     <details className="mt-3 text-xs"><summary>{t("Formula function help")}</summary>
       <p className="mt-2">{t("Functions run on the server. Arguments must have compatible types.")}</p>
-      <ul className="mt-2 space-y-2">{["trim(text)", "lower(text)", "coalesce(value, fallback)", "nullif(value, other)", "safe_divide(numerator, denominator, fallback)"].map(signature => <li key={signature}><code>{signature}</code></li>)}</ul>
+      <ul className="mt-2 space-y-2">{["if_else(condition, value, otherwise)", "is_null(value)", "contains(text, pattern)", "replace(text, old, new)", "extract(text, regex)", "to_number(text)", "to_date(text, format)", "year(date)", "month(date)", "round(value, decimals)", "abs(value)", "minimum(a, b)", "maximum(a, b)", "trim(text)", "lower(text)", "coalesce(value, fallback)", "nullif(value, other)", "safe_divide(numerator, denominator, fallback)"].map(signature => <li key={signature}><code>{signature}</code></li>)}</ul>
     </details>
   </div>;
 }

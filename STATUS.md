@@ -5,26 +5,36 @@ Release: **MVP COMPLETE - 0.1.0, local single-user scope**
 
 ## Current milestone and last completed task
 
-Current milestone: simple dashboard constructor, S1 completed; S2-S5 remain open.
-Approved plan: docs/SIMPLE_DASHBOARDS_PLAN.md. Prior viewer-only proposal is superseded;
-everyone can author, with no new account system, navigation or hierarchical reporting UI.
-Join v2 supports up to 32 distinct field pairs and many-to-many/many-to-one/one-to-one checks.
-Its create/inspect forms share configuration; old Join v1 retains existing behavior and IDs.
-Null key components never match; declared uniqueness is checked across complete input keys,
-including unmatched keys. Cardinality and resource checks run before Join materialization.
+Current milestone: simple dashboard constructor S1-S5 completed (ADR-109/110).
+Last completed: generic safe expressions, condition form, Window v2, Calendar, Excel row bounds,
+Join diagnostic record pages, independent Bar/Line series and synthetic four-book P&L authoring.
+The retained editable example has 28 nodes, 3 publications, 5 visualizations; six monthly rows
+match the independent Decimal oracle (net profit total 693.76). See docs/ALMA_SIMPLE_DASHBOARD.md.
 
-Checks: 385 backend tests passed with PostgreSQL enabled (seven SQLite-only skips), 132 frontend
-tests passed. Ruff/format/mypy, TypeScript, ESLint, OpenAPI consistency and Docker production
-builds pass. Browser acceptance covers single and composite Join -> calculated field -> shared
-publication -> independent chart + table -> saved dashboard; edit, undo/redo and reload included.
-Public monthly-price fixtures distinguish a correct total of 80 from a single-key total of 150.
-Retained demo location is in .backups/multikey-demo.json (private runtime evidence).
-Financial project was not edited; full 164-slice parity and database restart were not repeated.
+Checks: 399 backend tests passed with PostgreSQL enabled (seven SQLite-only skips), 135 frontend
+passed; Ruff/format/mypy, TypeScript, ESLint, OpenAPI consistency and Docker production builds pass.
+Fourteen targeted browser scenarios passed across the final relevant runs: four-book authoring,
+retained P&L language/theme review, calendar/condition form, two Join authoring journeys, five
+field-editor journeys, 168-node scale, independent publications, period and financial screens.
+Fresh financial comparison: 164 slices / 1551 widget pages match (.backups/simple-dashboards-financial-parity.json).
+After restarting PostgreSQL/backend/frontend, 12 persisted documents and 60 visualization results
+match the pre-restart snapshot for the financial, multi-key and P&L projects. P&L browser review
+was repeated after restart. No existing user data was reset.
 
-Next: S2 safe conditional/text/date expressions, conditional-field form and cumulative Window;
-then diagnostic record views/source bounds, multiple series and synthetic AlMaBi P&L acceptance.
-The two-book demo proves the basic constructor path, not completion of AlMaBi or the whole plan.
-No known P0/P1 in the delivered Join feature. No data reset. Human usability remains unmeasured.
+Local retained demo: .backups/alma-demo.json. Fresh automated authoring took 79.85 seconds; this
+is not a human productivity estimate. Graph contains 4 sources, 3 joins, 15 calculated fields,
+3 grouped aggregates and 3 windows. Dashboard uses 2 tables, Bar (4 series), Line and KPI.
+All books are public synthetic fixtures. Explicit tax base/rates and differences from AlMaBi
+are documented; no financial-specific production executor or hidden reconciliation was added.
+
+Resolved during acceptance: missing Join fields now give 422 diagnostics; compact-widget title
+inputs retain usable width. Tests compare DAG node/edge sets rather than incidental SQL order.
+Use documented PostgreSQL address 127.0.0.1: localhost added 5.14 seconds per connection and
+caused two synchronization timeouts; unchanged concurrency assertions pass on 127.0.0.1.
+No known P0/P1 in this delivery. Next: real workbook mapping/rule confirmation and human operator
+protocol, including first-time preparation versus chart creation on an existing publication.
+Human speed gains remain unmeasured. Batch source replacement/history and interactive drill-down
+remain deferred by scope. Review guide gives an impartial complexity assessment, not percentages.
 
 Previous completed milestone:
 

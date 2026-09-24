@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Literal
 
 import polars as pl
@@ -20,27 +21,40 @@ class WindowConfig(BaseModel):
     name: str = Field(min_length=1, max_length=255)
 
 
+class OrderedWindowConfig(WindowConfig):
+    operation: Literal["sum", "row_number", "cumulative_sum", "cumulative_max", "previous"]  # type: ignore[assignment]
+
+
+def window_config(node: NodeInstance) -> WindowConfig:
+    return (OrderedWindowConfig if node.version == 2 else WindowConfig).model_validate(node.config)
+
+
 class WindowExecutor(UnaryExecutor):
     def infer_schema(
         self, node: NodeInstance, input_schemas: dict[str, DatasetSchema], context: ExecutionContext
     ) -> DatasetSchema:
         source = input_schema(input_schemas)
-        config = WindowConfig.model_validate(node.config)
+        config = window_config(node)
         if not config.name.strip():
             raise ValueError("Output field name must not be blank.")
         if len(set(config.partitions)) != len(config.partitions):
             raise ValueError("Partition fields must be unique.")
         for key in config.partitions + [key.column_id for key in config.order_by]:
             source.by_id(key)
-        if config.operation == "sum":
-            if not config.column_id or source.by_id(config.column_id).logical_type not in {
+        if any(column.engine_name == config.name for column in source.columns):
+            raise ValueError("Output field name already exists.")
+        if config.operation != "row_number" and (
+            not config.column_id
+            or source.by_id(config.column_id).logical_type
+            not in {
                 LogicalType.INTEGER,
                 LogicalType.FLOAT,
                 LogicalType.UNKNOWN,
-            }:
-                raise ValueError("Window sum requires a numeric field.")
-        elif not config.order_by:
-            raise ValueError("Row numbering requires an explicit sort order.")
+            }
+        ):
+            raise ValueError("Window requires a numeric field.")
+        if config.operation != "sum" and not config.order_by:
+            raise ValueError("Ordered window operations require an explicit sort order.")
         return DatasetSchema(
             (
                 *source.columns,
@@ -48,8 +62,8 @@ class WindowExecutor(UnaryExecutor):
                     f"window_{node.id.hex}",
                     config.name,
                     config.name,
-                    LogicalType.FLOAT if config.operation == "sum" else LogicalType.INTEGER,
-                    config.operation == "sum",
+                    LogicalType.INTEGER if config.operation == "row_number" else LogicalType.FLOAT,
+                    config.operation != "row_number",
                     {"source_columns": [config.column_id] if config.column_id else []},
                 ),
             )
@@ -59,11 +73,16 @@ class WindowExecutor(UnaryExecutor):
         self, node: NodeInstance, inputs: dict[str, Dataset], context: ExecutionContext
     ) -> Dataset:
         source = inputs["input"]
-        config = WindowConfig.model_validate(node.config)
+        config = window_config(node)
         schema = self.infer_schema(node, {"input": source.schema}, context)
         check_size(source.row_count, len(schema.columns))
         partitions = [source.schema.by_id(key).engine_name for key in config.partitions]
         frame = source.frame
+        if config.operation in {"cumulative_sum", "cumulative_max", "previous"}:
+            ordering = [source.schema.by_id(key.column_id).engine_name for key in config.order_by]
+            unique_keys = list(dict.fromkeys([*partitions, *ordering]))
+            if frame.select(unique_keys).is_duplicated().any():
+                raise NodeExecutionError("Window ordering has ties. Add a unique ordering field.")
         if config.operation == "sum":
             column = pl.col(source.schema.by_id(config.column_id or "").engine_name).cast(
                 pl.Float64
@@ -76,12 +95,24 @@ class WindowExecutor(UnaryExecutor):
                 nulls_last=True,
                 maintain_order=True,
             )
-            expression = pl.int_range(1, pl.len() + 1, dtype=pl.Int64)
+            if config.operation == "row_number":
+                expression = pl.int_range(1, pl.len() + 1, dtype=pl.Int64)
+            else:
+                column = pl.col(source.schema.by_id(config.column_id or "").engine_name).cast(
+                    pl.Float64
+                )
+                expression = (
+                    column.cum_sum()
+                    if config.operation == "cumulative_sum"
+                    else column.cum_max()
+                    if config.operation == "cumulative_max"
+                    else column.shift(1)
+                )
         if partitions:
             expression = expression.over(partitions)
         frame = frame.with_columns(expression.alias(config.name))
         if (
-            config.operation == "sum"
+            config.operation != "row_number"
             and frame.select((~pl.col(config.name).is_finite()).any()).item()
         ):
             raise NodeExecutionError("Window sum produced a non-finite number.")
@@ -96,3 +127,7 @@ def window_definition() -> NodeDefinition:
         WindowConfig,
         WindowExecutor(),
     )
+
+
+def ordered_window_definition() -> NodeDefinition:
+    return replace(window_definition(), version=2, config_schema=OrderedWindowConfig)

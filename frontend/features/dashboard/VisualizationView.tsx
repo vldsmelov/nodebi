@@ -33,6 +33,15 @@ export function isHighlighted(result: VisualizationResult, row: Record<string, u
 }
 
 export function chartOptions(result: VisualizationResult, locale: Locale = "ru", theme: Theme = "dark"): EChartsOption {
+  if (result.additional_series?.length && ["bar_chart", "line_chart"].includes(result.type)) {
+    const first = chartOptions({ ...result, additional_series: [] }, locale, theme);
+    const colors = [themePalette[theme].accent, "#38bdf8", "#f59e0b", "#f472b6", "#a78bfa", "#2dd4bf", "#fb7185", "#94a3b8"];
+    const series = [first.series, ...result.additional_series.map(item => {
+      const option = chartOptions({ ...result, value_field: item.field, additional_series: [] }, locale, theme);
+      return (Array.isArray(option.series) ? option.series : [option.series]).map(value => ({ ...value, name: item.name }));
+    })].flat().filter(Boolean).map((value, index) => ({ ...value, itemStyle: { color: colors[index] } }));
+    return { ...first, series } as EChartsOption;
+  }
   const x = result.category_field!;
   const y = result.value_field!;
   const seriesName = result.columns.find(column => column.engine_name === y)?.metadata?.visualization_role === "value" ? translate(locale, "Value") : y;

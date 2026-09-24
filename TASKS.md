@@ -5,10 +5,10 @@
 Plan: docs/SIMPLE_DASHBOARDS_PLAN.md. All users can author; no account system or new navigation.
 
 * [x] S1: Composite Join v2, relationship checks, forms and two-book dashboard acceptance.
-* [ ] S2: Safe conditional/text/date expressions, condition form, cumulative Window and calendar.
-* [ ] S3: Excel row bounds and bounded Join diagnostic record views.
-* [ ] S4: Multiple numeric series for Bar/Line using shared published results.
-* [ ] S5: Synthetic AlMaBi rule matrix, editable P&L graph/dashboard, financial parity and restart.
+* [x] S2: Safe conditional/text/date expressions, condition form, cumulative Window and calendar.
+* [x] S3: Excel row bounds and bounded Join diagnostic record views.
+* [x] S4: Multiple numeric series for Bar/Line using shared published results.
+* [x] S5: Synthetic AlMaBi rule matrix, editable P&L graph/dashboard, financial parity and restart.
 
 ## Guided authoring usability follow-up (2026-09-23, ADR-108)
 

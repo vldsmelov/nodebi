@@ -345,7 +345,7 @@ export function FieldWorkflowEditor({ workflow, catalog, sources, onSaved, targe
       <div className={`grid gap-4 ${previewPins.filter(Boolean).length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
         {previewPins.map((pin, index) => pin && <section key={index} aria-label={pins.some(Boolean) ? index ? "B" : "A" : t("Selected output")}>
           <div className="flex items-center gap-3 text-sm"><strong>{pins.some(Boolean) ? index ? "B" : "A" : t("Data preview")}</strong><span>{graph.nodes.find(node => node.id === pin.id) ? nodeCaption(graph, graph.nodes.find(node => node.id === pin.id)!, choicesSchema, nodeName) : t("Selected node is unavailable.")}</span>{pins.some(Boolean) && <button onClick={() => setPins(current => index ? [current[0], null] : [null, current[1]])}>{t("Close")}</button>}</div>
-          {graph.nodes.some(node => node.id === pin.id) && <NodeOutputPanel onRuntimeIssues={reportRuntimeIssues} workflowId={workflow.id} nodeId={pin.id} outputPort={pin.port} revision={save.revision} dirty={dirty} parameters={parameters} issues={currentSchema?.issues.filter(issue => issue.node_id === pin.id) ?? []} />}
+          {graph.nodes.some(node => node.id === pin.id) && <NodeOutputPanel isJoin={graph.nodes.find(node => node.id === pin.id)?.type === "join"} onRuntimeIssues={reportRuntimeIssues} workflowId={workflow.id} nodeId={pin.id} outputPort={pin.port} revision={save.revision} dirty={dirty} parameters={parameters} issues={currentSchema?.issues.filter(issue => issue.node_id === pin.id) ?? []} />}
         </section>)}
       </div>
     </section>}

@@ -23,11 +23,19 @@ class ExcelSourceConfig(BaseModel):
     header_row: int = Field(default=1, ge=1, le=250000)
     header_rows: int = Field(default=1, ge=1, le=10)
     include_row_number: bool = False
+    skip_data_rows: int = Field(default=0, ge=0, le=250000)
+    drop_tail_rows: int = Field(default=0, ge=0, le=250000)
     source_id: uuid.UUID
     sheet_name: str = Field(min_length=1, max_length=255)
 
     def layout(self) -> WorksheetLayout:
-        return WorksheetLayout(self.header_row, self.header_rows, self.include_row_number)
+        return WorksheetLayout(
+            self.header_row,
+            self.header_rows,
+            self.include_row_number,
+            self.skip_data_rows,
+            self.drop_tail_rows,
+        )
 
 
 class ExcelSourceExecutor:

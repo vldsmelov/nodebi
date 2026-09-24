@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ApiError } from "@/lib/api";
 
 import { useMutation } from "@tanstack/react-query";
@@ -10,6 +10,7 @@ import type { GraphIssue, NodeSchemaResult } from "./types";
 import { JoinDiagnostics } from "./JoinDiagnostics";
 
 type Props = {
+  isJoin?: boolean;
   outputPort?: string;
   parameters?: import("./types").ParameterValues;
   workflowId: string;
@@ -22,17 +23,20 @@ type Props = {
 };
 
 /** Schema and preview are visible only for the currently acknowledged graph revision. */
-function NodeOutputContent({ workflowId, nodeId, revision, dirty, schema, issues, parameters = {}, outputPort, onRuntimeIssues }: Props) {
+function NodeOutputContent({ isJoin, workflowId, nodeId, revision, dirty, schema, issues, parameters = {}, outputPort, onRuntimeIssues }: Props) {
   const { t, errorText, cell } = useI18n();
-  const preview = useMutation({ mutationFn: (request: { nodeId: string; revision: number }) => previewWorkflowNode(workflowId, request.nodeId, 100, parameters, outputPort) });
-  const result = !dirty && preview.data?.revision === revision ? preview.data : undefined;
+  const [diagnostic, setDiagnostic] = useState("");
+  const [offset, setOffset] = useState(0);
+  const preview = useMutation({ mutationFn: (request: { nodeId: string; revision: number; diagnostic: string; offset: number }) => previewWorkflowNode(workflowId, request.nodeId, 100, parameters, outputPort, request.diagnostic || undefined, request.offset) });
+  const result = !dirty && preview.data?.revision === revision && preview.variables?.diagnostic === diagnostic && preview.variables?.offset === offset ? preview.data : undefined;
   useEffect(() => {
-    const error = !dirty && !preview.isPending && preview.variables?.revision === revision && preview.error instanceof ApiError ? preview.error : null;
+    const error = !dirty && !preview.isPending && preview.variables?.revision === revision && preview.variables?.diagnostic === diagnostic && preview.variables?.offset === offset && preview.error instanceof ApiError ? preview.error : null;
     onRuntimeIssues?.(error?.issues.map(issue => ({ ...issue, severity: "error", node_id: issue.node_id ?? error.nodeId ?? null, edge_id: issue.edge_id ?? null, field: issue.field ?? null })) ?? []);
-  }, [dirty, revision, preview.error, preview.isPending, preview.variables, onRuntimeIssues]);
+  }, [dirty, revision, diagnostic, offset, preview.error, preview.isPending, preview.variables, onRuntimeIssues]);
   return <>
+    {(isJoin || result?.join_diagnostics || diagnostic) && <div className="mt-3"><select aria-label={t("Join records")} value={diagnostic} onChange={event => { setDiagnostic(event.target.value); setOffset(0); }} className="rounded border border-outline bg-control p-2"><option value="">{t("Joined result")}</option>{["left_unmatched", "right_unmatched", "left_duplicates", "right_duplicates"].map(kind => <option key={kind} value={kind}>{t(kind)}</option>)}</select><button disabled={!offset || dirty} onClick={() => setOffset(Math.max(0, offset - 100))}>{t("Previous page")}</button><button disabled={!result?.truncated || dirty} onClick={() => setOffset(offset + 100)}>{t("Next page")}</button></div>}
     {dirty && <p className="mt-3 text-xs text-warning">{t("Preview is stale. Save changes before running again.")}</p>}
-    <button onClick={() => preview.mutate({ nodeId, revision })} disabled={preview.isPending || dirty}
+    <button onClick={() => preview.mutate({ nodeId, revision, diagnostic, offset })} disabled={preview.isPending || dirty}
       className="mt-5 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary disabled:opacity-40">
       {preview.isPending ? t("Running preview…") : t("Preview output")}
     </button>
@@ -48,7 +52,7 @@ function NodeOutputContent({ workflowId, nodeId, revision, dirty, schema, issues
         <span className="ml-2 text-muted">{t(column.logical_type)}{column.nullable ? "?" : ""}</span>
       </div>)}</div>
     </section>}
-    {preview.error && !dirty && preview.variables?.revision === revision && <p role="alert" className="mt-4 rounded-xl bg-danger-surface p-3 text-xs text-danger">{errorText(preview.error)}</p>}
+    {preview.error && !dirty && preview.variables?.revision === revision && preview.variables?.diagnostic === diagnostic && preview.variables?.offset === offset && <p role="alert" className="mt-4 rounded-xl bg-danger-surface p-3 text-xs text-danger">{errorText(preview.error)}</p>}
     {result && <section className="mt-3">
       <div className="flex items-center justify-between">
         <h3 className="text-xs uppercase tracking-[0.18em] text-muted">{t("Preview")}</h3>

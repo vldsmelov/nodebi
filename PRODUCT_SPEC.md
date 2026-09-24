@@ -8,6 +8,11 @@ viewer-only proposal. New navigation, hierarchical drill-down, category filters 
 are deferred. Existing period filtering is optional for the first delivery. Reuse simple tables,
 KPI and charts. See docs/SIMPLE_DASHBOARDS_PLAN.md for the staged implementation and examples.
 Join supports multiple explicit key pairs in v2, with user-selected relationship validation.
+Preparation includes typed conditions, string/date functions, explicit Excel row exclusions,
+ordered Window v2 and a Calendar source. Join diagnostics expose unmatched/duplicate input rows.
+Independent Bar and Line can show up to eight prepared numeric measures without aggregation.
+The public four-book P&L example and explicit differences from AlMaBi are documented in
+docs/ALMA_SIMPLE_DASHBOARD.md. Real-data validation and human operator timing are separate checks.
 
 ## Guided table workflow (2026-09-23, ADR-108)
 

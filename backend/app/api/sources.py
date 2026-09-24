@@ -87,6 +87,8 @@ def preview_sheet(
     header_row: Annotated[int, Query(ge=1, le=250000)] = 1,
     header_rows: Annotated[int, Query(ge=1, le=10)] = 1,
     include_row_number: bool = False,
+    skip_data_rows: Annotated[int, Query(ge=0, le=250000)] = 0,
+    drop_tail_rows: Annotated[int, Query(ge=0, le=250000)] = 0,
 ) -> WorksheetPreviewRead:
     source = _source_or_404(session, source_id)
     bounded_limit = min(limit, settings.max_preview_rows)
@@ -94,7 +96,9 @@ def preview_sheet(
         source,
         sheet_name,
         bounded_limit,
-        WorksheetLayout(header_row, header_rows, include_row_number),
+        WorksheetLayout(
+            header_row, header_rows, include_row_number, skip_data_rows, drop_tail_rows
+        ),
     )
     return WorksheetPreviewRead.model_validate(asdict(preview))
 

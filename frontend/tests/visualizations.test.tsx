@@ -18,6 +18,15 @@ const result: VisualizationResult = {
 };
 afterEach(() => vi.unstubAllGlobals());
 
+it("renders multiple prepared series with gaps and no implicit aggregation", () => {
+  const options = chartOptions({ ...result, additional_series: [{ field: "plan", name: "Plan" }],
+    rows: [{ day: "2026-01-01", total: 10, plan: 15 }, { day: "2026-01-02", total: 20, plan: null }] });
+  expect(options.series).toMatchObject([
+    { data: [[Date.parse("2026-01-01T00:00:00Z"), 10], [Date.parse("2026-01-02T00:00:00Z"), 20]] },
+    { name: "Plan", data: [[Date.parse("2026-01-01T00:00:00Z"), 15], [Date.parse("2026-01-02T00:00:00Z"), null]] },
+  ]);
+});
+
 it("highlights stable identities without changing values or prepared row order", () => {
   const selected = { ...result, type: "bar_chart" as const, orientation: "horizontal" as const, highlight_field: "identity", highlight_value: 0, rows: [{ day: "Repeated", total: 10, identity: 1 }, { day: "Repeated", total: 20, identity: 0 }] };
   expect(isHighlighted(selected, selected.rows[0])).toBe(false);

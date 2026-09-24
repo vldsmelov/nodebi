@@ -4,6 +4,7 @@ import type { ProvenanceMap } from "./field-provenance";
 import { useI18n } from "@/lib/i18n";
 
 import { FormulaEditor } from "./FormulaEditor";
+import { ConditionBuilder } from "./ConditionBuilder";
 
 import type { GraphIssue, ResolvedColumn } from "./types";
 
@@ -45,6 +46,7 @@ export function CalculatedColumnConfiguration({ config, columns, onChange, issue
   return <div className="mt-6"><h2>{t("Calculated Column")}</h2>
     <label className="mt-3 block text-xs">{t("Output field name")}<input aria-label={t("Output field name")} className={control} value={String(config.name ?? "")} onChange={e => onChange({ ...config, name: e.target.value })} /></label>
     <FormulaEditor provenance={provenance} issues={issues} validationPending={validationPending} expression={expression} columns={columns} onChange={expression => onChange({ ...config, expression })} />
+    <ConditionBuilder columns={columns ?? []} onApply={expression => onChange({ ...config, expression })} />
     <p className="mt-3 text-xs leading-5 text-muted">{t("Formula functions: trim, lower, coalesce, safe_divide. Field references survive renaming.")}</p>
   </div>;
 }

@@ -4,7 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import type { ResolvedColumn } from "./types";
 import { SortConfiguration } from "./ArithmeticConfiguration";
 
-type Props = { config: Record<string, unknown>; columns: ResolvedColumn[] | null; onChange: (config: Record<string, unknown>) => void };
+type Props = { version?: number; config: Record<string, unknown>; columns: ResolvedColumn[] | null; onChange: (config: Record<string, unknown>) => void };
 const control = "mt-2 w-full rounded-lg border border-outline bg-control px-2 py-2 text-xs";
 const strings = (value: unknown): string[] => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
@@ -33,12 +33,13 @@ export function UnpivotConfiguration({ config, columns, onChange }: Props) {
   </div>;
 }
 
-export function WindowConfiguration({ config, columns, onChange }: Props) {
+export function WindowConfiguration({ version = 1, config, columns, onChange }: Props) {
   const { t } = useI18n();
   return <div className="mt-6"><h2>{t("Window")}</h2>
     <label className="mt-3 block text-xs">{t("Output field name")}<input className={control} value={String(config.name ?? "")} onChange={event => onChange({ ...config, name: event.target.value })} /></label>
-    <label className="mt-3 block text-xs">{t("Operation")}<select className={control} value={String(config.operation ?? "sum")} onChange={event => onChange({ ...config, operation: event.target.value })}><option value="sum">{t("Partition sum")}</option><option value="row_number">{t("Row number")}</option></select></label>
-    {config.operation !== "row_number" ? <select aria-label={t("Value field")} className={control} value={String(config.column_id ?? "")} onChange={event => onChange({ ...config, operation: "sum", column_id: event.target.value })}><option value="">{t("Select field")}</option>{columns?.filter(column => ["integer", "float", "unknown"].includes(column.logical_type)).map(column => <option key={column.column_id} value={column.column_id}>{column.display_name}</option>)}</select> : <SortConfiguration columns={columns} config={{ keys: config.order_by ?? [] }} onChange={value => onChange({ ...config, order_by: value.keys })} />}
+    <label className="mt-3 block text-xs">{t("Operation")}<select className={control} value={String(config.operation ?? "sum")} onChange={event => onChange({ ...config, operation: event.target.value })}><option value="sum">{t("Partition sum")}</option><option value="row_number">{t("Row number")}</option>{version >= 2 && ["cumulative_sum", "cumulative_max", "previous"].map(operation => <option key={operation} value={operation}>{t(operation)}</option>)}</select></label>
+    {config.operation !== "row_number" ? <select aria-label={t("Value field")} className={control} value={String(config.column_id ?? "")} onChange={event => onChange({ ...config, operation: config.operation ?? "sum", column_id: event.target.value })}><option value="">{t("Select field")}</option>{columns?.filter(column => ["integer", "float", "unknown"].includes(column.logical_type)).map(column => <option key={column.column_id} value={column.column_id}>{column.display_name}</option>)}</select> : null}
+    {!!config.operation && config.operation !== "sum" && <SortConfiguration columns={columns} config={{ keys: config.order_by ?? [] }} onChange={value => onChange({ ...config, order_by: value.keys })} />}
     <Fields label="Partition fields" columns={columns ?? []} selected={strings(config.partitions)} onChange={partitions => onChange({ ...config, partitions })} />
   </div>;
 }

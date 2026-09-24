@@ -9,6 +9,7 @@ from typing import cast
 import polars as pl
 
 from app.domain.datasets import ColumnSchema, DatasetSchema, LogicalType
+from app.domain.expression_functions import extended_function
 
 
 class FormulaValidationError(ValueError):
@@ -74,6 +75,9 @@ def compile_formula(
     def visit_inner(node: ast.AST, depth: int = 0) -> pl.Expr:
         if depth > 64:
             raise FormulaValidationError("Expression nesting is too deep.")
+        if isinstance(node, ast.Constant) and node.value is None:
+            types[id(node)] = LogicalType.UNKNOWN
+            return pl.lit(None)
         if allow_predicates and isinstance(node, ast.Constant) and type(node.value) is bool:
             types[id(node)] = LogicalType.BOOLEAN
             return pl.lit(node.value)
@@ -82,6 +86,14 @@ def compile_formula(
             return pl.lit(node.value)
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and not node.keywords:
             name = node.func.id
+            try:
+                extended = extended_function(node, name, lambda arg: visit(arg, depth + 1), types)
+            except ValueError as exc:
+                raise FormulaValidationError(str(exc)) from exc
+            if extended is not None:
+                result, logical_type = extended
+                types[id(node)] = logical_type
+                return result
             if name in {"trim", "lower"} and len(node.args) == 1:
                 value = visit(node.args[0], depth + 1)
                 if types[id(node.args[0])] not in {LogicalType.STRING, LogicalType.UNKNOWN}:

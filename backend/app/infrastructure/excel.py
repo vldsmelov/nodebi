@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime
 from typing import Any
 from xml.etree.ElementTree import ParseError
@@ -144,8 +145,15 @@ class OpenPyxlWorkbookReader:
             structure = inspect_structure(stream, sheet._worksheet_path)
         except ValueError as exc:
             raise ExcelWorkbookError(str(exc)) from exc
-        data_start = layout.header_row + layout.header_rows
-        missing = structure.missing_formula_results
+        header_end = layout.header_row + layout.header_rows
+        data_start = header_end + layout.skip_data_rows
+        data_end = max(header_end - 1, structure.rows - layout.drop_tail_rows)
+        missing = [
+            cell
+            for cell in structure.missing_formula_results
+            if layout.header_row <= int(re.sub(r"\D", "", cell)) < header_end
+            or data_start <= int(re.sub(r"\D", "", cell)) <= data_end
+        ]
         if missing:
             raise ExcelWorkbookError(
                 f"Formula has no saved result at {sheet.title}!{missing[0]}. "
@@ -157,23 +165,23 @@ class OpenPyxlWorkbookReader:
         if width + layout.include_row_number > 1024:
             raise ExcelWorkbookError("Worksheet exceeds the 1024-column limit.")
         if (
-            max(0, structure.rows - data_start + 1) * (width + layout.include_row_number)
-            > 2_000_000
+            max(0, data_end - data_start + 1) > 250_000
+            or max(0, data_end - data_start + 1) * (width + layout.include_row_number) > 2_000_000
         ):
             raise ExcelWorkbookError("Worksheet exceeds the 250000-row or 2000000-cell limit.")
         header_values = list(
             sheet.iter_rows(
                 min_row=layout.header_row,
-                max_row=data_start - 1,
+                max_row=header_end - 1,
                 max_col=width,
                 values_only=True,
             )
         )
         headers = [list(row) for row in header_values]
         for left, top, right, bottom in structure.merges:
-            if layout.header_row <= top < data_start:
+            if layout.header_row <= top < header_end:
                 value = headers[top - layout.header_row][left - 1] if left <= width else None
-                for row in range(top, min(bottom + 1, data_start)):
+                for row in range(top, min(bottom + 1, header_end)):
                     for column in range(left, min(right, width) + 1):
                         headers[row - layout.header_row][column - 1] = value
         levels = [[row[column] for row in headers] for column in range(width)]
@@ -185,11 +193,11 @@ class OpenPyxlWorkbookReader:
         iterator = (
             sheet.iter_rows(
                 min_row=data_start,
-                max_row=structure.rows,
+                max_row=data_end,
                 max_col=width,
                 values_only=True,
             )
-            if structure.rows >= data_start
+            if data_end >= data_start
             else iter(())
         )
         if layout.include_row_number:

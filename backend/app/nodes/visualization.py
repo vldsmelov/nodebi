@@ -21,6 +21,22 @@ class VisualizationExecutor(UnaryExecutor):
     ) -> DatasetSchema:
         schema = input_schema(input_schemas)
         config = VisualizationConfig.model_validate(node.config)
+        if config.additional_series:
+            if node.type not in {"bar_chart", "line_chart"}:
+                raise ValueError("Multiple series require Bar or Line.")
+            series_ids = [
+                config.value_column_id,
+                *[series.column_id for series in config.additional_series],
+            ]
+            if len(set(series_ids)) != len(series_ids):
+                raise ValueError("Series fields must be unique.")
+            for series in config.additional_series:
+                if schema.by_id(series.column_id).logical_type not in {
+                    LogicalType.INTEGER,
+                    LogicalType.FLOAT,
+                    LogicalType.UNKNOWN,
+                }:
+                    raise ValueError("Select a numeric value field.")
         parameters = {item.name: item for item in context.parameter_definitions}
         if config.title_template and any(
             name not in parameters for name in TITLE_PARAMETER.findall(config.title)
@@ -99,6 +115,10 @@ class VisualizationExecutor(UnaryExecutor):
             and (~source.frame[value_name].cast(pl.Float64).is_finite()).any()
         ):
             raise NodeExecutionError("Visualization values must be finite numbers or empty.")
+        for series in config.additional_series:
+            name = source.schema.by_id(series.column_id).engine_name
+            if (~source.frame[name].cast(pl.Float64).is_finite()).any():
+                raise NodeExecutionError("Visualization values must be finite numbers or empty.")
         if node.type == "scatter_chart":
             assert config.category_column_id is not None
             x_name = source.schema.by_id(config.category_column_id).engine_name

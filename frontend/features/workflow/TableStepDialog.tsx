@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { JoinKeysConfiguration, type JoinKey } from "./JoinKeysConfiguration";
+import { ConditionBuilder } from "./ConditionBuilder";
 import { FormulaEditor } from "./FormulaEditor";
 import type { DataSource } from "@/features/data-sources/api";
 import type { GraphDraft } from "./autosave";
@@ -75,6 +76,7 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], edi
         setAdvanced(false);
       }} /> {t("Formula")}</label>
       {modeError && <p role="alert">{t("This expression needs formula mode. It has not been changed.")}</p>}
+      <ConditionBuilder columns={columns} onApply={expression => { setFormula(expression); setAdvanced(true); }} />
       {advanced ? <FormulaEditor expression={formula} columns={columns} onChange={setFormula} /> : <>
         {selectOperand("Left operand", a, setA, ac, setAc)}
         <label>{t("Operation")}<select aria-label={t("Operation")} className={control} value={operation} onChange={e => setOperation(e.target.value)}>{["+", "-", "*", "/"].map(value => <option key={value}>{value}</option>)}</select></label>

@@ -1,5 +1,25 @@
 # ARCHITECTURE.md
 
+## Generic P&L preparation and series (ADR-110, 2026-09-24)
+
+Calculated Column and field expressions share the same typed allowlist, including conditions,
+text/date conversions and null handling. No Python/JavaScript evaluation is used. Window v2
+adds cumulative sum/max and previous numeric value; ordering must uniquely identify rows within
+each partition. The Calendar source creates a bounded inclusive daily range with stable field ID.
+Excel layout carries skip-after-header and excluded-tail counts through execution, preview and
+immutable-source cache identity. Formula-cache checks apply to selected headers and data.
+
+Join diagnostic previews execute the two upstream branches through the ordinary engine and
+cache, then select unmatched or duplicate-key input rows without materializing the Join itself.
+This remains available when declared cardinality prevents Join execution. Preview pagination
+is bounded and client results/errors are keyed to diagnostic kind, offset, revision and parameters.
+
+Independent Bar/Line configuration permits up to eight distinct numeric series on one published
+table. No new aggregations or formulas are introduced into visualizations. Missing values remain
+gaps. Existing empty-series serialization is preserved. All settings use existing JSON persistence
+and revision checks; no relational schema migration or workflow format increment is needed.
+The synthetic P&L recipe is an authoring acceptance fixture, not a production report executor.
+
 ## Composite Join (ADR-109, 2026-09-24)
 
 Join v2 accepts keys[{left_key,right_key}], how and relationship. Its typed registry config

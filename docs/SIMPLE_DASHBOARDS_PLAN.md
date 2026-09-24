@@ -48,3 +48,10 @@ Create/edit/save/reload via UI without technical IDs or JSON; changes propagate 
 visualizations. Check nulls, duplicate and incomplete keys, relationship errors, type mismatch,
 two tabs, stale responses and resource limits. Retain Russian/English/Tatar and both themes.
 Run backend/PostgreSQL/frontend checks and browser acceptance. Human speed remains unmeasured.
+
+## Delivery evidence (2026-09-24)
+
+S1-S5 completed for the agreed synthetic, non-interactive scenario. Four-book P&L rules,
+operator instructions, intentional reference differences and usability assessment are in
+[ALMA_SIMPLE_DASHBOARD.md](ALMA_SIMPLE_DASHBOARD.md). See STATUS.md for checks and restart evidence.
+Real AlMaBi workbooks were not supplied; synthetic acceptance does not replace validating them.

@@ -30,10 +30,12 @@ export function previewWorkflowNode(
   limit = 100,
   parameters: import("./types").ParameterValues = {},
   outputPort?: string,
+  diagnostic?: string,
+  offset = 0,
 ): Promise<NodePreview> {
   return request(`/api/v1/workflows/${workflowId}/nodes/${nodeId}/preview`, {
     method: "POST",
-    body: JSON.stringify({ limit, parameters, ...(outputPort ? { output_port: outputPort } : {}) }),
+    body: JSON.stringify({ limit, parameters, ...(diagnostic ? { diagnostic, offset } : {}), ...(outputPort ? { output_port: outputPort } : {}) }),
   });
 }
 

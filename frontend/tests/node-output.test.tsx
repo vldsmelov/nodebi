@@ -6,6 +6,20 @@ import { NodeOutputPanel } from "@/features/workflow/NodeOutputPanel";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+it("does not show a late Join failure after choosing diagnostic records", async () => {
+  let resolve!: (response: Response) => void;
+  vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(done => { resolve = done; })));
+  const report = vi.fn();
+  render(<QueryClientProvider client={new QueryClient()}><NodeOutputPanel isJoin workflowId="flow" nodeId="join" revision={1} dirty={false} issues={[]} onRuntimeIssues={report} /></QueryClientProvider>);
+  fireEvent.click(screen.getByRole("button", { name: "Preview output" }));
+  await waitFor(() => expect(resolve).toBeDefined());
+  fireEvent.change(screen.getByLabelText("Join records"), { target: { value: "left_unmatched" } });
+  resolve(new Response(JSON.stringify({ detail: { message: "Old cardinality failure", issues: [{ code: "FAIL", message: "Old cardinality failure" }] } }), { status: 422 }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Preview output" })).toBeEnabled());
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(report).toHaveBeenLastCalledWith([]);
+});
+
 it("reports structured runtime issues and clears them on retry and draft changes", async () => {
   const issue = { code: "NODE_EXECUTION_FAILED", message: "Filter predicate contains null values.", node_id: "node", edge_id: null, field: "config.null_policy" };
   vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ detail: { message: issue.message, issues: [issue] } }), { status: 422 }))));

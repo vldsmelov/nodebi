@@ -459,6 +459,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdditionalSeries */
+        AdditionalSeries: {
+            /** Column Id */
+            column_id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
         /** Body_upload_excel_api_v1_projects__project_id__sources_excel_post */
         Body_upload_excel_api_v1_projects__project_id__sources_excel_post: {
             /**
@@ -1010,6 +1020,13 @@ export interface components {
         };
         /** NodeValuesRequest */
         NodeValuesRequest: {
+            /** Diagnostic */
+            diagnostic?: ("left_unmatched" | "right_unmatched" | "left_duplicates" | "right_duplicates") | null;
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
             /** Output Port */
             output_port?: string | null;
             /** Parameters */
@@ -1167,6 +1184,13 @@ export interface components {
         };
         /** PreviewRequest */
         PreviewRequest: {
+            /** Diagnostic */
+            diagnostic?: ("left_unmatched" | "right_unmatched" | "left_duplicates" | "right_duplicates") | null;
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
             /** Output Port */
             output_port?: string | null;
             /** Parameters */
@@ -1332,6 +1356,13 @@ export interface components {
             /** Output Port */
             output_port: string;
         };
+        /** SeriesField */
+        SeriesField: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1424,6 +1455,8 @@ export interface components {
              * @default false
              */
             show_labels: boolean;
+            /** Additional Series */
+            additional_series?: components["schemas"]["AdditionalSeries"][];
             /** Value Column Id */
             value_column_id?: string | null;
             /** Category Column Id */
@@ -1489,6 +1522,8 @@ export interface components {
         };
         /** VisualizationResult */
         VisualizationResult: {
+            /** Additional Series */
+            additional_series?: components["schemas"]["SeriesField"][];
             /**
              * Visualization Revision
              * @default 1
@@ -2040,6 +2075,8 @@ export interface operations {
                 header_row?: number;
                 header_rows?: number;
                 include_row_number?: boolean;
+                skip_data_rows?: number;
+                drop_tail_rows?: number;
             };
             header?: never;
             path: {

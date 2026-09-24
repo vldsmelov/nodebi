@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { render } from "./render";
 import { useState } from "react";
 import { expect, it } from "vitest";
@@ -65,7 +65,7 @@ it("searches original source labels after renaming and clears provenance when it
   expect(screen.getByText("Inventory.xlsx / Orders / F / Original quantity")).toBeVisible();
   fireEvent.change(screen.getByLabelText("Find formula field"), { target: { value: "Original quantity" } });
   expect(screen.getByRole("option", { name: /Quantity.*Inventory/ })).toBeInTheDocument();
-  expect(screen.queryByRole("option", { name: /Category/ })).not.toBeInTheDocument();
+  expect(within(screen.getByLabelText("Insert formula field")).queryByRole("option", { name: /Category/ })).not.toBeInTheDocument();
   view.rerender(<NodeConfiguration {...props} validationPending />);
   expect(screen.queryByText("Field sources")).not.toBeInTheDocument();
 });

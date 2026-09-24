@@ -40,6 +40,28 @@ def test_layout_merged_headers_and_formatting_tail(tmp_path: Path) -> None:
     assert len(set(dataset.frame.columns)) == 4
 
 
+def test_explicit_data_bounds_preserve_actual_source_rows(tmp_path: Path) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    for row in [["Title"], ["Amount"], ["explanation"], [10], [20], ["=SUM(A4:A5)"]]:
+        sheet.append(row)
+    stream = BytesIO()
+    workbook.save(stream)
+    stream.seek(0)
+    storage = LocalStorageProvider(tmp_path)
+    key = storage.save(stream, suffix=".xlsx")
+    reader = OpenPyxlWorkbookReader(storage)
+    layout = WorksheetLayout(
+        header_row=2, include_row_number=True, skip_data_rows=1, drop_tail_rows=1
+    )
+    result = reader.load_sheet(key, sheet.title, layout)
+    assert result.frame.rows() == [(10, 4), (20, 5)]
+    preview = reader.preview_sheet(key, sheet.title, WorksheetLoadOptions(layout=layout))
+    assert preview.returned_rows == 2
+    with pytest.raises(ExcelWorkbookError, match="Formula has no saved result"):
+        reader.load_sheet(key, sheet.title, WorksheetLayout(header_row=2))
+
+
 def test_real_far_column_is_not_silently_dropped(tmp_path: Path) -> None:
     workbook = Workbook()
     workbook.active.cell(2, 1025, "real value")
