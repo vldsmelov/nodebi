@@ -4,10 +4,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { parseTheme, themeCookie, themePalette, type Theme } from "./theme";
 import { useI18n } from "./i18n";
 
-const ThemeContext = createContext({ theme: "dark" as Theme, palette: themePalette.dark as typeof themePalette[Theme], setTheme: (theme: Theme) => { void theme; } });
+const ThemeContext = createContext({ theme: "light" as Theme, palette: themePalette.light as typeof themePalette[Theme], setTheme: (theme: Theme) => { void theme; } });
 export const useTheme = () => useContext(ThemeContext);
 
-export function ThemeProvider({ children, initialTheme = "dark" }: { children: React.ReactNode; initialTheme?: Theme }) {
+export function ThemeProvider({ children, initialTheme = "light" }: { children: React.ReactNode; initialTheme?: Theme }) {
   const [theme, updateTheme] = useState(initialTheme);
   const [storageError, setStorageError] = useState(false);
   const { t } = useI18n();

@@ -1,4 +1,4 @@
-import { showAllOperations } from "./operation-catalog";
+import { legacyOperationTitle, showAllOperations } from "./operation-catalog";
 import { expect, type Page } from "@playwright/test";
 
 export const hex = (id: string) => id.replaceAll("-", "");
@@ -20,7 +20,7 @@ export class ConstructorAuthor {
       if (this.created.length === this.resume.length) { await configure(); await this.saved(); }
       return id;
     }
-    await showAllOperations(page); await page.getByTitle(`Add ${kind}`, { exact: true }).click();
+    await showAllOperations(page); await page.getByTitle(`Add ${legacyOperationTitle(kind)}`, { exact: true }).click();
     await expect(page.locator(".react-flow__node")).toHaveCount(count + 1);
     const id = (await page.locator(".react-flow__node").last().getAttribute("data-id"))!;
     this.created.push(id);

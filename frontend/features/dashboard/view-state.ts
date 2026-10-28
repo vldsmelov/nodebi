@@ -6,6 +6,15 @@ export const emptyConfiguration: DashboardConfiguration = { period_enabled: fals
 export function checkedValue(definition: WorkflowParameter, value: unknown): string | number | boolean | null {
   if (value === null || value === undefined) return null;
   const kind = definition.logical_type;
+  if (kind === "decimal") {
+    const { precision, scale } = definition;
+    if (!Number.isInteger(precision) || !Number.isInteger(scale) || precision! < 1 || precision! > 38 || scale! < 0 || scale! > precision! || typeof value !== "string" || value.length > 80 || !/^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/.test(value)) throw new Error(`Parameter '${definition.name}' requires decimal.`);
+    const [whole, fraction = ""] = value.replace(/^[+-]/, "").split(".");
+    const integer = whole.replace(/^0+/, ""), digits = fraction.replace(/0+$/, "");
+    if (integer.length > precision! - scale! || digits.length > scale!) throw new Error(`Parameter '${definition.name}' requires decimal.`);
+    const sign = value.startsWith("-") && (integer || digits) ? "-" : "";
+    return `${sign}${integer || "0"}${scale ? `.${digits.padEnd(scale, "0")}` : ""}`;
+  }
   const valid = kind === "string" ? typeof value === "string" && value.length <= 2000
     : kind === "boolean" ? typeof value === "boolean"
     : kind === "integer" ? typeof value === "number" && Number.isSafeInteger(value)

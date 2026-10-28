@@ -23,7 +23,7 @@ export function OperationDropMenu({ choices, catalog, sourceLabel, pending, onCh
       {pending ? <p role="status">{t("Waiting for a current schema.")}</p> : !matching.length ? <p>{t("No compatible operations found.")}</p> : matching.slice(0, 80).map(choice => {
         const definition = findNodeDefinition(catalog, choice);
         const port = definition?.input_ports.find(item => item.id === choice.port);
-        return <button key={`${choice.type}:${choice.version}:${choice.port}`} className="mb-1 block w-full rounded border border-outline p-2 text-left text-sm hover:bg-control" onClick={() => onChoose(choice)}>{definition ? definitionLabel(catalog, definition, nodeName(choice.type)) : nodeName(choice.type)} → {t(port?.display_name ?? choice.port)}</button>;
+        return <button key={`${choice.type}:${choice.version}:${choice.port}`} className="mb-1 block w-full rounded border border-outline p-2 text-left text-sm hover:bg-control" onClick={() => onChoose(choice)}>{definition ? definitionLabel(catalog, definition, nodeName(choice.type, choice.version)) : nodeName(choice.type)} → {t(port?.display_name ?? choice.port)}</button>;
       })}
     </div>
     <button className="mt-3 rounded border border-outline px-3 py-1 text-sm" onClick={onClose}>{t("Cancel")}</button>

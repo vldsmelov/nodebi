@@ -78,7 +78,11 @@ def list_sources(project_id: uuid.UUID, session: DatabaseSession) -> DataSourceL
             detail={"code": "PROJECT_NOT_FOUND", "message": "Project does not exist."},
         )
     sources = SqlAlchemySourceRepository(session).list_for_project(project_id)
-    return DataSourceList(items=[_source_read(source) for source in sources])
+    return DataSourceList(
+        items=[
+            _source_read(source) for source in sources if "connector" not in source.source_metadata
+        ]
+    )
 
 
 @router.get(

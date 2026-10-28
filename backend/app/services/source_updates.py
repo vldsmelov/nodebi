@@ -6,6 +6,7 @@ import uuid
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import asdict
+from functools import partial
 from pathlib import PurePosixPath
 from tempfile import SpooledTemporaryFile
 from typing import Any, BinaryIO, cast
@@ -16,11 +17,13 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.domain.datasets import LogicalType
 from app.domain.errors import ApplicationError
+from app.domain.ingestion import ReadOptions
 from app.infrastructure.excel import ExcelWorkbookError, OpenPyxlWorkbookReader
 from app.infrastructure.storage import StorageProvider
 from app.models import (
     Dashboard,
     DashboardWidget,
+    DatasetSnapshot,
     DataSource,
     ReportDocument,
     SourceVersion,
@@ -70,7 +73,8 @@ def state_token(session: Session, project_id: uuid.UUID) -> str:
             (str(row.id), row.revision)
             for row in session.execute(
                 select(ReportDocument.id, ReportDocument.revision).where(
-                    ReportDocument.project_id == project_id, ReportDocument.kind == "rules"
+                    ReportDocument.project_id == project_id,
+                    ReportDocument.kind.in_(["rules", "analytical_template", "report_template"]),
                 )
             )
         )
@@ -108,6 +112,8 @@ def change_document(
 
 def read_update(row: ReportDocument) -> UpdateRead:
     return UpdateRead(
+        browser_editor_pending=bool(row.payload.get("browser_editor")),
+        file_exchange=row.payload.get("file_exchange"),
         id=row.id,
         project_id=row.project_id,
         revision=row.revision,
@@ -126,11 +132,22 @@ class SourceUpdateService:
         self.session, self.storage = session, storage
 
     def upload_version(
-        self, source_id: uuid.UUID, filename: str, content: BinaryIO, settings: Settings
+        self,
+        source_id: uuid.UUID,
+        filename: str,
+        content: BinaryIO,
+        settings: Settings,
+        options: ReadOptions | None = None,
     ) -> SourceVersion:
         source = self.session.get(DataSource, source_id)
         if source is None:
             raise ApplicationError("SOURCE_NOT_FOUND", "Data source does not exist.", 404)
+        if "connector" in source.source_metadata:
+            from app.services.dataset_updates import DatasetUpdateService
+
+            return DatasetUpdateService(self.session, self.storage).upload(
+                source, filename, content, settings, options
+            )
         ProjectService(self.session).lock(source.project_id)
         suffix = PurePosixPath(filename.replace("\\", "/")).suffix.lower()
         if suffix not in {".xlsx", ".xlsm"}:
@@ -186,6 +203,21 @@ class SourceUpdateService:
         return row
 
     def save(self, row: ReportDocument, payload: UpdateSave) -> None:
+        if row.payload.get("browser_editor"):
+            raise ApplicationError(
+                "EDITOR_PENDING",
+                "Prepare or discard the browser draft before checking or applying the update.",
+                409,
+            )
+        from app.services.file_exchange import check_exchange
+
+        chosen = check_exchange(self.session, row)
+        if chosen is not None and any(
+            item.source_id != chosen.id or item.mode != "replace" for item in payload.items
+        ):
+            raise ApplicationError(
+                "FILE_SOURCE_MISMATCH", "A file update replaces only its selected source."
+            )
         if row.status not in {"draft", "checked"}:
             raise ApplicationError("UPDATE_CLOSED", "This data update is already closed.", 409)
         if len({item.source_id for item in payload.items}) != len(payload.items):
@@ -197,6 +229,10 @@ class SourceUpdateService:
             if row.payload.get("rollback_snapshots") and payload.items == read_update(row).items
             else {}
         )
+        if row.payload.get("file_exchange"):
+            retained["file_exchange"] = row.payload["file_exchange"]
+        if row.payload.get("browser_commit_receipt"):
+            retained["browser_commit_receipt"] = row.payload["browser_commit_receipt"]
         change_document(
             self.session,
             row,
@@ -224,11 +260,30 @@ class SourceUpdateService:
             raise ApplicationError(
                 "VERSION_NOT_FOUND", "Workbook version is not in this project.", 404
             )
+        source = self.session.get(DataSource, item.source_id)
+        if (
+            source is not None
+            and "connector" not in source.source_metadata
+            and item.dataset_bindings
+        ):
+            raise ApplicationError(
+                "INVALID_IMPORT",
+                "Dataset mapping is only available for prepared datasets.",
+            )
         return version
 
     def prepare(
         self, row: ReportDocument, progress: Callable[[int], None] | None = None
     ) -> tuple[CheckResult, dict[uuid.UUID, SourceSnapshot]]:
+        if row.payload.get("browser_editor"):
+            raise ApplicationError(
+                "EDITOR_PENDING",
+                "Prepare or discard the browser draft before checking or applying the update.",
+                409,
+            )
+        from app.services.file_exchange import check_exchange
+
+        check_exchange(self.session, row)
         result = CheckResult(token=state_token(self.session, row.project_id))
         current = ProjectSourceAccess(row.project_id, self.session, self.storage)
         reader = OpenPyxlWorkbookReader(self.storage)
@@ -240,6 +295,17 @@ class SourceUpdateService:
                 )
             return result, overrides
         items = read_update(row).items
+        browser_receipt = row.payload.get("browser_commit_receipt", {})
+        if browser_receipt.get("external_cache") and any(
+            str(item.version_id) == browser_receipt.get("version_id") for item in items
+        ):
+            result.issues.append(
+                CheckIssue(
+                    severity="warning",
+                    message="External linked values use the saved workbook cache. "
+                    "External files have not been refreshed.",
+                )
+            )
         if not items:
             result.issues.append(
                 CheckIssue(severity="error", message="Choose at least one workbook to update.")
@@ -248,6 +314,31 @@ class SourceUpdateService:
             if progress:
                 progress(int(40 * item_index / max(1, len(items))))
             version = self.version(row.project_id, item)
+            if "connector" in current.snapshots[item.source_id].source_metadata:
+                from app.services.dataset_updates import DatasetUpdateService
+
+                overrides[item.source_id] = DatasetUpdateService(
+                    self.session, self.storage
+                ).prepare(
+                    current.snapshots[item.source_id],
+                    version,
+                    item,
+                    result,
+                    partial(progress, int(40 * item_index / max(1, len(items))))
+                    if progress
+                    else None,
+                )
+                result.affected_workflows.extend(
+                    str(node.workflow_id)
+                    for node in self.session.scalars(
+                        select(WorkflowNode)
+                        .join(Workflow)
+                        .where(Workflow.project_id == row.project_id)
+                    )
+                    if node.node_type == "dataset_source"
+                    and node.config.get("source_id") == str(item.source_id)
+                )
+                continue
             bindings: dict[str, object] = {}
             nodes = self.session.scalars(
                 select(WorkflowNode).join(Workflow).where(Workflow.project_id == row.project_id)
@@ -431,6 +522,19 @@ class SourceUpdateService:
             overrides[item.source_id] = SourceSnapshot(
                 item.source_id, version.storage_key, metadata
             )
+        if row.payload.get("file_exchange"):
+            counts = [(p.old_rows, p.new_rows) for p in result.dataset_profiles]
+            counts.extend((p.old_rows, p.new_rows) for p in result.profiles)
+            for previous_rows, incoming_rows in counts:
+                if previous_rows > 0 and incoming_rows == 0:
+                    result.issues.append(
+                        CheckIssue(
+                            severity="warning",
+                            message="The replacement contains no data rows. "
+                            "Applying will remove the current records.",
+                            count=previous_rows,
+                        )
+                    )
         result.affected_workflows = sorted(set(result.affected_workflows))
         result.affected_visualizations = [
             str(v.id)
@@ -458,7 +562,28 @@ class SourceUpdateService:
     def apply(self, row: ReportDocument, revision: int, acknowledge: bool) -> None:
         ProjectService(self.session).lock(row.project_id)
         self.session.refresh(row)
+        if row.payload.get("browser_editor"):
+            raise ApplicationError(
+                "EDITOR_PENDING",
+                "Prepare or discard the browser draft before checking or applying the update.",
+                409,
+            )
+        if (
+            row.status == "applied"
+            and row.revision == revision + 1
+            and row.payload.get("warnings_acknowledged") == acknowledge
+            and row.payload.get("prepared")
+            and all("connector" in v["metadata"] for v in row.payload["prepared"].values())
+        ):
+            return
+        if row.revision != revision:
+            raise ApplicationError(
+                "REPORT_CONFLICT", "The report changed. Reload before applying your draft.", 409
+            )
         checked = read_update(row).check
+        from app.services.file_exchange import check_exchange
+
+        check_exchange(self.session, row)
         if (
             row.status != "checked"
             or checked is None
@@ -475,11 +600,28 @@ class SourceUpdateService:
             raise ApplicationError(
                 "WARNINGS_NOT_ACKNOWLEDGED", "Review and acknowledge the warnings."
             )
-        previous = {}
+        previous: dict[str, dict[str, Any]] = {}
         for identity, value in row.payload["prepared"].items():
             source = self.session.get(DataSource, uuid.UUID(identity))
             if source is None:
                 raise ApplicationError("SOURCE_NOT_FOUND", "Data source does not exist.", 404)
+            if "connector" in value["metadata"]:
+                snapshots = [
+                    self.session.get(DatasetSnapshot, uuid.UUID(snapshot_id))
+                    for snapshot_id in value["metadata"].get("active_snapshots", {}).values()
+                ]
+                if not self.storage.exists(value["storage_key"]) or any(
+                    snapshot is None
+                    or snapshot.source_id != source.id
+                    or not self.storage.exists(snapshot.storage_key)
+                    for snapshot in snapshots
+                ):
+                    raise ApplicationError(
+                        "CHECK_STALE",
+                        "The checked source files are unavailable. "
+                        "Restore storage and run checks again.",
+                        409,
+                    )
             previous[identity] = {
                 "storage_key": source.storage_key,
                 "metadata": source.source_metadata,
@@ -487,6 +629,13 @@ class SourceUpdateService:
                 "file_size": source.file_size,
             }
             source.storage_key, source.source_metadata = value["storage_key"], value["metadata"]
+            if "connector" in source.source_metadata:
+                # Rollback restores data, never an old CAS revision (avoid the ABA problem).
+                source.source_metadata = {
+                    **source.source_metadata,
+                    "revision": previous[identity]["metadata"].get("revision", 1) + 1,
+                }
+                source.status = "ready"
             source.original_filename, source.file_size = value["filename"], value["file_size"]
         nodes = self.session.scalars(
             select(WorkflowNode).join(Workflow).where(Workflow.project_id == row.project_id)
@@ -494,6 +643,8 @@ class SourceUpdateService:
         touched = set()
         for node in nodes:
             value = row.payload["prepared"].get(str(node.config.get("source_id")))
+            if value and node.node_type == "dataset_source":
+                touched.add(node.workflow_id)
             if value and node.node_type in {"excel_source", "excel_periods"}:
                 # Preview/schema clients key freshness by workflow revision.
                 touched.add(node.workflow_id)

@@ -1,0 +1,116 @@
+/* Node BI's application bridge to the pinned Alabuga Framework. */
+.af :where(h1, h2, h3) { font-family: var(--af-font-heading); }
+.af :where(h1) { font-weight: 800; letter-spacing: -.025em; }
+.af :where(h2, h3) { font-weight: 700; letter-spacing: -.015em; }
+.af :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea) {
+  border-color: var(--control-outline);
+  border-radius: var(--af-radius-8);
+  background-color: var(--control);
+  color: var(--foreground);
+}
+.af :where(input, textarea)::placeholder { color: var(--muted); opacity: 1; }
+.af :where(input[type="checkbox"], input[type="radio"]) { accent-color: var(--primary); }
+.af input[type="file"]::file-selector-button { margin-right: 12px; border: 0; border-radius: 6px; background: var(--af-bg-subtle); padding: 6px 12px; color: var(--accent); font: inherit; cursor: pointer; }
+.af :where(button, summary, a) { -webkit-tap-highlight-color: transparent; }
+.af :where(table) { border-collapse: collapse; }
+.af :where(thead) { background: var(--page); color: var(--foreground); }
+.af :where(th) { font-weight: 500; }
+.af :where(tbody tr:hover) { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.af :where(dialog) { border-radius: var(--af-radius-16); box-shadow: 0 24px 80px #000d3c26; }
+.af :where(dialog)::backdrop { background: #000d3c66; }
+.af :where(button[aria-pressed="true"]) { border-color: var(--accent); }
+.af :where(button[class*="border"]) { border-color: var(--control-outline); border-radius: var(--af-radius-8); }
+.af :where(a[class*="bg-primary"], button[class*="bg-primary"]) { border-radius: var(--af-radius-8); }
+.af :where(.af-btn) { border-radius: var(--af-radius-8); }
+.af :where(.af-btn--ghost) { border-color: var(--control-outline); }
+.af :where(.af-input, .af-select, .af-textarea) { border-color: var(--control-outline); }
+
+.corporate-header {
+  display: flex; min-height: var(--shell-header-height); flex-wrap: wrap;
+  align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px 32px; background: var(--af-color-brand-deep); color: #fff;
+}
+.corporate-brand { display: flex; min-width: 0; align-items: center; gap: 24px; text-decoration: none; }
+.corporate-brand img { width: 154px; height: 32px; object-fit: contain; filter: brightness(0) invert(1); }
+.corporate-product { display: flex; flex-direction: column; border-left: 1px solid #ffffff40; padding-left: 24px; }
+.corporate-product strong { font-family: var(--af-font-heading); font-size: 23px; line-height: 1.1; font-weight: 700; }
+.corporate-product span { margin-top: 4px; color: #b7d6f7; font-size: 11px; line-height: 1.2; }
+.corporate-tools { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; font-size: 12px; }
+.corporate-tools > a { color: #fff; display: inline-flex; min-height: 36px; align-items: center; gap: 8px; }
+.corporate-tools label { color: #c7d7ed; }
+.af .corporate-tools select { background: #132449; color: #fff; border: 1px solid #6f85a8; min-height: 32px; padding: 4px 24px 4px 8px; font-size: 12px; }
+.corporate-header :where(a, select):focus-visible { outline-color: var(--af-color-brand-cyan); }
+.corporate-project-nav { background: var(--panel); border-bottom: 1px solid var(--outline); padding: 0 32px; }
+.corporate-project-nav nav { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 0; }
+.corporate-project-nav nav a { display: inline-flex; align-items: center; min-height: 40px; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 14px; color: var(--muted); font-weight: 500; }
+.corporate-project-nav nav a:hover { background: var(--raised); color: var(--foreground); }
+.corporate-project-nav nav a[aria-current="page"] { background: var(--af-bg-subtle); color: var(--accent); }
+.corporate-project-nav .project-home { border-right: 1px solid var(--outline); margin-right: 8px; padding-right: 24px; border-radius: 0; }
+.corporate-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.corporate-page { max-width: 1440px; margin: 0 auto; padding: 40px 32px 64px; }
+.corporate-page-heading { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 24px; margin-bottom: 32px; }
+.corporate-page-heading h1 { margin: 12px 0; font-size: clamp(32px, 3vw, 44px); line-height: 1.1; }
+.corporate-page-heading p { color: var(--muted); max-width: 640px; }
+.corporate-summary { display: flex; align-items: center; gap: 12px; border: 1px solid var(--outline); border-radius: 12px; padding: 12px 20px; background: var(--panel); }
+.corporate-summary strong { font-family: var(--af-font-heading); font-size: 32px; line-height: 1; color: var(--accent); }
+.corporate-summary span { font-size: 13px; color: var(--muted); }
+.corporate-project-form { display: flex; align-items: end; gap: 12px; padding: 24px; border-radius: 16px; border: 1px solid var(--outline); background: var(--panel); margin-bottom: 32px; }
+.corporate-project-form label { flex: 1; max-width: 560px; }
+.corporate-project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.corporate-project-card { min-width: 0; border: 1px solid var(--outline); border-radius: 16px; background: var(--panel); padding: 28px; transition: border-color .15s ease, box-shadow .15s ease; }
+.corporate-project-card:hover { border-color: var(--accent); box-shadow: 0 8px 32px #000d3c0a; }
+.corporate-project-card h2 { margin: 24px 0 12px; font-size: 24px; line-height: 1.25; overflow-wrap: anywhere; }
+.corporate-project-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 12px; background: var(--af-bg-subtle); color: var(--accent); }
+.corporate-card-index { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .12em; }
+.corporate-project-card footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--outline); }
+.corporate-project-card .project-delete { display: grid; min-height: 40px; min-width: 40px; place-items: center; border-radius: 8px; color: var(--muted); }
+.corporate-project-card .project-delete:hover { background: var(--danger-surface); color: var(--danger); }
+
+.corporate-hero { max-width: 1440px; margin: 0 auto; padding: 56px 32px; }
+.corporate-hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; gap: 64px; }
+.corporate-hero h1 { font-size: clamp(40px, 4.1vw, 64px); line-height: 1.05; margin: 24px 0; max-width: 740px; }
+.corporate-hero-description { font-size: 18px; line-height: 1.6; max-width: 600px; color: var(--muted); }
+.corporate-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+.corporate-hero-visual { min-width: 0; position: relative; overflow: hidden; border-radius: 24px; background: #000d3c; color: #fff; padding: 32px; }
+.corporate-hero-visual::before { content: ""; position: absolute; pointer-events: none; width: 260px; height: 260px; right: -160px; top: -100px; border: 48px solid #0c6ff1; transform: rotate(45deg); }
+.corporate-hero-visual > * { position: relative; }
+.corporate-hero-visual h2 { font-size: 24px; line-height: 1.2; margin: 0 0 28px; max-width: 300px; }
+.corporate-hero-chart { display: flex; gap: 16px; align-items: end; height: 168px; padding: 20px 20px 0; margin-bottom: 28px; border-left: 1px solid #6f85a8; border-bottom: 1px solid #6f85a8; }
+.corporate-hero-chart span { flex: 1; border-radius: 4px 4px 0 0; background: #0c6ff1; }
+.corporate-hero-chart span:nth-child(2n) { background: #69cff7; }
+.corporate-hero-step { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-top: 1px solid #ffffff30; }
+.corporate-hero-step > span { color: #69cff7; font-size: 12px; }
+.corporate-hero-step p { color: #c7d7ed; font-size: 13px; margin: 4px 0 0; }
+.corporate-footer { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 24px 32px; border-top: 1px solid var(--outline); color: var(--muted); font-size: 12px; }
+
+.corporate-dashboard-widget { border: 1px solid var(--outline); border-radius: 16px; background: var(--panel); box-shadow: 0 2px 6px #000d3c08; }
+.corporate-dashboard-widget [data-testid="kpi-value"] { font-family: var(--af-font-heading); font-weight: 700; font-variant-numeric: tabular-nums; }
+.corporate-dashboard-widget :where(button[class*="border"]) { border-color: var(--control-outline); border-radius: 6px; }
+.corporate-dashboard-widget :where(button[aria-pressed="true"]) { background: var(--af-bg-subtle); color: var(--accent); border-color: var(--accent); }
+.corporate-dashboard-widget :where(thead) { background: var(--page); }
+.af .react-flow { --xy-font-family: var(--af-font-body); --xy-background-color-default: var(--page); --xy-node-background-color-default: var(--panel); --xy-node-color-default: var(--foreground); --xy-node-border-default: 1px solid var(--outline); --xy-controls-button-background-color-default: var(--panel); --xy-controls-button-color-default: var(--foreground); --xy-controls-button-border-color-default: var(--outline); }
+.af .react-flow__controls { border: 1px solid var(--outline); border-radius: 8px; box-shadow: 0 2px 8px #000d3c14; overflow: hidden; }
+
+@media (width < 64rem) { .corporate-hero-grid { gap: 32px; } .corporate-tools { gap: 16px; } }
+@media (width < 48rem) {
+  :root { --shell-header-height: 7.5rem; }
+  .corporate-header { padding: 16px; gap: 16px; }
+  .corporate-brand { gap: 16px; }
+  .corporate-brand img { width: 126px; height: 28px; }
+  .corporate-product { padding-left: 16px; }
+  .corporate-tools { width: 100%; justify-content: space-between; gap: 12px; }
+  .corporate-tools label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .corporate-project-nav { padding: 0 16px; }
+  .corporate-project-nav nav { gap: 4px; }
+  .corporate-project-nav nav a { padding: 8px 10px; font-size: 13px; }
+  .corporate-project-nav .project-home { display: none; }
+  .corporate-page, .corporate-hero { padding: 32px 16px; }
+  .corporate-project-grid, .corporate-hero-grid { grid-template-columns: minmax(0, 1fr); }
+  .corporate-project-form { align-items: stretch; flex-direction: column; padding: 20px; }
+  .corporate-project-card { padding: 24px; }
+  .corporate-hero-visual { padding: 24px; }
+  .corporate-footer { padding: 24px 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .corporate-project-card { transition: none; } }
+/* The upstream package also contains slide printing; BI pages use normal paper sizing. */
+@page { size: auto; margin: 12mm; }

@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { configureFormLayout, expectDialogFits, formLayouts } from "./form-reflow";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
-test("create, undo, restore and edit dependent calculated fields as ordinary nodes", async ({ page, request }) => {
+for (const layout of formLayouts) test(`create, undo, restore and edit dependent calculated fields as ordinary nodes (${layout})`, async ({ page, request }) => {
   test.setTimeout(90000);
+  await configureFormLayout(page, layout);
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Calculated table" } })).json();
   try {
     const workflow = await (await request.post(`${api}/api/v1/projects/${project.id}/workflows`, { data: { name: "Table" } })).json();
@@ -17,15 +19,29 @@ test("create, undo, restore and edit dependent calculated fields as ordinary nod
     const dialog = page.getByRole("dialog", { name: "Calculated fields table" });
     await dialog.getByLabel("Calculated field name 1").fill("Gross");
     await dialog.getByLabel("Expression", { exact: true }).fill("quantity * price");
-    await dialog.getByRole("button", { name: "Add calculated field", exact: true }).click();
+    const add = dialog.getByRole("button", { name: "Add calculated field", exact: true });
+    await add.focus();
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByLabel("Calculated field name 2")).toBeFocused();
     await dialog.getByLabel("Calculated field name 2").fill("Net");
     await dialog.getByLabel("Insert formula field").nth(1).selectOption({ label: "Gross · unknown" });
     const netExpression = await dialog.getByLabel("Expression", { exact: true }).nth(1).inputValue();
     await dialog.getByLabel("Expression", { exact: true }).nth(1).fill(`${netExpression} * 0.8`);
     const before = await read(); expect(before.nodes).toHaveLength(1);
-    await dialog.getByRole("button", { name: "Move up", exact: true }).nth(1).click();
+    await dialog.getByRole("button", { name: "Move up", exact: true }).nth(1).focus();
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByLabel("Calculated field name 1")).toBeFocused();
+    await expect(dialog.getByLabel("Calculated field name 1")).toHaveValue("Net");
     await expect(dialog.getByRole("button", { name: "Apply calculated fields" })).toBeDisabled();
-    await dialog.getByRole("button", { name: "Move down", exact: true }).first().click();
+    await dialog.getByRole("button", { name: "Move down", exact: true }).first().focus();
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByLabel("Calculated field name 2")).toBeFocused();
+    await add.focus();
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByLabel("Calculated field name 3")).toBeFocused();
+    await dialog.getByRole("button", { name: "Remove", exact: true }).nth(2).focus();
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByLabel("Calculated field name 2")).toBeFocused();
     await page.screenshot({ path: "../.backups/ux-calculated-table.png" });
     await dialog.getByRole("button", { name: "Apply calculated fields" }).click();
     await expect(dialog).toHaveCount(0); await expect(page.getByText("Saved", { exact: true })).toBeVisible();
@@ -44,6 +60,8 @@ test("create, undo, restore and edit dependent calculated fields as ordinary nod
     await page.getByRole("button", { name: "Edit calculated chain", exact: true }).click();
     await expect(dialog.getByLabel("Calculated field name 2")).toHaveValue("Net");
     await dialog.getByLabel("Expression", { exact: true }).first().fill("quantity * price * 2");
+    await expectDialogFits(page, dialog);
+    await page.screenshot({ path: test.info().outputPath("calculated-table.png") });
     await dialog.getByRole("button", { name: "Apply calculated fields" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const edited = await read(); expect(edited.edges).toEqual(created.edges);

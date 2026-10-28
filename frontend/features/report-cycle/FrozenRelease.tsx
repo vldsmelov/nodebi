@@ -17,8 +17,8 @@ export function FrozenRelease({ release, close }: { release: Release; close: () 
 }
 function FrozenWidget({ identity, widget }: { identity: string; widget: Widget }) {
   const { t, errorText } = useI18n(); const [offset, setOffset] = useState(0);
-  const result = useQuery({ queryKey: ["frozen-widget", identity, widget.id, offset], queryFn: () => apiRequest<VisualizationResult>(`/api/v1/releases/${identity}/widgets/${widget.id}/result?offset=${offset}`) });
+  const result = useQuery({ queryKey: ["frozen-widget", identity, widget.id, offset], queryFn: () => apiRequest<VisualizationResult>(`/api/v1/releases/${identity}/widgets/${widget.id}/result?offset=${offset}`), placeholderData: previous => previous });
   if (result.error) return <p role="alert" className="text-danger">{errorText(result.error)}</p>;
   if (!result.data) return <p>{t("Loading preview…")}</p>;
-  return <VisualizationResultView result={result.data} offset={offset} setOffset={setOffset} titleOverride={widget.title ?? undefined} hideTitle={widget.config?.show_title === false} />;
+  return <VisualizationResultView result={result.data} offset={result.data.offset} setOffset={result.isFetching ? undefined : setOffset} titleOverride={widget.title ?? undefined} hideTitle={widget.config?.show_title === false} />;
 }

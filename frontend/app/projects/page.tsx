@@ -3,11 +3,12 @@
 import { useI18n } from "@/lib/i18n";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, FolderKanban, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, FolderKanban, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useState } from "react";
 
 import { createProject, deleteProject, listProjects } from "@/features/projects/api";
+import { DataStatePanel } from "@/components/ui/workspace";
 
 export default function ProjectsPage() {
   const { t, errorText, cell } = useI18n();
@@ -27,32 +28,31 @@ export default function ProjectsPage() {
   });
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (name.trim()) create.mutate(name);
+    if (name.trim() && !create.isPending) create.mutate(name);
   }
   return (
-    <main className="min-h-[calc(100vh-2.75rem)] bg-page px-6 py-10 text-foreground">
-      <div className="mx-auto max-w-5xl">
-        <Link className="inline-flex items-center gap-2 text-sm text-muted hover:text-foreground" href="/"><ArrowLeft size={15} />{t("Home")}</Link>
-        <div className="mt-12 flex flex-col justify-between gap-8 sm:flex-row sm:items-end">
-          <div><p className="font-mono text-xs uppercase tracking-[0.25em] text-accent">{t("Projects")}</p><h1 className="mt-3 text-4xl font-medium tracking-tight">{t("Your workspaces")}</h1></div>
-          <form className="flex gap-2" onSubmit={submit}>
-            <input aria-label={t("Project name")} className="rounded-full border border-outline bg-raised px-5 py-3 outline-none focus:border-accent" maxLength={200} onChange={(event) => setName(event.target.value)} placeholder={t("Project name")} value={name} />
-            <button aria-label={t("Create project")} className="grid size-12 place-items-center rounded-full bg-primary text-on-primary disabled:opacity-40" disabled={create.isPending || !name.trim()}><Plus /></button>
-          </form>
-        </div>
-        {create.error ? <p className="mt-4 text-sm text-danger">{errorText(create.error)}</p> : null}
-        <section className="mt-12 grid gap-4 sm:grid-cols-2">
+    <main className="corporate-page min-h-[calc(100vh-5rem)] text-foreground">
+        <header className="corporate-page-heading">
+          <div><span className="corporate-eyebrow">{t("Business intelligence")}</span><h1>{t("Projects")}</h1><p>{t("Connect data, build reports and keep them up to date.")}</p></div>
+          {projects.data && <div className="corporate-summary"><strong>{cell(projects.data.length)}</strong><span>{t("Saved projects")}</span></div>}
+        </header>
+        <form className="corporate-project-form" onSubmit={submit}>
+          <label className="af-field"><span className="af-label">{t("Project name")}</span><input className="af-input" maxLength={200} onChange={(event) => setName(event.target.value)} placeholder={t("Project name")} value={name} /></label>
+          <button className="af-btn" disabled={create.isPending || !name.trim()}><Plus size={18} aria-hidden="true" />{t("Create project")}</button>
+        </form>
+        {(create.error || remove.error) && <DataStatePanel state="error" title="Project action failed" focusOnMount action={<button className="underline" onClick={() => { if (create.isError) create.reset(); if (remove.isError) remove.reset(); }}>{t("Dismiss")}</button>}>{errorText(create.error || remove.error)}</DataStatePanel>}
+        <section className="corporate-project-grid" aria-label={t("Projects")}>
           {projects.isPending ? <p className="text-muted">{t("Loading projects…")}</p> : null}
-          {projects.error ? <p className="text-danger">{errorText(projects.error)}</p> : null}
-          {projects.data?.length === 0 ? <div className="rounded-3xl border border-dashed border-outline p-10 text-center text-muted">{t("Create a project to begin.")}</div> : null}
-          {projects.data?.map((project) => (
-            <article className="rounded-3xl border border-outline bg-raised p-6" key={project.id}>
-              <FolderKanban className="text-accent" size={24} /><h2 className="mt-8 text-xl font-medium">{project.name}</h2><p className="mt-1 text-xs text-muted">{t("Updated")}{" "}{cell(project.updated_at, "date")}</p>
-              <div className="mt-6 flex items-center justify-between"><Link className="inline-flex items-center gap-2 text-sm text-accent" href={`/projects/${project.id}`}>{t("Open")}{" "}<ArrowRight size={15} /></Link><button aria-label={t("Delete {0}", {"0": project.name})} className="text-muted hover:text-danger" onClick={() => { if (window.confirm(t("Delete “{0}” and all its contents?", {"0": project.name}))) remove.mutate(project.id); }}><Trash2 size={17} /></button></div>
+          {projects.error ? <DataStatePanel state="error" action={<button className="underline" onClick={() => void projects.refetch()}>{t("Retry")}</button>}>{errorText(projects.error)}</DataStatePanel> : null}
+          {projects.isSuccess && projects.data.length === 0 ? <div className="af-card text-muted">{t("Create a project to begin.")}</div> : null}
+          {projects.data?.map((project, index) => (
+            <article className="corporate-project-card" key={project.id}>
+              <div className="flex items-center justify-between"><span className="corporate-project-icon"><FolderKanban size={24} aria-hidden="true" /></span><span className="corporate-card-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span></div>
+              <h2>{project.name}</h2><p className="text-xs text-muted">{t("Updated")}{" "}{cell(project.updated_at, "date")}</p>
+              <footer><Link className="af-btn af-btn--secondary" href={`/projects/${project.id}`}>{t("Open")}<ArrowRight size={16} aria-hidden="true" /></Link><button aria-label={t("Delete {0}", {"0": project.name})} className="project-delete" disabled={remove.isPending} onClick={() => { if (window.confirm(t("Delete “{0}” and all its contents?", {"0": project.name}))) remove.mutate(project.id); }}><Trash2 size={17} aria-hidden="true" /></button></footer>
             </article>
           ))}
         </section>
-      </div>
     </main>
   );
 }

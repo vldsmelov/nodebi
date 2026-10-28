@@ -13,7 +13,7 @@ from typing import Literal
 
 import polars as pl
 
-from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema
+from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema, LogicalType
 from app.domain.errors import NodeExecutionError
 from app.domain.nodes import ExecutionContext, NodeRegistry, PortKind, TypedNodeExecutor
 from app.domain.values import (
@@ -466,19 +466,32 @@ class WorkflowExecutionService:
                     "Value",
                     selected.formula.logical_type,
                     selected.formula.nullable,
+                    dict(selected.formula.metadata),
                 )
-                target_output = Dataset(frame, DatasetSchema((column,)))
-            except ValueConnectionError as exc:
+                target_output = Dataset(
+                    frame,
+                    DatasetSchema((column,)),
+                    {"exact_transport": True} if column.logical_type == LogicalType.DECIMAL else {},
+                )
+            except (ValueConnectionError, pl.exceptions.PolarsError) as exc:
+                message = (
+                    str(exc)
+                    if isinstance(exc, ValueConnectionError)
+                    else (
+                        "Field expression could not process a value. "
+                        "Check types, precision and scale."
+                    )
+                )
                 raise ExecutionFailure(
                     "NODE_EXECUTION_FAILED",
-                    str(exc),
+                    message,
                     category="transformation",
                     execution_id=context.execution_id,
                     node_id=target_node_id,
                     issues=(
                         GraphIssue(
                             "NODE_EXECUTION_FAILED",
-                            str(exc),
+                            message,
                             node_id=target_node_id,
                             field=f"outputs.{selected_port}",
                         ),

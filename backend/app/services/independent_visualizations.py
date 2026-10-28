@@ -1,25 +1,43 @@
 """Revisioned visualization documents; graph persistence never owns their config."""
 
+import hashlib
+import json
 import uuid
+from collections.abc import Callable
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.domain.errors import ApplicationError
+from app.domain.measure_contracts import validate_measure_selection
 from app.domain.nodes import NodeRegistry
 from app.domain.publications import PublishedOutput, ResultCatalog
+from app.domain.visualization_inputs import BASIC_TYPES
 from app.domain.visualizations import VisualizationConfig
 from app.infrastructure.storage import StorageProvider
 from app.models import Dashboard, DashboardWidget, Visualization, Workflow
+from app.models.reporting import ReportDocument
 from app.schemas.dashboards import (
     IndependentVisualizationSave,
     PublicationSchema,
     VisualizationRead,
 )
 from app.schemas.workflows import ResolvedColumnRead
+from app.services.analytical_tables import suggested_analytical_spec, validate_analytical_table
+from app.services.box_plot_visualizations import suggested_box_spec, validate_box_plot
+from app.services.bubble_visualizations import validate_bubble
+from app.services.bullet_visualizations import validate_bullet
+from app.services.combo_visualizations import validate_combo
 from app.services.execution import ExecutionPlanner, InMemoryExecutionCache
+from app.services.funnel_visualizations import suggested_funnel_spec, validate_funnel
+from app.services.heatmap_visualizations import suggested_heatmap_spec, validate_heatmap
+from app.services.hierarchy_visualizations import suggested_hierarchy_spec, validate_hierarchy
+from app.services.histogram_visualizations import suggested_histogram_spec, validate_histogram
+from app.services.pareto_visualizations import suggested_pareto_spec, validate_pareto
 from app.services.projects import ProjectService
+from app.services.radar_visualizations import validate_radar
+from app.services.waterfall_visualizations import suggested_waterfall_spec, validate_waterfall
 from app.services.workflow_validation import WorkflowSchemaResolver
 
 
@@ -71,8 +89,50 @@ class IndependentVisualizationService:
         identity: uuid.UUID | None = None,
         *,
         copy_from: uuid.UUID | None = None,
+        validate_result: Callable[[Visualization], object] | None = None,
     ) -> VisualizationRead:
         ProjectService(self.session).lock(project_id)
+        # Capture the submitted settings before semantic guards fill inherited fields.
+        receipt_id = (
+            uuid.uuid5(project_id, f"visualization-save:{payload.request_id}")
+            if payload.request_id
+            else None
+        )
+        fingerprint = hashlib.sha256(
+            json.dumps(
+                {
+                    "identity": str(identity) if identity else None,
+                    "copy_from": str(copy_from) if copy_from else None,
+                    "settings": payload.model_dump(mode="json", exclude={"request_id"}),
+                },
+                sort_keys=True,
+            ).encode()
+        ).hexdigest()
+        if receipt_id and (receipt := self.session.get(ReportDocument, receipt_id)):
+            if (
+                receipt.project_id != project_id
+                or receipt.kind != "visualization_save_receipt"
+                or receipt.payload.get("fingerprint") != fingerprint
+            ):
+                raise ApplicationError(
+                    "VISUALIZATION_REQUEST_CONFLICT",
+                    "This save request was already used for different settings.",
+                    409,
+                )
+            saved = self.session.scalar(
+                select(Visualization)
+                .where(Visualization.id == uuid.UUID(receipt.payload["visualization_id"]))
+                .execution_options(populate_existing=True)
+            )
+            if saved is None or saved.project_id != project_id:
+                raise ApplicationError(
+                    "VISUALIZATION_RESULT_GONE",
+                    "The saved visualization was deleted. This retry will not recreate it.",
+                    410,
+                )
+            # Return current settings if another edit followed the acknowledged operation.
+            return read_visualization(saved)
+        original = None
         if copy_from:
             original = self.get(copy_from)
             if original.project_id != project_id or original.publication_id is None:
@@ -114,6 +174,102 @@ class IndependentVisualizationService:
             raise ApplicationError(
                 "INVALID_VISUALIZATION", "A scalar result can only be displayed as KPI."
             )
+        protected = row or original
+        if (
+            protected
+            and payload.type in BASIC_TYPES
+            and payload.type == protected.type
+            and workflow.id == protected.workflow_id
+            and output.id == protected.publication_id
+            and payload.config.model_fields_set
+            and not payload.config.model_fields_set.intersection(
+                {
+                    "value_column_id",
+                    "category_column_id",
+                    "column_ids",
+                    "additional_series",
+                }
+            )
+        ):
+            payload.config = VisualizationConfig.model_validate(
+                {
+                    **protected.config,
+                    **payload.config.model_dump(exclude_unset=True),
+                }
+            )
+        if protected and protected.config.get("grain_column_ids") is not None:
+            # Appearance edits/older clients must not remove the semantic reuse guard.
+            payload.config.grain_column_ids = protected.config["grain_column_ids"]
+            payload.config.measure_column_ids = protected.config.get("measure_column_ids")
+            if (
+                payload.config.value_column_id != protected.config.get("value_column_id")
+                or workflow.id != protected.workflow_id
+                or output.id != protected.publication_id
+            ):
+                raise ApplicationError(
+                    "INVALID_VISUALIZATION",
+                    "Create another measure report to change its value field.",
+                )
+        try:
+            from app.services.workflows import domain_graph
+
+            if (
+                protected
+                and payload.type
+                in {
+                    "box_plot",
+                    "histogram_chart",
+                    "heatmap_chart",
+                    "radar_chart",
+                    "waterfall_chart",
+                    "combo_chart",
+                    "bubble_chart",
+                    "pareto_chart",
+                    "funnel_chart",
+                    "treemap_chart",
+                    "sunburst_chart",
+                    "bullet_chart",
+                    "analytical_table",
+                }
+                and payload.config.spec is None
+            ):
+                payload.config.spec = VisualizationConfig.model_validate(protected.config).spec
+            validate_measure_selection(payload.config, payload.type)
+            graph = domain_graph(self.session, workflow)
+            catalog = ResultCatalog.model_validate(workflow.result_catalog)
+            for validate in (
+                validate_box_plot,
+                validate_histogram,
+                validate_heatmap,
+                validate_radar,
+                validate_waterfall,
+                validate_combo,
+                validate_bubble,
+                validate_bullet,
+                validate_pareto,
+                validate_funnel,
+                validate_hierarchy,
+                validate_analytical_table,
+            ):
+                validate(payload.type, payload.config, graph, output, catalog)
+        except ValueError as exc:
+            raise ApplicationError("INVALID_VISUALIZATION", str(exc)) from exc
+        if (payload.type in BASIC_TYPES and validate_result is not None) or payload.type in {
+            "radar_chart",
+            "combo_chart",
+            "bubble_chart",
+            "pareto_chart",
+            "funnel_chart",
+            "treemap_chart",
+            "sunburst_chart",
+            "bullet_chart",
+        }:
+            if validate_result is None:
+                raise ApplicationError(
+                    "INVALID_VISUALIZATION",
+                    "This chart requires full-data validation before saving.",
+                )
+            validate_result(self.draft(project_id, payload))
         if row is None:
             row = Visualization(project_id=project_id, workflow_id=workflow.id)
             self.session.add(row)
@@ -130,10 +286,22 @@ class IndependentVisualizationService:
         row.config = payload.config.model_dump(mode="json")
         self.session.flush()
         result = read_visualization(row)
+        if receipt_id:
+            self.session.add(
+                ReportDocument(
+                    id=receipt_id,
+                    project_id=project_id,
+                    kind="visualization_save_receipt",
+                    status="applied",
+                    payload={"fingerprint": fingerprint, "visualization_id": str(row.id)},
+                )
+            )
         self.session.commit()
         return result
 
     def draft(self, project_id: uuid.UUID, payload: IndependentVisualizationSave) -> Visualization:
+        from app.services.workflows import domain_graph
+
         workflow = self.session.get(Workflow, payload.workflow_id)
         if workflow is None or workflow.project_id != project_id:
             raise ApplicationError(
@@ -150,6 +318,27 @@ class IndependentVisualizationService:
             raise ApplicationError(
                 "INVALID_VISUALIZATION", "A scalar result can only be displayed as KPI."
             )
+        try:
+            validate_measure_selection(payload.config, payload.type)
+            graph = domain_graph(self.session, workflow)
+            catalog = ResultCatalog.model_validate(workflow.result_catalog)
+            for validate in (
+                validate_box_plot,
+                validate_histogram,
+                validate_heatmap,
+                validate_radar,
+                validate_waterfall,
+                validate_combo,
+                validate_bubble,
+                validate_bullet,
+                validate_pareto,
+                validate_funnel,
+                validate_hierarchy,
+                validate_analytical_table,
+            ):
+                validate(payload.type, payload.config, graph, output, catalog)
+        except ValueError as exc:
+            raise ApplicationError("INVALID_VISUALIZATION", str(exc)) from exc
         return Visualization(
             id=uuid.uuid4(),
             project_id=project_id,
@@ -263,6 +452,21 @@ def published_schema(
                     node_id=str(point.node_id),
                 ) from exc
     return PublicationSchema(
+        suggested_specs=[
+            spec
+            for spec in (
+                suggested_box_spec(branch, published),
+                suggested_histogram_spec(branch, published),
+                suggested_heatmap_spec(branch, published),
+                suggested_waterfall_spec(branch, published),
+                suggested_pareto_spec(branch, published),
+                suggested_funnel_spec(branch, published),
+                suggested_analytical_spec(branch, published),
+                suggested_hierarchy_spec(branch, published, "treemap_chart"),
+                suggested_hierarchy_spec(branch, published, "sunburst_chart"),
+            )
+            if spec is not None
+        ],
         workflow_revision=workflow.revision,
         kind=value.kind,
         columns=[ResolvedColumnRead(**column.to_dict()) for column in value.table.columns]

@@ -48,6 +48,23 @@ class DataContext(PublicationModel):
         return self
 
 
+class MeasureDefinition(PublicationModel):
+    id: uuid.UUID
+    name: str = Field(min_length=1, max_length=200)
+    description: str = Field(default="", max_length=2000)
+    column_id: str = Field(min_length=1, max_length=200)
+    grain_column_ids: list[str] = Field(default_factory=list, max_length=8)
+
+    @model_validator(mode="after")
+    def distinct_grain(self) -> Self:
+        if (
+            len(set(self.grain_column_ids)) != len(self.grain_column_ids)
+            or self.column_id in self.grain_column_ids
+        ):
+            raise ValueError("Measure and grain fields must be distinct.")
+        return self
+
+
 class PublishedOutput(OutputReference):
     id: uuid.UUID
     name: str = Field(min_length=1, max_length=200)
@@ -55,6 +72,9 @@ class PublishedOutput(OutputReference):
     context_ids: list[uuid.UUID] = Field(default_factory=list, max_length=64)
     ignored_roles: list[str] = Field(default_factory=list, max_length=64)
     semantic_fields: dict[str, str] = Field(default_factory=dict, max_length=64)
+    measures: list[MeasureDefinition] = Field(
+        default_factory=list, max_length=64, exclude_if=lambda value: not value
+    )
 
 
 class ResultCatalog(PublicationModel):
@@ -63,6 +83,9 @@ class ResultCatalog(PublicationModel):
 
     @model_validator(mode="after")
     def unique_identifiers(self) -> Self:
+        measure_ids = [m.id for output in self.outputs for m in output.measures]
+        if len(set(measure_ids)) != len(measure_ids):
+            raise ValueError("Measure identities must be unique within a workflow.")
         for items in (self.outputs, self.contexts):
             ids = [item.id for item in items]
             if len(ids) != len(set(ids)):

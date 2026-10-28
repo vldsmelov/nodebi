@@ -1,0 +1,22 @@
+Alabuga Framework integration for Node BI
+
+Source: https://github.com/vldsmelov/alabugaframeworkconstructor
+Revision: b048bc2546a3e05131f4451a1115f7282b13523b
+Package: @alabuga/framework 0.6.0
+Retrieved: 2026-10-21
+
+tokens.css and styles.css are copied unchanged from packages/framework/src/.
+The four WOFF2 files under fonts/ are copied unchanged from that same directory.
+frontend/public/brand/alabuga-logo.webp corresponds to
+public/assets/brand/brand-54ddb68464f478e321f2.webp in the source repository.
+frontend/public/brand/alabuga-logo-white.webp corresponds to
+public/assets/brand/brand-4b4a5456ea44d3331ce7.webp in the source repository.
+
+Corporate integration requested by the project owner. Original ownership applies;
+the upstream README does not grant an open-source license for code/fonts/brand assets.
+This notice does not grant additional redistribution rights.
+
+Node BI adaptations live in app/globals.css, app/corporate.css and React components.
+Upstream DOM form/dialog event handlers and document renderer are not initialized:
+React retains ownership of application interaction, validation and saved data.
+Do not update these files from an unpinned remote URL at runtime.

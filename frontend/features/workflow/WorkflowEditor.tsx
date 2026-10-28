@@ -1,5 +1,7 @@
 "use client";
 import { isExcelSourceType } from "./source-types";
+import { CanvasPlacement } from "./CanvasPlacement";
+import { CanvasNavigation } from "./CanvasNavigation";
 
 import { definitionKey, definitionLabel } from "./node-catalog";
 
@@ -10,7 +12,6 @@ import {
   addEdge,
   Background,
   Connection,
-  Controls,
   Edge,
   MiniMap,
   ReactFlow,
@@ -20,7 +21,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Plus, Search, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 
 import type { DataSource } from "@/features/data-sources/api";
 import { VisualizationView } from "@/features/dashboard/VisualizationView";
@@ -29,9 +30,10 @@ import { ParametersConfiguration } from "./ParametersConfiguration";
 import { NodeFinder } from "./NodeFinder";
 import type { ParameterValues } from "./types";
 import { NodeOutputPanel } from "./NodeOutputPanel";
-import { WorkflowAutosave, type SaveState } from "./autosave";
+import { browserWorkflowStorage, WorkflowAutosave, type SaveState } from "./autosave";
 import { fieldProvenance } from "./field-provenance";
 import { NodeConfiguration } from "./NodeConfiguration";
+import { outputColumns } from "./output-columns";
 import { WorkflowNodeCard, type EditorNode } from "./WorkflowNodeCard";
 import { useWorkflowUi } from "./store";
 import type { NodeDefinition, Workflow, WorkflowEdge, WorkflowNode, WorkflowSchemaResult } from "./types";
@@ -96,7 +98,7 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
     { format_version: 1, name: workflow.name, nodes: workflow.nodes, edges: workflow.edges, parameters: workflow.parameters ?? [] },
     (payload) => saveWorkflow(workflow.id, payload),
     (state) => { setSaveState(state); if (state.status === "saved") onSaved?.(); },
-    window.sessionStorage,
+    browserWorkflowStorage,
   ));
   const [recovered] = useState(() => writer.recover());
   const [parameters, setParameters] = useState(recovered?.draft.parameters ?? workflow.parameters ?? []);
@@ -114,7 +116,7 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
   const selectedNodeId = useWorkflowUi((state) => state.selectedNodeId);
   const selectNode = useWorkflowUi((state) => state.selectNode);
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
-  const visibleDefinitions = catalog.filter((definition) => `${nodeName(definition.type)} ${t(definition.description)} ${definition.display_name}`.toLowerCase().includes(search.toLowerCase()));
+  const visibleDefinitions = catalog.filter((definition) => `${nodeName(definition.type, definition.version)} ${t(definition.description)} ${definition.display_name}`.toLowerCase().includes(search.toLowerCase()));
   const [scopeHighlight, setScopeHighlight] = useState<{ ids: Set<string>; nodes: EditorNode[]; edges: Edge[]; selected: string | null } | null>(null);
   const currentHighlight = scopeHighlight?.nodes === nodes && scopeHighlight.edges === edges && scopeHighlight.selected === selectedNodeId ? scopeHighlight.ids : null;
   const highlighted = currentHighlight ?? (selectedNodeId && dependencyView !== "all" ? dependencyIds(edges, selectedNodeId, dependencyView) : null);
@@ -250,7 +252,7 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
   const selectedInputEdge = edges.find((edge) => edge.target === selectedNodeId && edge.targetHandle === "input");
   // Keep field controls usable while editing; these are explicitly last-known
   // choices. Output/preview still require an exact acknowledged revision.
-  const selectedInputColumns = resolvedSchema?.nodes.find((item) => item.node_id === selectedInputEdge?.source)?.columns ?? null;
+  const selectedInputColumns = outputColumns(resolvedSchema?.nodes.find((item) => item.node_id === selectedInputEdge?.source), selectedInputEdge?.sourceHandle ?? "dataset");
 
   const selectedProvenance = useMemo(() => currentSchema && selectedInputEdge
     ? fieldProvenance(graph.nodes, graph.edges, currentSchema, sources, selectedInputEdge.source) : undefined,
@@ -313,8 +315,8 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
       if ((event.ctrlKey || event.metaKey) && !event.altKey && ["z", "y"].includes(event.key.toLowerCase())) {
         event.preventDefault(); travel(event.key.toLowerCase() === "y" || event.shiftKey ? "redo" : "undo");
       }
-    }} className="grid h-[calc(100vh-7.75rem)] min-h-[38rem] overflow-hidden border-t border-outline" style={{ gridTemplateColumns: `minmax(180px, min(${view.left}px, 25vw)) minmax(320px, 1fr) minmax(220px, min(${view.right}px, 40vw))`, minWidth: 720 }}>
-      <aside className="overflow-y-auto border-r border-outline bg-panel p-4">
+    }} className="workflow-workspace workflow-workspace-classic border-t border-outline" style={{ "--workflow-columns": `minmax(180px, min(${view.left}px, 25vw)) minmax(320px, 1fr) minmax(220px, min(${view.right}px, 40vw))` } as CSSProperties}>
+      <aside aria-label={t("Node library")} tabIndex={0} className="workflow-library overflow-y-auto border-r border-outline bg-panel p-4">
         <div className="mb-4 flex flex-wrap gap-2">
           <button className="rounded border border-outline px-2 py-1 text-xs disabled:opacity-40" disabled={!history.canUndo} onClick={() => travel("undo")}>{t("Undo graph change")}</button>
           <button className="rounded border border-outline px-2 py-1 text-xs disabled:opacity-40" disabled={!history.canRedo} onClick={() => travel("redo")}>{t("Redo graph change")}</button>
@@ -322,7 +324,16 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
         </div>
         {layoutError ? <p role="alert" className="mb-3 text-xs text-danger">{t("Fix cycles or missing connections before arranging the graph.")}</p> : null}
         <EditorPanels left={view.left} right={view.right} change={(left, right) => setView(current => ({ ...current, left, right }))} />
-        <GroupPanel groups={groups} selectedCount={selectedIds.size} collapsed={view.collapsed} assign={assignGroup} rename={changeGroup} dissolve={name => changeGroup(name, "")} toggle={toggleGroup} openNode={openNode} />
+        <CanvasPlacement items={displayNodes.filter(node => !node.data.group).map(node => ({ id: node.id, label: nodeLabel(node.data, nodeName(node.data.definition.type)), position: node.position }))} move={(id, position) => {
+          editGroup.current = null;
+          setNodes(current => current.map(node => node.id === id ? { ...node, position } : node));
+        }} />
+        <GroupPanel groups={groups} selectedCount={selectedIds.size} collapsed={view.collapsed} assign={assignGroup} rename={changeGroup} dissolve={name => changeGroup(name, "")} toggle={toggleGroup} openNode={openNode}
+          nodes={nodes.map(node => ({ id: node.id, label: nodeLabel(node.data, nodeName(node.data.definition.type)), selected: selectedIds.has(node.id) }))}
+          select={(id, checked) => {
+            if (!checked && selectedNodeId === id) selectNode(null);
+            setNodes(current => current.map(node => node.id === id ? { ...node, selected: checked } : node));
+          }} clearSelection={() => { selectNode(null); setNodes(current => current.map(node => ({ ...node, selected: false }))); }} />
         {targetNodeId && !nodes.some(node => node.id === targetNodeId) ? <p role="alert" className="mb-3 text-xs text-danger">{t("The linked node is unavailable. It may have been deleted.")}</p> : null}
         <NodeFinder nodes={nodes.map(node => ({ id: node.id, label: `${nodeLabel(node.data, nodeName(node.data.definition.type))} · ${nodeName(node.data.definition.type)}` }))} selected={selectedNodeId} onSelect={openNode} />
         <label className="mb-4 block text-xs">{t("Show dependencies")}
@@ -339,13 +350,13 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
         <div className="mt-5 space-y-5">
           {(["source", "transform", "visualization"] as const).map((category) => {
             const definitions = visibleDefinitions.filter((item) => item.category === category);
-            return <section key={category}><h2 className="mb-2 text-[10px] uppercase tracking-[0.2em] text-muted">{t(category)}</h2>{definitions.length === 0 ? <p className="rounded-lg border border-dashed border-outline px-3 py-2 text-xs text-muted">{t("No nodes yet")}</p> : definitions.map((definition) => { const disabled = isExcelSourceType(definition.type) && sources.length === 0; return <button key={`${definition.type}:${definition.version}`} disabled={disabled} title={disabled ? t("Upload a workbook first") : t("Add {0}", {"0": definitionLabel(catalog, definition, nodeName(definition.type))})} onClick={() => addNode(definition)} className="mb-2 flex w-full items-center gap-3 rounded-xl border border-outline bg-raised p-3 text-left hover:border-accent/40 hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-35"><Plus size={15} className="text-accent" /><span><span className="block text-sm">{definitionLabel(catalog, definition, nodeName(definition.type))}</span><span className="block text-[11px] text-muted">{disabled ? t("Upload a workbook first") : t(definition.description)}</span></span></button>; })}</section>;
+            return <section key={category}><h2 className="mb-2 text-[10px] uppercase tracking-[0.2em] text-muted">{t(category)}</h2>{definitions.length === 0 ? <p className="rounded-lg border border-dashed border-outline px-3 py-2 text-xs text-muted">{t("No nodes yet")}</p> : definitions.map((definition) => { const disabled = isExcelSourceType(definition.type) && sources.length === 0; return <button key={`${definition.type}:${definition.version}`} disabled={disabled} title={disabled ? t("Upload a workbook first") : t("Add {0}", {"0": definitionLabel(catalog, definition, nodeName(definition.type, definition.version))})} onClick={() => addNode(definition)} className="mb-2 flex w-full items-center gap-3 rounded-xl border border-outline bg-raised p-3 text-left hover:border-accent/40 hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-35"><Plus size={15} className="text-accent" /><span><span className="block text-sm">{definitionLabel(catalog, definition, nodeName(definition.type, definition.version))}</span><span className="block text-[11px] text-muted">{disabled ? t("Upload a workbook first") : t(definition.description)}</span></span></button>; })}</section>;
           })}
         </div>
       </aside>
-      <section className="relative bg-page">
+      <section aria-label={t("Workflow canvas")} className="workflow-canvas relative bg-page">
         <div className="absolute right-4 top-4 z-10 rounded-full border border-outline bg-surface/90 px-3 py-1.5 text-xs text-muted backdrop-blur">{saveStatus === "saving" ? t("Saving…") : saveStatus === "saved" ? t("Saved") : saveStatus === "error" ? t("Save failed") : t("Ready")}</div>
-        {saveStatus === "error" ? <div className="absolute left-4 top-4 z-10 max-w-sm rounded-xl bg-danger-surface p-3 text-xs text-danger" role="alert">{errorText(saveError)}<div className="mt-2 flex gap-3"><button onClick={() => void writer.flush()}>{t("Retry save")}</button><button onClick={() => { if (window.confirm(t("Discard this local draft and load the saved workflow?"))) { sessionStorage.removeItem(writer.key); window.location.reload(); } }}>{t("Discard draft and reload")}</button></div></div> : null}
+        {saveStatus === "error" ? <div className="absolute left-4 top-4 z-10 max-w-sm rounded-xl bg-danger-surface p-3 text-xs text-danger" role="alert">{errorText(saveError)}<div className="mt-2 flex gap-3"><button onClick={() => void writer.flush()}>{t("Retry save")}</button><button onClick={() => { if (window.confirm(t("Discard this local draft and load the saved workflow?"))) { if (writer.discard()) window.location.reload(); } }}>{t("Discard draft and reload")}</button></div></div> : null}
         <ReactFlow<EditorNode, Edge> minZoom={0.05} multiSelectionKeyCode="Shift" onInit={instance => { flow.current = instance; if (targetNodeId && nodes.some(node => node.id === targetNodeId)) { openNode(targetNodeId); setDependencyView("ancestors"); } else { selectNode(null); } }} nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} ariaLabelConfig={{
           'controls.ariaLabel': t('Canvas controls'),
           'controls.zoomIn.ariaLabel': t('Zoom in'), 'controls.zoomOut.ariaLabel': t('Zoom out'),
@@ -356,10 +367,10 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
           'edge.a11yDescription.default': t('Press Enter to select an edge and Delete to remove it.'),
           'node.a11yDescription.ariaLiveMessage': ({ direction, x, y }) => t('Node moved {0}. Position: {1}, {2}.', { 0: t(direction), 1: x, 2: y }),
         }} onNodeDragStart={() => { editGroup.current = crypto.randomUUID(); }} onNodesChange={changes => { const real = changes.filter(change => "id" in change && nodes.some(node => node.id === change.id)); if (real.length) onNodesChange(real); }} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection} onNodeClick={(_, node) => { if (!node.data.group) selectNode(node.id); }} onPaneClick={() => selectNode(null)} onNodesDelete={(deleted) => { const ids = new Set(deleted.map((node) => node.id)); setEdges((current) => current.filter((edge) => !ids.has(edge.source) && !ids.has(edge.target))); if (selectedNodeId && ids.has(selectedNodeId)) selectNode(null); }} fitView deleteKeyCode={["Backspace", "Delete"]} colorMode={theme}>
-          <Background color={palette.grid} gap={22} size={1} /><Controls /><MiniMap nodeColor={palette.accent} maskColor={palette.mask} />
+          <Background color={palette.grid} gap={22} size={1} /><CanvasNavigation /><MiniMap nodeColor={palette.accent} maskColor={palette.mask} />
         </ReactFlow>
       </section>
-      <aside className="overflow-y-auto border-l border-outline bg-panel p-5">
+      <aside aria-label={t("Node settings")} tabIndex={0} className="workflow-settings overflow-y-auto border-l border-outline bg-panel p-5">
         <div className="flex items-center justify-between"><p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">{t("Configuration")}</p>{selectedNode ? <button aria-label={t("Delete selected node")} onClick={deleteSelected} className="text-muted hover:text-danger"><Trash2 size={16} /></button> : null}</div>
         {!selectedNode ? <p className="mt-8 text-sm leading-6 text-muted">{t("Select a node to edit its settings.")}</p> : null}
         {selectedNode ? <div className="mt-4 space-y-3">
@@ -367,7 +378,7 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
             const label = event.target.value;
             setNodes(current => current.map(node => node.id === selectedNode.id ? { ...node, data: { ...node.data, ui: { ...node.data.ui, label } } } : node));
           }} /></label>
-          {following.length ? <label className="block text-xs">{t("Add next step")}<select aria-label={t("Add next step")} className="mt-2 w-full rounded-lg border border-outline bg-control p-2" value="" onChange={event => addFollowing(event.target.value)}><option value="">{t("Select node")}</option>{following.map(definition => <option key={definitionKey(definition)} value={definitionKey(definition)}>{definitionLabel(catalog, definition, nodeName(definition.type))}</option>)}</select></label> : null}
+          {following.length ? <label className="block text-xs">{t("Add next step")}<select aria-label={t("Add next step")} className="mt-2 w-full rounded-lg border border-outline bg-control p-2" value="" onChange={event => addFollowing(event.target.value)}><option value="">{t("Select node")}</option>{following.map(definition => <option key={definitionKey(definition)} value={definitionKey(definition)}>{definitionLabel(catalog, definition, nodeName(definition.type, definition.version))}</option>)}</select></label> : null}
         </div> : null}
         {selectedNode?.data.definition.input_ports.map(port => {
           const connected = edges.find(edge => edge.target === selectedNode.id && edge.targetHandle === port.id);
@@ -386,16 +397,17 @@ export function WorkflowEditor({ targetNodeId, workflow, catalog, sources, resol
             }
           }}><option value="">{t("Disconnected")}</option>{available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
         })}
-        {selectedNode && <div className="mt-4 flex flex-wrap gap-2 text-xs"><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !["window", "calculated_column", "filter"].every(type => catalog.some(item => item.type === type && item.version === 1))} onClick={() => { if (selectedSchema?.columns) setAnalytics({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Share and rank")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "unpivot")} onClick={() => { if (selectedSchema?.columns) setUnpivot({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Grouped Unpivot")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "select_columns")} onClick={() => { if (selectedSchema?.columns) setPreparation({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Prepare data table")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "calculated_column")} onClick={() => openBatch(false)}>{t("Add calculated fields")}</button>{selectedNode.data.definition.type === "calculated_column" && <button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !currentSchema?.nodes.find(item => item.node_id === selectedInputEdge?.source)?.columns} onClick={() => openBatch(true)}>{t("Edit calculated chain")}</button>}</div>}
+        {selectedNode && <div className="mt-4 flex flex-wrap gap-2 text-xs"><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !["window", "calculated_column", "filter"].every(type => catalog.some(item => item.type === type && item.version === 1))} onClick={() => { if (selectedSchema?.columns) setAnalytics({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Share and rank")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "unpivot")} onClick={() => { if (selectedSchema?.columns) setUnpivot({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Grouped Unpivot")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "select_columns")} onClick={() => { if (selectedSchema?.columns) setPreparation({ columns: selectedSchema.columns, source: selectedNode.id, snapshot: JSON.stringify(graph) }); }}>{t("Prepare data table")}</button><button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !selectedSchema?.columns || !following.some(item => item.type === "calculated_column")} onClick={() => openBatch(false)}>{t("Add calculated fields")}</button>{selectedNode.data.definition.type === "calculated_column" && selectedNode.data.definition.version === 1 && <button className="rounded border border-outline p-2 disabled:opacity-40" disabled={dirty || !currentSchema?.nodes.find(item => item.node_id === selectedInputEdge?.source)?.columns} onClick={() => openBatch(true)}>{t("Edit calculated chain")}</button>}</div>}
         {selectedNode && currentSchema && <CalculationScopePanel key={selectedNode.id} nodes={graph.nodes} edges={graph.edges} selected={selectedNode.id} schema={currentSchema} parameters={parameters} openNode={openNode} highlight={ids => { setDependencyView("all"); setScopeHighlight(ids ? { ids: new Set(ids), nodes, edges, selected: selectedNodeId } : null); if (ids) focusNodes(ids); }} />}
-        {selectedNode ? <NodeConfiguration version={selectedNode.data.definition.version} provenance={selectedProvenance} issues={selectedIssues} validationPending={!currentSchema} parameters={parameters} type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} inputColumns={Object.fromEntries((selectedNode.data.definition.input_ports ?? []).map(port => {
+        {selectedNode ? <NodeConfiguration nodeId={selectedNode.id} version={selectedNode.data.definition.version} provenance={selectedProvenance} issues={selectedIssues} validationPending={!currentSchema} parameters={parameters} type={selectedNode.data.definition.type} config={selectedNode.data.config} sources={sources} columns={selectedInputColumns} inputColumns={Object.fromEntries((selectedNode.data.definition.input_ports ?? []).map(port => {
           const edge = edges.find(e => e.target === selectedNode.id && e.targetHandle === port.id);
-          return [port.id, resolvedSchema?.nodes.find(n => n.node_id === edge?.source)?.columns ?? null];
+          return [port.id, outputColumns(resolvedSchema?.nodes.find(n => n.node_id === edge?.source), edge?.sourceHandle ?? "dataset")];
         }))} onChange={updateSelectedConfig} /> : null}
         {selectedNode && dirty && selectedInputColumns ? <p className="mt-2 text-xs text-warning">{t("Field choices are from the last saved graph. Updating after save…")}</p> : null}
         {selectedNode?.data.definition.category === "visualization" && !dirty ? <div className="mt-4 h-72"><VisualizationView parameters={executionParameters} id={selectedNode.id} revision={saveState.revision} /></div> : null}
         {selectedNode && <NodeOutputPanel isJoin={selectedNode.data.definition.type === "join"} parameters={executionParameters} key={`${selectedNode.id}:${parameterKey}`} workflowId={workflow.id} nodeId={selectedNode.id}
           revision={saveState.revision} dirty={dirty} schema={selectedSchema} issues={selectedIssues} />}
+        {writer.recoveryNotice && <p role="status" className="my-3 rounded border border-outline p-3 text-xs text-muted">{t(writer.recoveryNotice)}</p>}
         {saveError ? <p className="mt-5 rounded-xl bg-danger-surface p-3 text-xs text-danger">{errorText(saveError)}</p> : null}
       </aside>
       {unpivot && <GroupedUnpivotDialog columns={unpivot.columns} apply={applyUnpivot} close={() => setUnpivot(null)} />}

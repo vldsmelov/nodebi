@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-const api = "http://127.0.0.1:8000";
+const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
 test.use({ actionTimeout: 15000 });
 
 test("guide a first-time author from workbook to a valid visualization", async ({ page, request }) => {
@@ -9,7 +9,7 @@ test("guide a first-time author from workbook to a valid visualization", async (
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Usability audit" } })).json();
   try {
     await page.goto(`/projects/${project.id}`);
-    await page.getByRole("link", { name: /1\. Data/ }).click();
+    await page.getByRole("navigation", { name: "Project navigation" }).getByRole("link", { name: "Data", exact: true }).click();
     const upload = page.getByRole("button", { name: "Upload workbook", exact: true });
     await upload.focus();
     await expect(upload).toBeFocused();
@@ -43,7 +43,7 @@ test("guide a first-time author from workbook to a valid visualization", async (
     await expect(panel.getByRole("alert")).toHaveCount(0);
     await panel.getByLabel("Chart category", { exact: true }).selectOption({ label: "product" });
     await panel.getByLabel("Chart value", { exact: true }).selectOption({ label: "quantity" });
-    await expect(panel.getByRole("img")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Report preview", exact: true }).getByRole("img")).toBeVisible();
     await panel.getByRole("tab", { name: "Data", exact: true }).focus();
     await page.keyboard.press("ArrowRight");
     await expect(panel.getByRole("tab", { name: "Appearance", exact: true })).toBeFocused();

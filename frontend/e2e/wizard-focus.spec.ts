@@ -1,0 +1,184 @@
+import { test, expect, request as createRequest } from "@playwright/test";
+import { activateByKeyboard, chooseByKeyboard, tabTo, typeByKeyboard } from "./keyboard-navigation";
+
+const api = process.env.NODEBI_EVOLUTION_API ?? "http://localhost:8010";
+
+for (const layout of ["desktop-light", "compact-dark", "narrow-dark", "large-text-light"] as const) test(`keyboard wizard journey imports, corrects data, creates, edits and refreshes a report (${layout})`, async ({ page, request }) => {
+  test.setTimeout(120_000);
+  const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Wizard keyboard acceptance" } })).json();
+  try {
+    if (layout === "compact-dark") await page.setViewportSize({ width: 1024, height: 768 });
+    if (layout === "narrow-dark") await page.setViewportSize({ width: 420, height: 900 });
+    if (layout === "large-text-light") {
+      await page.setViewportSize({ width: 1280, height: 1000 });
+      await page.addInitScript(() => document.addEventListener("DOMContentLoaded", () => { document.documentElement.style.fontSize = "32px"; }));
+    }
+    await page.goto(`/projects/${project.id}`);
+    await chooseByKeyboard(page, page.getByRole("combobox", { name: "Theme", exact: true }), { value: layout.endsWith("dark") ? "dark" : "light" });
+    await activateByKeyboard(page, page.getByRole("region", { name: "Saved reports", exact: true }).getByRole("link", { name: "Connect data", exact: true }));
+    await tabTo(page, page.getByRole("radio", { name: "EXCEL" }));
+    await page.keyboard.press("ArrowRight");
+    await expect(page.getByRole("radio", { name: "CSV" })).toBeFocused();
+    await page.keyboard.press("Space");
+    await activateByKeyboard(page, page.getByRole("button", { name: "Next", exact: true }));
+    await page.keyboard.press("Tab");
+    await expect(page.getByLabel("File", { exact: true })).toBeFocused();
+    const activate = async (name: string) => {
+      const button = page.getByRole("button", { name, exact: true });
+      await activateByKeyboard(page, button);
+    };
+    const heading = (name: string) => page.getByRole("heading", { name, exact: true });
+    await page.getByLabel("File", { exact: true }).setInputFiles({ name: "sales.csv", mimeType: "text/csv", buffer: Buffer.from("category,amount,code\nA,0.10,001\nA,0.20,002\nB,0.50,003\n") });
+    await activate("Upload and continue");
+    await expect(heading("Tables")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("combobox", { name: "Table", exact: true })).toBeFocused();
+    await activate("Inspect fields");
+    await expect(heading("Fields")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByLabel("Dataset name", { exact: true })).toBeFocused();
+    await typeByKeyboard(page, page.getByLabel("Dataset name"), "Keyboard sales");
+    await expect(page.getByLabel("Dataset name")).toBeFocused();
+    // Traverse the real sequential order, not programmatic .focus() jumps.
+    await page.keyboard.press("Tab");
+    await expect(page.getByLabel("What does one row represent?")).toBeFocused();
+    const categoryFields = page.getByRole("group", { name: "Field: category", exact: true });
+    await page.keyboard.press("Tab");
+    await expect(categoryFields.getByLabel("Field name", { exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(categoryFields.getByRole("combobox", { name: "Data type", exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(categoryFields.getByLabel("Allow empty values", { exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(categoryFields.locator("summary")).toBeFocused();
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Tab");
+    await expect(categoryFields.getByLabel("Part of row key")).toBeFocused();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("Tab");
+    await expect(categoryFields.getByLabel("Unit", { exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(categoryFields.getByLabel("Currency code", { exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(categoryFields.getByRole("combobox", { name: "Conversion errors", exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("group", { name: "Field: amount", exact: true }).getByLabel("Field name", { exact: true })).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(categoryFields.getByRole("combobox", { name: "Conversion errors", exact: true })).toBeFocused();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+    await page.screenshot({ path: test.info().outputPath("import-fields.png"), fullPage: true });
+    await expect(page.getByLabel("Data type").nth(2)).toHaveValue("string");
+    await activate("Check all rows");
+    await expect(page.getByRole("alert").filter({ hasText: "Key fields must be non-null and unique." })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Apply import" })).toBeDisabled();
+    await activate("Review row key");
+    await expect(categoryFields.getByLabel("Part of row key")).toBeFocused();
+    await expect(categoryFields.locator("details")).toHaveAttribute("open", "");
+    const codeFields = page.getByRole("group", { name: "Field: code", exact: true });
+    await activateByKeyboard(page, codeFields.locator("summary"));
+    await tabTo(page, codeFields.getByLabel("Part of row key"));
+    await page.keyboard.press("Space");
+    await activate("Save import draft");
+    await expect(page.getByText("Unsaved import settings", { exact: true })).not.toBeVisible();
+    await page.reload();
+    await expect(categoryFields.getByLabel("Part of row key")).toBeChecked();
+    await expect(codeFields.getByLabel("Part of row key")).toBeChecked();
+    // Invalid conversion must block apply, and Back must return to the correction controls.
+    await chooseByKeyboard(page, page.getByLabel("Data type").nth(1), { value: "boolean" });
+    await activate("Check all rows");
+    await expect(heading("Check and apply")).toBeFocused();
+    await expect(page.getByRole("button", { name: "Apply import", exact: true })).toBeDisabled();
+    await expect(page.getByText("Correct the highlighted fields before applying.")).toBeVisible();
+    await activate("Review field: amount");
+    await expect(page.getByRole("group", { name: "Field: amount", exact: true }).getByLabel("Data type")).toBeFocused();
+    expect(await page.evaluate(() => {
+      const bounds = document.activeElement!.getBoundingClientRect();
+      return bounds.left >= 0 && bounds.right <= window.innerWidth && bounds.top >= 0 && bounds.bottom <= window.innerHeight;
+    })).toBeTruthy();
+    await chooseByKeyboard(page, page.getByLabel("Data type").nth(1), { value: "decimal" });
+    await activate("Check all rows");
+    await expect(heading("Check and apply")).toBeFocused();
+    await expect(page.getByRole("cell", { name: "001", exact: true })).toBeVisible();
+    await expect(page.getByRole("table", { name: "Data preview", exact: true })).toBeVisible();
+    const importPreview = page.getByRole("region", { name: "Data preview", exact: true });
+    await tabTo(page, importPreview);
+    await expect(importPreview).toBeFocused();
+    await expect(importPreview).toHaveCSS("outline-style", "solid");
+    await activate("Apply import");
+    await expect(heading("Dataset is ready")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: "Back to data", exact: true })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await activateByKeyboard(page, page.getByRole("link", { name: "Create report", exact: true }));
+    await expect(heading("Data")).toBeFocused();
+    await chooseByKeyboard(page, page.getByRole("combobox", { name: "Prepared dataset", exact: true }), { label: "Keyboard sales" });
+    await typeByKeyboard(page, page.getByLabel("Report name"), "Revenue by category");
+    await activate("Next"); await expect(heading("Measures")).toBeFocused();
+    await activate("Add measure");
+    await typeByKeyboard(page, page.getByLabel("Measure name"), "Revenue");
+    await activate("Next"); await expect(heading("Dimensions")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("checkbox", { name: "category", exact: true })).toBeFocused();
+    await page.keyboard.press("Space");
+    await activate("Next"); await expect(heading("Filters")).toBeFocused();
+    await activate("Next"); await expect(heading("Presentation")).toBeFocused();
+    await activate("Preview calculation");
+    await expect(page.getByRole("cell", { name: "0.30", exact: true })).toBeVisible();
+    await activate("Save report"); await expect(heading("Report is ready")).toBeFocused();
+    await activateByKeyboard(page, page.getByRole("link", { name: "Open report", exact: true }));
+    await expect(page).toHaveURL(/\/dashboard\?/);
+    await expect(page.getByRole("cell", { name: "0.30", exact: true })).toBeVisible();
+    await activateByKeyboard(page, page.getByLabel("Widget actions", { exact: true }));
+    await activateByKeyboard(page, page.getByRole("link", { name: "Edit in report wizard" }));
+    await expect(heading("Data")).toBeFocused();
+    await activate("Next"); await expect(heading("Measures")).toBeFocused();
+    await chooseByKeyboard(page, page.getByRole("combobox", { name: "Aggregation", exact: true }), { value: "average" });
+    await typeByKeyboard(page, page.getByLabel("Decimal places for averages"), "2");
+    for (const step of ["Dimensions", "Filters", "Presentation"]) { await activate("Next"); await expect(heading(step)).toBeFocused(); }
+    await activate("Preview calculation");
+    await expect(page.getByRole("cell", { name: "0.15", exact: true })).toBeVisible();
+    await activate("Save report"); await expect(heading("Report is ready")).toBeFocused();
+    await activateByKeyboard(page, page.getByRole("navigation", { name: "Project navigation" }).getByRole("link", { name: "History", exact: true }));
+    await activate("Update data");
+    await tabTo(page, page.getByLabel("Replacement file for sales"));
+    await page.getByLabel("Replacement file for sales").setInputFiles({ name: "updated.csv", mimeType: "text/csv", buffer: Buffer.from("code,amount,category\n001,0.30,A\n002,0.40,A\n003,0.50,B\n") });
+    await expect(page.getByRole("combobox", { name: "File version", exact: true })).not.toHaveValue("");
+    await activate("Save update draft");
+    await activate("Check new data");
+    await expect(page.getByLabel("Incoming field for category")).toHaveValue("col_3");
+    await activate("Apply data update");
+    await expect(page.getByRole("button", { name: "Prepare rollback" })).toBeVisible();
+    await activateByKeyboard(page, page.getByRole("navigation", { name: "Project navigation" }).getByRole("link", { name: "Reports", exact: true }));
+    await expect(page.getByRole("cell", { name: "0.35", exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("cell", { name: "0.35", exact: true })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "0.35", exact: true })).toHaveCSS("text-align", "right");
+    await expect(page.getByRole("cell", { name: "0.35", exact: true })).toHaveCSS("font-variant-numeric", "tabular-nums");
+    await expect(page.getByRole("cell", { name: "A", exact: true })).toHaveCSS("text-align", "left");
+    await expect(page.getByRole("table")).toHaveCSS("font-size", layout === "large-text-light" ? "28px" : "14px");
+    const exactValue = page.getByRole("cell", { name: "0.35", exact: true });
+    await expect.poll(() => exactValue.evaluate(cell => {
+      const region = cell.closest('[role="region"]')!;
+      cell.scrollIntoView({ block: "nearest", inline: "nearest" });
+      const bounds = cell.getBoundingClientRect(), viewport = region.getBoundingClientRect();
+      return bounds.top >= viewport.top - 1 && bounds.bottom <= viewport.bottom + 1;
+    })).toBe(true);
+    if (layout === "large-text-light") {
+      const tableRegion = page.getByRole("region", { name: "Revenue by category · Chart data table", exact: true });
+      await tabTo(page, tableRegion);
+      await expect(tableRegion).toBeFocused();
+      await tableRegion.evaluate(el => { el.scrollTop = 0; });
+      await page.keyboard.press("End");
+      await expect.poll(() => tableRegion.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+      await expect.poll(() => page.getByRole("cell", { name: "0.50", exact: true }).evaluate(cell => {
+        const bounds = cell.getBoundingClientRect(), viewport = cell.closest('[role="region"]')!.getBoundingClientRect();
+        return bounds.top >= viewport.top - 1 && bounds.bottom <= viewport.bottom + 1;
+      })).toBe(true);
+    }
+    await page.screenshot({ path: test.info().outputPath("updated-report.png"), fullPage: true });
+  } finally {
+    const cleanup = await createRequest.newContext();
+    expect((await cleanup.delete(`${api}/api/v1/projects/${project.id}?confirm=true`)).ok()).toBeTruthy();
+    await cleanup.dispose();
+  }
+});

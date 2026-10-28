@@ -31,7 +31,7 @@ def conversion_expression(name: str, rule: Conversion, source: LogicalType) -> p
         if rule.target == "boolean":
             return column.replace_strict({"true": True, "false": False}, default=None)
     expression = column.cast(logical_to_polars(LogicalType(rule.target)), strict=False)
-    if rule.target == "integer" and source == LogicalType.FLOAT:
+    if rule.target == "integer" and source in {LogicalType.FLOAT, LogicalType.DECIMAL}:
         expression = pl.when(column == column.floor()).then(expression).otherwise(None)
     if rule.target == "float":
         expression = pl.when(expression.is_finite()).then(expression).otherwise(None)

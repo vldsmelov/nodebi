@@ -66,6 +66,7 @@ class BoundVisualizationExecutor(TypedNodeExecutor):
             if port == "value" and value.logical_type not in {
                 LogicalType.INTEGER,
                 LogicalType.FLOAT,
+                LogicalType.DECIMAL,
                 LogicalType.UNKNOWN,
                 *({LogicalType.STRING} if node.type == "kpi" else set()),
             }:
@@ -87,7 +88,11 @@ class BoundVisualizationExecutor(TypedNodeExecutor):
                     port.title(),
                     value.logical_type or LogicalType.UNKNOWN,
                     value.nullable,
-                    {"source_columns": list(value.referenced_columns), "visualization_role": port},
+                    {
+                        **value.metadata,
+                        "source_columns": list(value.referenced_columns),
+                        "visualization_role": port,
+                    },
                 )
             )
         schema = DatasetSchema(tuple(columns))
@@ -112,6 +117,7 @@ class BoundVisualizationExecutor(TypedNodeExecutor):
                 nullable=value.formula.nullable,
                 context=value.context if isinstance(value, FieldValue) else None,
                 referenced_columns=value.formula.referenced_columns,
+                metadata=dict(value.formula.metadata),
             )
             for port, value in inputs.items()
         }
@@ -152,7 +158,13 @@ class BoundVisualizationExecutor(TypedNodeExecutor):
                 )
             else:
                 frame = pl.select(scalar.formula.expression.alias(column.engine_name))
-        dataset = Dataset(frame, output.table)
+        dataset = Dataset(
+            frame,
+            output.table,
+            {"exact_transport": True}
+            if any(c.logical_type == LogicalType.DECIMAL for c in output.table.columns)
+            else {},
+        )
         try:
             dataset = VisualizationExecutor().execute(
                 replace(node, version=1, config=config.model_dump()), {"input": dataset}, context

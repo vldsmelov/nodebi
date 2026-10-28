@@ -26,7 +26,7 @@ export function PublishedResults({ graph, schema, onChange }: { graph: GraphDraf
     const key = role === "period" ? "period" : role === "new" ? `selection_${crypto.randomUUID().replaceAll("-", "")}` : role;
     const id = context?.id ?? crypto.randomUUID();
     const roles = [...(context?.roles ?? [])];
-    if (key !== "period" && !roles.some(item => item.name === key)) roles.push({ name: key, label: roleLabel.trim(), logical_type: field.logical_type as "string" | "integer" | "float" | "boolean" | "date" | "datetime", default: null });
+    if (key !== "period" && !roles.some(item => item.name === key)) roles.push({ name: key, label: roleLabel.trim(), logical_type: field.logical_type as "string" | "integer" | "float" | "decimal" | "boolean" | "date" | "datetime", default: null, ...(field.logical_type === "decimal" ? { precision: Number(field.metadata?.precision), scale: Number(field.metadata?.scale) } : {}) });
     const next = { id, name: context?.name ?? t("Data context"), timezone: context?.timezone ?? "Europe/Moscow", roles, points: [...(context?.points ?? []).filter(item => !(item.node_id === table.node_id && item.port === table.port && item.role === key)), { node_id: table.node_id, port: table.port, column_id: column, role: key }] };
     update({ ...catalog, contexts: [next, ...(catalog.contexts ?? []).slice(1)], outputs: (catalog.outputs ?? []).map(item => ({ ...item, context_ids: [...new Set([...(item.context_ids ?? []), id])] })) });
   };

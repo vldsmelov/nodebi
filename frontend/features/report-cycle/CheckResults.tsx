@@ -14,7 +14,7 @@ export function CheckResults({ value, projectId }: { value?: Check | null; proje
     {value.issues?.map((issue, index) => <div key={index} className={`rounded border p-3 ${issue.severity === "error" ? "border-danger text-danger" : "border-outline"}`}>
       <p>{t(issue.severity === "error" ? "Error" : "Warning")}: {translateKnownMessage(locale, issue.message) ?? issue.message} {issue.count != null && `(${cell(issue.count)})`}</p>
       {issue.node_id && <Link className="text-sm underline" href={`/projects/${projectId}/workflow?mode=fields&workflow=${issue.workflow_id}&node=${issue.node_id}`}>{t("Open calculation")}</Link>}
-      {!!issue.examples?.length && <details><summary>{t("Example records")}</summary><div className="max-h-64 overflow-auto"><table className="text-sm"><thead><tr>{Object.keys(issue.examples[0]).map(key => <th key={key} className="p-2">{key}</th>)}</tr></thead><tbody>{issue.examples.map((row, i) => <tr key={i}>{Object.entries(row).map(([key, value]) => <td key={key} className="p-2">{cell(value)}</td>)}</tr>)}</tbody></table></div></details>}
+      {!!issue.examples?.length && <details><summary>{t("Example records")}</summary><div className="max-h-64 overflow-auto"><table className="text-sm"><thead><tr>{Object.keys(issue.examples[0]).map(key => <th key={key} className="p-2">{t(key)}</th>)}</tr></thead><tbody>{issue.examples.map((row, i) => <tr key={i}>{Object.entries(row).map(([key, value]) => <td key={key} className="p-2">{cell(value)}</td>)}</tr>)}</tbody></table></div></details>}
     </div>)}
     {!!value.affected_visualizations?.length && <p className="text-sm text-muted">{t("Affected visualizations: {0}", { 0: value.affected_visualizations.length })}</p>}
   </section>;

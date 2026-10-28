@@ -5,11 +5,12 @@ from uuid import UUID
 
 import polars as pl
 
-from app.domain.datasets import Dataset, logical_to_polars
+from app.domain.datasets import Dataset, LogicalType
+from app.domain.decimal_composition import composition_cast
 from app.domain.errors import ApplicationError
 from app.domain.nodes import ExecutionContext, NodeRegistry
 from app.domain.workflows import WorkflowGraph
-from app.nodes.combine import compatible, join_config
+from app.nodes.combine import JoinExecutor, join_config
 from app.services.execution import ExecutionResult, WorkflowExecutionService
 
 
@@ -39,15 +40,9 @@ def _join_records(
         )
     left, right = results["left"].output, results["right"].output
     names = [f"key_{i}" for i in range(len(config.keys))]
-    types = [
-        logical_to_polars(
-            compatible(
-                left.schema.by_id(key.left_key).logical_type,
-                right.schema.by_id(key.right_key).logical_type,
-            )
-        )
-        for key in config.keys
-    ]
+    schema = JoinExecutor().infer_schema(
+        node, {"left": left.schema, "right": right.schema}, context
+    )
     side = "left" if kind.startswith("left") else "right"
     source = results[side].output
 
@@ -55,10 +50,12 @@ def _join_records(
         data = results[port].output
         return data.frame.select(
             [
-                pl.col(data.schema.by_id(getattr(key, f"{port}_key")).engine_name)
-                .cast(dtype)
-                .alias(name)
-                for key, dtype, name in zip(config.keys, types, names, strict=True)
+                composition_cast(
+                    data,
+                    data.schema.by_id(getattr(key, f"{port}_key")),
+                    schema.by_id(key.left_key),
+                ).alias(name)
+                for key, name in zip(config.keys, names, strict=True)
             ]
         )
 
@@ -75,7 +72,14 @@ def _join_records(
     return replace(
         results[side],
         target_node_id=node_id,
-        output=Dataset(frame, source.schema),
+        output=Dataset(
+            frame,
+            source.schema,
+            {"exact_transport": True}
+            if source.metadata.get("exact_transport")
+            or any(c.logical_type == LogicalType.DECIMAL for c in source.schema.columns)
+            else {},
+        ),
         schema=source.schema,
         outputs={},
         value_kind="dataset",
@@ -96,6 +100,13 @@ def join_records(
         raise ApplicationError(
             "INVALID_JOIN_DIAGNOSTIC",
             "A Join key field is unavailable. Select its replacement.",
+            422,
+            node_id=str(node_id),
+        ) from exc
+    except pl.exceptions.PolarsError as exc:
+        raise ApplicationError(
+            "INVALID_JOIN_DIAGNOSTIC",
+            "Combined values cannot fit the common field types. Check precision and scale.",
             422,
             node_id=str(node_id),
         ) from exc

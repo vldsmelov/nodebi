@@ -7,7 +7,7 @@ import { localizeError } from "./localized-errors";
 function createMessages(locale: Locale) {
   const t = (key: string, parameters?: Parameters) => translate(locale, key, parameters);
   return { locale, t, errorText: (error: unknown) => localizeError(locale, error),
-    nodeName: (type: string) => t(nodeNames[type] ?? type),
+    nodeName: (type: string, version?: number) => t(version === 2 && ["scalar_constant", "field_arithmetic", "field_sum", "field_scalar", "field_formula"].includes(type) ? `Exact ${nodeNames[type]}` : type === "calculated_column" && version === 2 ? "Exact Calculated Column" : type === "window" && version === 3 ? "Exact Window" : type === "pivot" && version === 2 ? "Exact Pivot" : nodeNames[type] ?? type),
     cell: (value: unknown, type?: string) => formatCell(locale, value, type) };
 }
 const I18nContext = createContext({ ...createMessages("ru"), setLocale: (locale: Locale) => { void locale; } });

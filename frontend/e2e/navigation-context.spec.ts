@@ -25,9 +25,12 @@ test("atomically add missing navigation fields with conflict and lost-response r
     const readBoard = async (id = board.id) => (await request.get(`${api}/api/v1/dashboards/${id}`)).json();
     const sharedBefore = await readBoard(shared.id);
     await page.goto(`/projects/${project.id}/dashboard?dashboard=${board.id}`);
+    const widget = page.locator(`[data-widget-id="${widgetId}"]`);
     const dialog = page.getByRole("dialog", { name: "Configure navigation", exact: true });
     const configure = async () => {
-      await page.getByRole("button", { name: "Configure navigation", exact: true }).click();
+      const actions = widget.locator("details").filter({ has: page.getByLabel("Widget actions", { exact: true }) });
+      if (await actions.getAttribute("open") === null) await widget.getByLabel("Widget actions", { exact: true }).click();
+      await widget.getByRole("button", { name: "Configure navigation", exact: true }).click();
       await dialog.getByLabel("Destination dashboard").selectOption(detail.id);
       await dialog.getByRole("button", { name: "Suggest matching values" }).click();
       await expect(dialog.getByLabel("Navigation value for country")).toHaveValue("field:col_3");
@@ -36,7 +39,10 @@ test("atomically add missing navigation fields with conflict and lost-response r
       await expect(dialog.getByRole("button", { name: "Save fields and transition" })).toBeDisabled();
       await dialog.getByLabel("I reviewed the added fields and transition").check();
     };
-    await page.getByLabel("Widget title", { exact: true }).fill("Keep this title");
+    await widget.getByRole("button", { name: "Edit visualization", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "Edit visualization", exact: true });
+    await settings.getByLabel("Widget title", { exact: true }).fill("Keep this title");
+    await settings.getByRole("button", { name: "Cancel", exact: true }).click();
     await configure();
     await expect(dialog.getByRole("button", { name: "Save fields and transition" })).toBeDisabled();
     await expect(dialog.getByText("Save dashboard changes before adding navigation fields.")).toBeVisible();

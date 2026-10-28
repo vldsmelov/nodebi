@@ -9,7 +9,7 @@ export function useDirtyGuard(dirty: boolean) {
     const navigate = (event: MouseEvent) => {
       const link = (event.target as Element | null)?.closest("a[href]");
       const href = link?.getAttribute("href");
-      if (dirty && href && !href.startsWith("#") && !window.confirm(t("Discard unsaved changes?"))) {
+      if (dirty && href && link?.getAttribute("target") !== "_blank" && !href.startsWith("#") && !window.confirm(t("Discard unsaved changes?"))) {
         event.preventDefault(); event.stopPropagation();
       }
     };

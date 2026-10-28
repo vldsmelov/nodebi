@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.domain.errors import ApplicationError
 from app.domain.nodes import NodeRegistry
+from app.domain.parameters import ParameterDefinition, compatible_parameters
 from app.domain.visualizations import CHART_TYPES, effective_visualization_config
 from app.infrastructure.storage import StorageProvider
 from app.models import DashboardWidget
@@ -165,6 +166,18 @@ def save_navigation(
                     field.logical_type.value, targets[name].logical_type
                 ):
                     raise ValueError("The mapped value has an incompatible type.")
+                if field.logical_type.value == "decimal" and not compatible_parameters(
+                    ParameterDefinition(
+                        name="field",
+                        logical_type="decimal",
+                        precision=field.metadata.get("precision"),
+                        scale=field.metadata.get("scale"),
+                    ),
+                    targets[name],
+                ):
+                    raise ValueError(
+                        "The mapped decimal field exceeds the destination precision/scale."
+                    )
         widgets = [
             item.model_copy(
                 update={"config": item.config.model_copy(update={"action": payload.action})}

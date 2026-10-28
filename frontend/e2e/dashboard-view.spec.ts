@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
+test.use({ actionTimeout: 15000 });
 
 test("switch view mode and preview, cancel, undo and persist dashboard layout templates", async ({ page, request }) => {
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Guided transitions" } })).json();
@@ -32,7 +33,11 @@ test("switch view mode and preview, cancel, undo and persist dashboard layout te
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     dialog = await openTemplate(); await dialog.getByRole("button", { name: "Apply layout template", exact: true }).click();
     const table = page.locator(`[data-widget-id="${widgetId}"]`);
-    await table.getByLabel("Widget title", { exact: true }).fill("Preserved draft title");
+    await table.getByRole("button", { name: "Edit visualization", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "Edit visualization", exact: true });
+    await settings.getByLabel("Widget title", { exact: true }).fill("Preserved draft title");
+    await settings.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByLabel("Dashboard name", { exact: true }).fill("Preserved dashboard name");
     await page.getByRole("button", { name: "View dashboard", exact: true }).click();
     await expect(page.getByRole("button", { name: "Edit dashboard", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Save dashboard", exact: true })).toHaveCount(0);
@@ -42,11 +47,22 @@ test("switch view mode and preview, cancel, undo and persist dashboard layout te
     await expect(page.locator(".react-resizable-handle").first()).toBeHidden();
     expect(await readBoard()).toEqual(original);
     await page.getByRole("button", { name: "Edit dashboard", exact: true }).click();
-    await page.getByRole("button", { name: "Undo layout template", exact: true }).click();
-    await expect(table.getByLabel("Widget title", { exact: true })).toHaveValue("Preserved draft title");
+    await page.getByRole("button", { name: "Undo layout change", exact: true }).click();
+    await table.getByRole("button", { name: "Edit visualization", exact: true }).click();
+    await expect(settings.getByLabel("Widget title", { exact: true })).toHaveValue("Preserved draft title");
+    await settings.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByLabel("Dashboard name", { exact: true })).toHaveValue("Preserved dashboard name");
     const draft = await page.evaluate(id => JSON.parse(sessionStorage.getItem(`nodebi:dashboard-draft:${id}`)!), board.id);
     const positions = (items: { id: string; x: number; y: number; width: number; height: number }[]) => items.map(({ id, x, y, width, height }) => ({ id, x, y, width, height }));
     expect(positions(draft.widgets)).toEqual(positions(original.widgets));
+    expect(draft.widgets.find((item: { id: string }) => item.id === widgetId).config.action).toEqual(original.widgets.find((item: { id: string }) => item.id === widgetId).config.action);
+    await page.getByLabel("Dashboard name", { exact: true }).fill("Name edited after undo");
+    await page.getByRole("button", { name: "Redo layout change", exact: true }).click();
+    await expect(page.getByLabel("Dashboard name", { exact: true })).toHaveValue("Name edited after undo");
+    const redone = await page.evaluate(id => JSON.parse(sessionStorage.getItem(`nodebi:dashboard-draft:${id}`)!), board.id);
+    expect(redone.widgets.find((item: { id: string }) => item.id === widgetId).width).toBe(12);
+    expect(redone.widgets.find((item: { id: string }) => item.id === widgetId).title).toBe("Preserved draft title");
+    await page.getByRole("button", { name: "Undo layout change", exact: true }).click();
     dialog = await openTemplate(); await dialog.getByRole("button", { name: "Apply layout template", exact: true }).click();
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();

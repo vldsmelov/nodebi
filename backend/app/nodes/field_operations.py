@@ -144,7 +144,10 @@ class FieldOperationExecutor(TypedNodeExecutor):
             constant = scalar(node, context)
             return {
                 "value": ValueSchema(
-                    "scalar", logical_type=constant.logical_type, nullable=constant.value is None
+                    "scalar",
+                    logical_type=constant.logical_type,
+                    nullable=constant.value is None,
+                    metadata=dict(constant.metadata),
                 )
             }
         if node.type in {"field_arithmetic", "field_compare", "field_logical", "field_formula"}:
@@ -198,6 +201,7 @@ class FieldOperationExecutor(TypedNodeExecutor):
                         value.referenced_columns,
                         value.nullable,
                         cast(LogicalType, value.logical_type),
+                        dict(value.metadata),
                     )
                     for name, value in inputs.items()
                 },
@@ -211,6 +215,7 @@ class FieldOperationExecutor(TypedNodeExecutor):
                     referenced_columns=compiled.referenced_columns,
                     complexity=complexity,
                     depth=depth,
+                    metadata=dict(compiled.metadata),
                 )
             }
         table, value = inputs["table"], inputs["value"]
@@ -227,6 +232,11 @@ class FieldOperationExecutor(TypedNodeExecutor):
                 "This operation requires a field from the connected table.", field="value"
             )
         if node.type == "field_scalar":
+            if value.logical_type == LogicalType.DECIMAL:
+                raise ValueConnectionError(
+                    "Decimal scalar outputs are not supported. Keep an exact table result.",
+                    field="value",
+                )
             return {
                 "value": ValueSchema(
                     "scalar", logical_type=value.logical_type, nullable=value.nullable
@@ -252,7 +262,7 @@ class FieldOperationExecutor(TypedNodeExecutor):
                         config.name,
                         cast(LogicalType, value.logical_type),
                         value.nullable,
-                        {"source_columns": list(value.referenced_columns)},
+                        {**value.metadata, "source_columns": list(value.referenced_columns)},
                     ),
                 )
             )
@@ -408,4 +418,13 @@ def field_definitions() -> tuple[NodeDefinition, ...]:
 
 def parameter_identity(node: NodeInstance, context: ExecutionContext) -> str:
     value = scalar(node, context)
+    if value.logical_type == LogicalType.DECIMAL:
+        return json.dumps(
+            {
+                "value": str(value.value) if value.value is not None else None,
+                "logical_type": value.logical_type,
+                "metadata": value.metadata,
+            },
+            sort_keys=True,
+        )
     return json.dumps({"value": value.value, "logical_type": value.logical_type}, sort_keys=True)

@@ -1,9 +1,8 @@
 "use client";
 
-import { useI18n } from "@/lib/i18n";
-
 import { ArrowRight, BarChart3, GitBranch, Sheet } from "lucide-react";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 
 const steps = [
   { icon: Sheet, label: "Import", detail: "Bring your Excel workbook" },
@@ -13,51 +12,29 @@ const steps = [
 
 export default function Home() {
   const { t } = useI18n();
-  return (
-    <main className="min-h-[calc(100vh-2.75rem)] overflow-hidden bg-page text-foreground">
-      <div className="glow" />
-      <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-7 lg:px-10">
-        <Link className="flex items-center gap-3 text-lg font-semibold tracking-tight" href="/">
-          <span className="grid size-9 place-items-center rounded-xl bg-primary text-on-primary">
-            <GitBranch size={19} strokeWidth={2.4} />
-          </span>{t("Node BI")}</Link>
-        <span className="rounded-full border border-outline bg-raised px-3 py-1.5 text-xs text-muted">{t("MVP workspace")}</span>
-      </nav>
-
-      <section className="relative z-10 mx-auto grid max-w-7xl gap-16 px-6 pb-24 pt-20 lg:grid-cols-[1.1fr_0.9fr] lg:px-10 lg:pt-28">
+  return <>
+    <main className="corporate-hero">
+      <section className="corporate-hero-grid">
         <div>
-          <p className="mb-6 font-mono text-xs uppercase tracking-[0.28em] text-accent">{t("Visual analytics · no code required")}</p>
-          <h1 className="max-w-3xl text-5xl font-medium leading-[0.98] tracking-[-0.055em] sm:text-7xl">{t("Turn spreadsheets into clear decisions.")}</h1>
-          <p className="mt-7 max-w-xl text-lg leading-8 text-muted">{t("Build repeatable data workflows, inspect every step, and compose dashboards without hiding the logic.")}</p>
-          <Link
-            className="mt-10 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-on-primary transition hover:bg-primary-hover"
-            href="/projects"
-          >{t("Create your first project")}{" "}<ArrowRight size={17} />
-          </Link>
+          <span className="corporate-eyebrow">{t("Data. Insights. Decisions.")}</span>
+          <h1>{t("Turn spreadsheets into clear decisions.")}</h1>
+          <p className="corporate-hero-description">{t("Build repeatable data workflows, inspect every step, and compose dashboards without hiding the logic.")}</p>
+          <div className="corporate-hero-actions">
+            <Link className="af-btn af-btn--lg" href="/projects">{t("Open projects")}<ArrowRight size={18} aria-hidden="true" /></Link>
+          </div>
         </div>
-
-        <div className="relative rounded-[2rem] border border-outline bg-raised p-5 shadow-2xl shadow-shade/40 backdrop-blur">
-          <div className="mb-5 flex items-center justify-between border-b border-outline pb-4">
-            <span className="text-sm font-medium">{t("Your analysis, connected")}</span>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted">{t("Live canvas")}</span>
+        <div className="corporate-hero-visual">
+          <h2>{t("Your analysis, connected")}</h2>
+          <div className="corporate-hero-chart" aria-hidden="true">
+            {[42, 66, 50, 82, 72, 100].map((height, index) => <span key={index} style={{ height: height + "%" }} />)}
           </div>
-          <div className="space-y-3">
-            {steps.map(({ icon: Icon, label, detail }, index) => (
-              <div className="relative flex items-center gap-4 rounded-2xl border border-outline bg-surface p-4" key={label}>
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
-                  <Icon size={20} />
-                </span>
-                <div>
-                  <p className="font-medium">{t(label)}</p>
-                  <p className="mt-0.5 text-sm text-muted">{t(detail)}</p>
-                </div>
-                <span className="ml-auto font-mono text-xs text-muted">0{index + 1}</span>
-                {index < steps.length - 1 ? <span className="node-line" /> : null}
-              </div>
-            ))}
-          </div>
+          {steps.map(({ icon: Icon, label, detail }, index) => <div className="corporate-hero-step" key={label}>
+            <span aria-hidden="true">0{index + 1}</span><Icon size={22} aria-hidden="true" />
+            <div><strong>{t(label)}</strong><p>{t(detail)}</p></div>
+          </div>)}
         </div>
       </section>
     </main>
-  );
+    <footer className="corporate-footer"><span>{t("Alabuga · analytical workspace")}</span><span>{t("Visual analytics · no code required")}</span></footer>
+  </>;
 }

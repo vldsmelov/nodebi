@@ -2,6 +2,7 @@ import polars as pl
 from pydantic import BaseModel, Field, field_validator
 
 from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema, LogicalType
+from app.domain.decimal_composition import validate_decimal_references
 from app.domain.errors import NodeExecutionError
 from app.domain.formulas import compile_formula
 from app.domain.nodes import ExecutionContext, NodeDefinition
@@ -37,7 +38,7 @@ class CalculatedColumnExecutor(UnaryExecutor):
             config.name,
             compiled.logical_type,
             compiled.nullable,
-            {"source_columns": list(compiled.referenced_columns)},
+            {**compiled.metadata, "source_columns": list(compiled.referenced_columns)},
         )
         return DatasetSchema((*schema.columns, column))
 
@@ -48,6 +49,7 @@ class CalculatedColumnExecutor(UnaryExecutor):
         schema = self.infer_schema(node, {"input": source.schema}, context)
         config = CalculatedColumnConfig.model_validate(node.config)
         compiled = compile_formula(config.expression, source.schema, allow_predicates=True)
+        validate_decimal_references(source, compiled.referenced_columns)
         try:
             frame = source.frame.with_columns(compiled.expression.alias(config.name))
         except (pl.exceptions.InvalidOperationError, pl.exceptions.ComputeError) as exc:

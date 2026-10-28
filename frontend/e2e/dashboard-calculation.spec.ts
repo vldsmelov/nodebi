@@ -24,6 +24,7 @@ test("open the exact widget calculation, restore its group and preserve dashboar
     await page.goto(boardUrl);
     await page.evaluate(id => sessionStorage.setItem(`nodebi:workflow-view:${id}`, JSON.stringify({ left: 272, right: 304, collapsed: ["Results"] })), flow.id);
     await page.getByLabel("Dashboard name", { exact: true }).fill("Recoverable title");
+    await page.getByLabel("Widget actions", { exact: true }).click();
     page.once("dialog", dialog => dialog.dismiss());
     await page.getByRole("link", { name: "Open calculation", exact: true }).click();
     await expect(page.getByLabel("Dashboard name", { exact: true })).toHaveValue("Recoverable title");

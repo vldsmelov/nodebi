@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.workflows import AppSettings, ExecutionCache, Registry, Storage
+from app.domain.visualization_specs import VisualizationTypeDefinition, visualization_types
 from app.infrastructure.database import get_session
 from app.schemas.dashboards import (
     IndependentVisualizationPreview,
@@ -31,6 +32,11 @@ class VisualizationUse(BaseModel):
     dashboard_id: str
     name: str
     widget_id: str
+
+
+@router.get("/api/v1/visualization-types", response_model=list[VisualizationTypeDefinition])
+def typed_visualization_types() -> list[VisualizationTypeDefinition]:
+    return visualization_types()
 
 
 @router.post("/api/v1/workflows/{workflow_id}/convert-visualizations", response_model=WorkflowRead)
@@ -75,28 +81,66 @@ def get_visualization(identity: uuid.UUID, session: Database) -> VisualizationRe
     status_code=201,
 )
 def create_visualization(
-    project_id: uuid.UUID, payload: IndependentVisualizationSave, session: Database
+    project_id: uuid.UUID,
+    payload: IndependentVisualizationSave,
+    session: Database,
+    registry: Registry,
+    storage: Storage,
+    settings: AppSettings,
+    cache: ExecutionCache,
 ) -> VisualizationRead:
-    return IndependentVisualizationService(session).save(project_id, payload)
+    return IndependentVisualizationService(session).save(
+        project_id,
+        payload,
+        validate_result=lambda draft: render_visualization(
+            session, draft.id, registry, storage, settings, cache, draft=draft
+        ),
+    )
 
 
 @router.put("/api/v1/visualizations/{identity}", response_model=VisualizationRead)
 def save_visualization(
-    identity: uuid.UUID, payload: IndependentVisualizationSave, session: Database
+    identity: uuid.UUID,
+    payload: IndependentVisualizationSave,
+    session: Database,
+    registry: Registry,
+    storage: Storage,
+    settings: AppSettings,
+    cache: ExecutionCache,
 ) -> VisualizationRead:
     service = IndependentVisualizationService(session)
-    return service.save(service.get(identity).project_id, payload, identity)
+    return service.save(
+        service.get(identity).project_id,
+        payload,
+        identity,
+        validate_result=lambda draft: render_visualization(
+            session, draft.id, registry, storage, settings, cache, draft=draft
+        ),
+    )
 
 
 @router.post(
     "/api/v1/visualizations/{identity}/copy", response_model=VisualizationRead, status_code=201
 )
 def copy_visualization(
-    identity: uuid.UUID, payload: IndependentVisualizationSave, session: Database
+    identity: uuid.UUID,
+    payload: IndependentVisualizationSave,
+    session: Database,
+    registry: Registry,
+    storage: Storage,
+    settings: AppSettings,
+    cache: ExecutionCache,
 ) -> VisualizationRead:
     service = IndependentVisualizationService(session)
     row = service.get(identity)
-    return service.save(row.project_id, payload, copy_from=identity)
+    return service.save(
+        row.project_id,
+        payload,
+        copy_from=identity,
+        validate_result=lambda draft: render_visualization(
+            session, draft.id, registry, storage, settings, cache, draft=draft
+        ),
+    )
 
 
 @router.post(

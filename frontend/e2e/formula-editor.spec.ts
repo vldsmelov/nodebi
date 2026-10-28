@@ -41,7 +41,7 @@ test("insert and replace named formula fields and retain references after upstre
     await expect(page.getByLabel("Insert formula field").locator('option[value="col_6"]')).toContainText("sales.xlsx");
     await page.getByLabel("Find formula field").fill("");
     await page.getByRole("button", { name: "Preview output", exact: true }).click();
-    await expect(page.getByRole("columnheader", { name: "Computed", exact: true })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Computed float", exact: true })).toBeVisible();
     await expect(page.getByRole("table").getByRole("row").nth(1).getByRole("cell").last()).toHaveText("9");
     await page.screenshot({ path: "../.backups/ux-formula.png" });
     await page.reload(); await page.getByLabel("Edit workflow node").selectOption(c);

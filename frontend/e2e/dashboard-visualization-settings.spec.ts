@@ -2,9 +2,11 @@ import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Dashboard } from "@/features/dashboard/api";
+import { configureFormLayout, expectDialogFits, formLayouts } from "./form-reflow";
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
-test("edit shared visualization from dashboard, retain layout draft and recover revision conflict", async ({ page, request }) => {
+for (const layout of formLayouts) test(`edit shared visualization from dashboard, retain layout draft and recover revision conflict (${layout})`, async ({ page, request }) => {
   test.setTimeout(90000);
+  await configureFormLayout(page, layout);
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Widget settings" } })).json();
   try {
     const source = await (await request.post(`${api}/api/v1/projects/${project.id}/sources/excel`, { multipart: { file: { name: "sales.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: readFileSync(resolve("../fixtures/excel/sales.xlsx")) } } })).json();
@@ -30,6 +32,7 @@ test("edit shared visualization from dashboard, retain layout draft and recover 
     await dialog.getByLabel("Orientation", { exact: true }).selectOption("horizontal");
     await expect(dialog.getByRole("button", { name: "Save visualization" })).toBeDisabled();
     await dialog.getByLabel("Apply these settings to all listed widgets").check();
+    await expectDialogFits(page, dialog);
     const before = await read();
     await dialog.getByRole("button", { name: "Save visualization" }).click();
     await expect(dialog).not.toBeVisible();
@@ -51,7 +54,8 @@ test("edit shared visualization from dashboard, retain layout draft and recover 
     const conflict = await conflictResponse; expect(conflict.status()).toBe(409); expect((await conflict.json()).detail.code).toBe("WORKFLOW_CONFLICT");
     await expect(dialog.getByRole("alert")).toContainText("This workflow was changed elsewhere. Reload before saving.");
     await expect(dialog.getByLabel("Chart title")).toHaveValue("Conflicting draft"); expect((await read()).name).toBe("Concurrent workflow");
-    await page.screenshot({ path: "../.backups/ux-dashboard-settings-conflict.png" });
+    await expectDialogFits(page, dialog);
+    await page.screenshot({ path: test.info().outputPath("dashboard-settings-conflict.png") });
     page.once("dialog", confirmation => confirmation.accept()); await dialog.getByRole("button", { name: "Reload settings" }).click();
     await expect(dialog.getByLabel("Chart title")).toHaveValue("Updated from dashboard");
     await dialog.getByLabel("Chart title").fill("Recovered"); await dialog.getByLabel("Apply these settings to all listed widgets").check();

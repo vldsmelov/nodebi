@@ -1,7 +1,21 @@
 import type { Workflow, WorkflowSave } from "./types";
+import { isVolatileDraft, readDocumentDraft, removeDocumentDraft, volatileDraftNotice, writeDocumentDraft } from "@/features/workspace/document-drafts";
 
 export type GraphDraft = Omit<WorkflowSave, "expected_revision">;
 export type SaveState = { status: "saved" | "saving" | "error"; revision: number; error: string | Error | null };
+
+type DraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem"> & {
+  retireItem?: (key: string) => void;
+  isVolatile?: (key: string) => boolean;
+};
+/** Access the browser property inside the writer's guarded operations, never during rendering. */
+export const browserWorkflowStorage: DraftStorage = {
+  getItem: readDocumentDraft,
+  setItem: (key, value) => writeDocumentDraft(key, value, true),
+  removeItem: removeDocumentDraft,
+  retireItem: key => removeDocumentDraft(key, true),
+  isVolatile: isVolatileDraft,
+};
 
 /** One serialized writer per mounted workflow; drafts survive navigation/reload. */
 export class WorkflowAutosave {
@@ -20,7 +34,7 @@ export class WorkflowAutosave {
     initial: GraphDraft,
     private readonly persist: (payload: WorkflowSave) => Promise<Workflow>,
     private readonly notify: (state: SaveState) => void,
-    private readonly storage: Storage,
+    private readonly storage: DraftStorage,
     private readonly namespace = "",
   ) {
     this.revision = revision;
@@ -31,6 +45,7 @@ export class WorkflowAutosave {
   get key() { return `nodebi:workflow-draft:${this.id}${this.namespace ? `:${this.namespace}` : ""}`; }
   get dirty() { return this.pending !== null || this.running !== null; }
   get savedGraph() { return this.acknowledged; }
+  get recoveryNotice() { return this.storage.isVolatile?.(this.key) ? volatileDraftNotice : null; }
 
   recover(): { draft: GraphDraft; conflict: boolean } | null {
     try {
@@ -41,6 +56,10 @@ export class WorkflowAutosave {
       this.pending = value.draft;
       this.revision = value.revision;
       const conflict = value.revision !== this.serverRevision;
+      if (this.storage.isVolatile?.(this.key)) {
+        this.storageError = volatileDraftNotice;
+        this.notify({ status: "error", revision: this.revision, error: this.storageError });
+      }
       return { draft: value.draft, conflict };
     } catch {
       this.notify({ status: "error", revision: this.revision, error: "The local draft could not be restored." });
@@ -51,13 +70,26 @@ export class WorkflowAutosave {
   private get serverRevision() { return this.initialRevision; }
   resume() { this.stopped = false; }
 
+  discard(): boolean {
+    try { this.storage.removeItem(this.key); }
+    catch {
+      this.notify({ status: "error", revision: this.revision, error: "The local draft could not be removed. Nothing was discarded." });
+      return false;
+    }
+    clearTimeout(this.timer);
+    this.pending = null;
+    this.stopped = true;
+    return true;
+  }
+
   private remember() {
     try {
       if (this.pending) this.storage.setItem(this.key, JSON.stringify({ revision: this.revision, draft: this.pending }));
+      else if (this.storage.retireItem) this.storage.retireItem(this.key);
       else this.storage.removeItem(this.key);
       this.storageError = null;
     } catch {
-      this.storageError = "Local recovery storage is unavailable. Keep this page open until saved.";
+      this.storageError = this.storage.isVolatile?.(this.key) ? volatileDraftNotice : "Local recovery storage is unavailable. Keep this page open until saved.";
     }
   }
 

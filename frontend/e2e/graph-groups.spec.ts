@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
 
-test("group nodes, preserve boundary connections and restore view preferences without graph saves", async ({ page, request }) => {
+for (const selection of ["canvas", "checkboxes"]) test(`group nodes (${selection}), preserve boundary connections and restore view preferences without graph saves`, async ({ page, request }) => {
   test.setTimeout(90000);
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Groups acceptance" } })).json();
   try {
@@ -19,11 +19,30 @@ test("group nodes, preserve boundary connections and restore view preferences wi
     const preview = async () => { const result = await request.post(`${api}/api/v1/workflows/${workflow.id}/nodes/${ids[2]}/preview`, { data: { limit: 100 } }); expect(result.ok(), await result.text()).toBe(true); return result.json(); };
     const baseline = await preview();
     const saved = () => expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    if (selection === "checkboxes") await page.setViewportSize({ width: 420, height: 900 });
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByLabel("Edit workflow node").selectOption(ids[0]);
-    await page.locator(`.react-flow__node[data-id="${ids[0]}"]`).click();
-    await page.locator(`.react-flow__node[data-id="${ids[1]}"]`).click({ modifiers: ["Shift"] });
-    await page.getByText("Node groups", { exact: true }).click();
+    if (selection === "canvas") {
+      await page.locator(`.react-flow__node[data-id="${ids[0]}"]`).click();
+      await page.locator(`.react-flow__node[data-id="${ids[1]}"]`).click({ modifiers: ["Shift"] });
+      await page.getByText("Node groups", { exact: true }).click();
+    } else {
+      await page.getByText("Node groups", { exact: true }).click();
+      const beforeSelection = await read();
+      await page.getByRole("button", { name: "Clear selection", exact: true }).click();
+      await expect(page.getByText(/Selected nodes: 0/)).toBeVisible();
+      const choices = page.getByRole("region", { name: "Nodes for grouping", exact: true }).getByRole("checkbox");
+      await choices.nth(0).focus();
+      await page.keyboard.press("Space");
+      await page.keyboard.press("Tab");
+      await expect(choices.nth(1)).toBeFocused();
+      await page.keyboard.press("Space");
+      await expect(choices.nth(0)).toBeChecked();
+      await expect(choices.nth(1)).toBeChecked();
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: test.info().outputPath("checkbox-selection.png"), fullPage: true });
+      expect(await read()).toEqual(beforeSelection);
+    }
     await expect(page.getByText(/Selected nodes: 2/)).toBeVisible();
     await page.getByLabel("Group name", { exact: true }).fill("Preparation");
     await page.getByRole("button", { name: "Group selected nodes", exact: true }).click(); await saved();
@@ -39,8 +58,16 @@ test("group nodes, preserve boundary connections and restore view preferences wi
     await page.getByLabel("Configuration panel width", { exact: true }).focus();
     await page.getByLabel("Configuration panel width", { exact: true }).press("End");
     await expect(page.getByLabel("Configuration panel width", { exact: true })).toHaveValue("640");
+    const widthControl = page.getByLabel("Configuration panel width", { exact: true });
+    const widthBox = (await widthControl.boundingBox())!;
+    await widthControl.click({ position: { x: widthBox.width / 2, y: widthBox.height / 2 } });
+    expect(Number(await widthControl.inputValue())).toBeGreaterThan(260);
+    expect(Number(await widthControl.inputValue())).toBeLessThan(640);
+    expect(await read()).toEqual(grouped);
+    await widthControl.press("End");
+    await expect(widthControl).toHaveValue("640");
     await page.getByRole("button", { name: "Fit view", exact: true }).click();
-    await page.screenshot({ path: "../.backups/ux-groups.png" });
+    await page.screenshot({ path: test.info().outputPath("groups.png") });
     expect(await read()).toEqual(grouped);
     await page.reload();
     await expect(page.getByTestId("collapsed-group")).toHaveCount(1);

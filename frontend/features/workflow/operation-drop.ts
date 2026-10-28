@@ -2,7 +2,7 @@ import type { GraphDraft } from "./autosave";
 import type { NodeDefinition, WorkflowPosition, WorkflowSchemaResult } from "./types";
 import type { FieldEndpoint } from "./field-interaction";
 import { connectionError, readHandle, saveWire } from "./field-wires";
-import { fieldDefaults } from "./FieldOperationConfiguration";
+import { fieldConfig } from "./FieldOperationConfiguration";
 
 export type OperationChoice = { type: string; version: number; port: string };
 
@@ -13,7 +13,7 @@ export function appendOperation(graph: GraphDraft, catalog: NodeDefinition[], sc
   if (!output || (endpoint.column && !output.columns?.some(column => column.column_id === endpoint.column))) return null;
   const definition = catalog.find(item => item.type === choice.type && item.version === choice.version);
   if (!definition?.input_ports.some(port => port.id === choice.port) || graph.nodes.some(node => node.id === id)) return null;
-  const next: GraphDraft = { ...graph, nodes: [...graph.nodes, { id, type: definition.type, version: definition.version, position, config: { ...(fieldDefaults[definition.type] ?? {}) }, ui: {} }], edges: [...graph.edges] };
+  const next: GraphDraft = { ...graph, nodes: [...graph.nodes, { id, type: definition.type, version: definition.version, position, config: fieldConfig(definition.type, definition.version), ui: {} }], edges: [...graph.edges] };
   const connection = { source: source.nodeId, sourceHandle: source.handle, target: id, targetHandle: choice.port };
   if (connectionError(next, catalog, connection, schema)) return null;
   next.edges.push(saveWire(connection));

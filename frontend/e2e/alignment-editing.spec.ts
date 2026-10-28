@@ -1,0 +1,80 @@
+import { test, expect, request as createRequest } from "@playwright/test";
+const api = process.env.NODEBI_E2E_API ?? "http://localhost:8010";
+
+test("edit aligned formula chain preserves branches and layout across draft and lost-response recovery", async ({ page, request }) => {
+  test.setTimeout(120000);
+  const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Alignment edit acceptance" } })).json();
+  page.on("dialog", dialog => dialog.accept());
+  try {
+    const root = `${api}/api/v1/projects/${project.id}`;
+    const source = await (await request.post(`${root}/imports`, { multipart: { connector: "csv", file: { name: "sales.csv", mimeType: "text/csv", buffer: Buffer.from("category,amount\nA,0.10\nA,0.20\nB,0.50\n") } } })).json();
+    const { profile } = await (await request.post(`${api}/api/v1/imports/${source.id}/inspect`, { data: { resource_id: "table" } })).json();
+    const snapshot = await (await request.post(`${api}/api/v1/imports/${source.id}/apply`, { data: { profile, expected_revision: 1, request_id: crypto.randomUUID() } })).json();
+    const seedResponse = await request.post(`${root}/report-builder/apply`, { data: { request_id: crypto.randomUUID(), source_id: source.id, resource_id: "table", expected_snapshot_id: snapshot.id, name: "Prepared input", dimensions: [profile.fields[0].field_id], measures: [{ name: "Revenue", operation: "sum", column_id: profile.fields[1].field_id }] } });
+    expect(seedResponse.ok()).toBeTruthy(); const seed = await seedResponse.json();
+    const prepared = await (await request.get(`${root}/report-builder/inputs/${seed.workflow_id}/${seed.publication_id}`)).json();
+    const value = prepared.columns.find((c: { logical_type: string }) => c.logical_type === "decimal").column_id;
+    const createdResponse = await request.post(`${root}/alignment-reports/apply`, { data: { request_id: crypto.randomUUID(), workflow_id: seed.workflow_id, left_publication_id: seed.publication_id, right_publication_id: seed.publication_id, expected_token: prepared.expected_token, name: "Original aligned", alignment: { keys: [{ left_key: profile.fields[0].field_id, right_key: profile.fields[0].field_id }], left_value: value, right_value: value }, formulas: [{ node_id: crypto.randomUUID(), name: "Constant", expression: "0.1+0.2", scale: 2 }] } });
+    expect(createdResponse.ok()).toBeTruthy(); const ids = await createdResponse.json();
+    const originalGraph = await (await request.get(`${api}/api/v1/workflows/${ids.workflow_id}`)).json();
+    const originalDashboard = await (await request.get(`${api}/api/v1/dashboards/${ids.dashboard_id}`)).json();
+    const originalVisual = await (await request.get(`${api}/api/v1/visualizations/${ids.visualization_id}`)).json();
+    await page.goto(`/projects/${project.id}/build?visualization=${ids.visualization_id}`);
+    await page.getByRole("link", { name: "Edit aligned calculation", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Edit aligned calculation", exact: true })).toBeVisible();
+    await page.getByLabel("Report name", { exact: true }).fill("Edited aligned");
+    await page.getByLabel("Expression", { exact: true }).fill("0.1+0.4");
+    await page.getByRole("button", { name: "Check formula fields", exact: true }).click();
+    await page.getByRole("button", { name: "Add aligned formula", exact: true }).click();
+    const second = page.getByRole("region", { name: "Formula 2", exact: true });
+    await second.getByLabel("Formula name", { exact: true }).fill("Double");
+    const previous = await second.getByRole("combobox", { name: "Insert formula field", exact: true }).getByRole("option", { name: "Constant · decimal", exact: true }).getAttribute("value");
+    expect(previous).toBeTruthy();
+    await second.getByLabel("Expression", { exact: true }).fill(`[${previous}]*2`);
+    await page.getByRole("button", { name: "Preview calculation", exact: true }).click();
+    await expect(page.getByText("Confirm updating table fields after changing grouping or measures.").last()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save report", exact: true })).toBeDisabled();
+    await page.getByLabel("Update visualization field bindings", { exact: true }).check();
+    await page.reload();
+    await page.getByRole("button", { name: "Restore local draft", exact: true }).click();
+    await expect(page.getByLabel("Report name", { exact: true })).toHaveValue("Edited aligned");
+    await expect(page.getByLabel("Update visualization field bindings", { exact: true })).toBeChecked();
+    await page.getByRole("button", { name: "Preview calculation", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Save report", exact: true })).toBeEnabled();
+    await expect(second.getByRole("button", { name: "Constant · decimal", exact: true })).toBeVisible();
+    await expect(page.getByText(/Field schema unavailable:/)).toHaveCount(0);
+    await page.setViewportSize({ width: 760, height: 950 });
+    await page.screenshot({ path: test.info().outputPath("alignment-edit.png"), fullPage: true });
+    const endpoint = `${root}/alignment-reports/${ids.visualization_id}`;
+    const attempts: unknown[] = [];
+    await page.route(`${endpoint}/apply`, async route => {
+      attempts.push(route.request().postDataJSON());
+      if (attempts.length === 1) { const result = await route.fetch(); expect(result.ok()).toBeTruthy(); await route.abort("connectionreset"); }
+      else await route.continue();
+    });
+    await page.getByRole("button", { name: "Save report", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Retry report save", exact: true })).toBeEnabled();
+    await page.route(endpoint, async route => { if (route.request().method() === "GET") await route.abort("failed"); else await route.fallback(); });
+    await page.reload();
+    await page.getByRole("button", { name: "Restore local draft", exact: true }).click();
+    await page.getByRole("button", { name: "Retry report save", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Report is ready", exact: true })).toBeVisible();
+    expect(attempts).toHaveLength(2); expect(attempts[0]).toEqual(attempts[1]);
+    const after = await (await request.get(`${api}/api/v1/workflows/${ids.workflow_id}`)).json();
+    expect(after.nodes.slice(0, originalGraph.nodes.length - 2)).toEqual(originalGraph.nodes.slice(0, -2));
+    expect(after.edges.slice(0, originalGraph.edges.length)).toEqual(originalGraph.edges);
+    expect(after.revision).toBe(originalGraph.revision + 1);
+    expect(await (await request.get(`${api}/api/v1/dashboards/${ids.dashboard_id}`)).json()).toEqual(originalDashboard);
+    const visual = await (await request.get(`${api}/api/v1/visualizations/${ids.visualization_id}`)).json();
+    expect(visual.publication_id).toBe(originalVisual.publication_id);
+    expect(visual.config.show_labels).toBe(originalVisual.config.show_labels);
+    const rendered = await request.post(`${api}/api/v1/visualizations/${ids.visualization_id}/result`, { data: {} });
+    expect(rendered.ok()).toBeTruthy();
+    expect((await rendered.json()).rows.map((row: Record<string, unknown>) => [row.Constant, row.Double])).toEqual([["0.50", "1.00"], ["0.50", "1.00"]]);
+    expect(await page.evaluate(() => Object.keys(sessionStorage).filter(k => k.startsWith("nodebi:report-draft:")))).toEqual([]);
+  } finally {
+    const cleanup = await createRequest.newContext();
+    expect((await cleanup.delete(`${api}/api/v1/projects/${project.id}?confirm=true`)).ok()).toBeTruthy();
+    await cleanup.dispose();
+  }
+});

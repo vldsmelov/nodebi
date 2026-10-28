@@ -16,6 +16,11 @@ export const saveDashboard = (dashboard: Dashboard) => apiRequest<Dashboard>(`/a
 export const getVisualizationResult = (identity: string, offset = 0, parameters?: import("@/features/workflow/types").ParameterValues, context?: components["schemas"]["ViewContext"]) => context || parameters && Object.keys(parameters).length ? apiRequest<VisualizationResult>(`/api/v1/visualizations/${identity}/result`, { method: "POST", body: JSON.stringify({ parameters, context, offset, limit: 100 }) }) : apiRequest<VisualizationResult>(`/api/v1/visualizations/${identity}/result?offset=${offset}&limit=100`);
 export const deleteDashboard = (identity: string) => apiRequest<void>(`/api/v1/dashboards/${identity}`, { method: "DELETE" });
 
+export type DashboardLayoutTemplate = components["schemas"]["DashboardLayoutRead"];
+export type DashboardLayoutRequest = components["schemas"]["DashboardLayoutSave"];
+export const listDashboardLayouts = (id: string) => apiRequest<DashboardLayoutTemplate[]>(`/api/v1/dashboards/${id}/layout-templates`);
+export const saveDashboardLayout = (id: string, payload: DashboardLayoutRequest) => apiRequest<components["schemas"]["DashboardLayoutSaved"]>(`/api/v1/dashboards/${id}/layout-templates`, { method: "POST", body: JSON.stringify(payload) });
+
 export type DashboardVisualizationCreate = components["schemas"]["DashboardVisualizationCreate"];
 export const createDashboardVisualization = (dashboardId: string, payload: DashboardVisualizationCreate) => apiRequest<Dashboard>(`/api/v1/dashboards/${dashboardId}/visualizations`, { method: "POST", body: JSON.stringify(payload) });
 

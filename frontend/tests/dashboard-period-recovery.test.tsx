@@ -1,0 +1,121 @@
+import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { I18nProvider } from "@/lib/i18n";
+import { dashboardPeriodKey, readPeriodDraft, RecoverableDashboardPeriod } from "@/features/dashboard/RecoverableDashboardPeriod";
+import { resetDocumentDrafts } from "@/features/workspace/document-drafts";
+import type { Period } from "@/features/dashboard/DashboardPeriod";
+afterEach(() => { cleanup(); vi.restoreAllMocks(); sessionStorage.clear(); resetDocumentDrafts(); });
+const current = { start: "2026-10-01", end: "2026-10-31" };
+const raw = JSON.stringify({ version: 1, projectId: "project", dashboardId: "board", period: null, scratch: { start: "2026-09-01", end: "" } });
+function view(onChange = vi.fn(), period: Period | null = null, dashboardId = "board") {
+  return <I18nProvider initialLocale="en"><RecoverableDashboardPeriod projectId="project" dashboardId={dashboardId} period={period} onChange={onChange} /></I18nProvider>;
+}
+it("recovers partial dates after a new document only on request, with input focus and no application", () => {
+  const change = vi.fn();
+  const first = render(view(change));
+  fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-09-01" } });
+  const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload);
+  expect(unload.defaultPrevented).toBe(true);
+  first.unmount(); resetDocumentDrafts();
+  render(view(change));
+  expect(screen.getByLabelText("Start date")).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Restore local draft" }));
+  expect(screen.getByLabelText("Start date")).toHaveValue("2026-09-01");
+  expect(screen.getByLabelText("Start date")).toHaveFocus();
+  expect(screen.getByLabelText("End date")).toHaveValue("");
+  expect(change).not.toHaveBeenCalled();
+});
+it("isolates dashboards and warns on a changed URL period without overwriting it", () => {
+  sessionStorage.setItem(dashboardPeriodKey("project", "board"), raw);
+  const other = render(view(vi.fn(), null, "other"));
+  expect(screen.queryByRole("button", { name: "Restore local draft" })).not.toBeInTheDocument();
+  other.unmount();
+  const change = vi.fn();
+  const result = render(view(change, current));
+  expect(screen.getByText("The applied period has changed. Restoring date inputs will not change the report.")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Restore local draft" }));
+  result.rerender(view(change, { ...current }));
+  expect(screen.getByLabelText("Start date")).toHaveValue("2026-09-01");
+  expect(change).not.toHaveBeenCalled();
+  result.rerender(view(change, null));
+  expect(screen.getByRole("button", { name: "Restore local draft" })).toBeVisible();
+  expect(change).not.toHaveBeenCalled();
+});
+it("retires only explicitly applied dates and preserves focus across the URL update", () => {
+  const change = vi.fn();
+  const result = render(view(change));
+  fireEvent.change(screen.getByLabelText("Start date"), { target: { value: current.start } });
+  fireEvent.change(screen.getByLabelText("End date"), { target: { value: current.end } });
+  const apply = screen.getByRole("button", { name: "Apply period" }); apply.focus();
+  fireEvent.click(apply);
+  expect(change).toHaveBeenCalledWith(current);
+  expect(sessionStorage.getItem(dashboardPeriodKey("project", "board"))).toBeNull();
+  result.rerender(view(change, current));
+  expect(apply).toHaveFocus();
+  expect(screen.queryByRole("button", { name: "Restore local draft" })).not.toBeInTheDocument();
+});
+it("uses the latest bounded document copy on quota failure and keeps it on failed discard", () => {
+  const first = render(view());
+  fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-08-01" } });
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Quota"); });
+  fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-09-01" } });
+  first.unmount();
+  render(view());
+  fireEvent.click(screen.getByRole("button", { name: "Restore local draft" }));
+  expect(screen.getByLabelText("Start date")).toHaveValue("2026-09-01");
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => { throw new Error("Denied"); });
+  fireEvent.click(screen.getByRole("button", { name: "Discard local draft" }));
+  expect(screen.getByLabelText("Start date")).toHaveValue("2026-09-01");
+  expect(screen.getByText("Date recovery storage is unavailable. Keep this page open until you apply the period.")).toBeVisible();
+});
+it("blocks unreadable recovery until an explicit decision and discards without applying", () => {
+  sessionStorage.setItem(dashboardPeriodKey("project", "board"), "broken");
+  const change = vi.fn(); render(view(change, current));
+  expect(screen.getByLabelText("Start date")).toBeDisabled();
+  expect(sessionStorage.getItem(dashboardPeriodKey("project", "board"))).toBe("broken");
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  fireEvent.click(screen.getByRole("button", { name: "Discard local draft" }));
+  expect(screen.getByLabelText("Start date")).toHaveValue(current.start);
+  expect(screen.getByLabelText("Start date")).toHaveFocus();
+  expect(change).not.toHaveBeenCalled();
+});
+it("rejects foreign, malformed and oversized recovery", () => {
+  expect(() => readPeriodDraft(raw, "foreign", "board")).toThrow();
+  expect(() => readPeriodDraft(raw, "project", "foreign")).toThrow();
+  expect(() => readPeriodDraft(" ".repeat(4097), "project", "board")).toThrow();
+  const value = JSON.parse(raw); value.scratch.end = 4;
+  expect(() => readPeriodDraft(JSON.stringify(value), "project", "board")).toThrow();
+});
+it("requires explicit continuation when storage cannot be read and then focuses usable dates", () => {
+  vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("Denied"); });
+  const change = vi.fn(); render(view(change, current));
+  expect(screen.getByLabelText("Start date")).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Continue without recovery" }));
+  expect(screen.getByLabelText("Start date")).toBeEnabled();
+  expect(screen.getByLabelText("Start date")).toHaveFocus();
+  expect(change).not.toHaveBeenCalled();
+});
+it("does not resurrect an old date draft in the document after explicit application with cleanup denied", () => {
+  const change = vi.fn(); const first = render(view(change));
+  fireEvent.change(screen.getByLabelText("Start date"), { target: { value: current.start } });
+  fireEvent.change(screen.getByLabelText("End date"), { target: { value: current.end } });
+  vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => { throw new Error("Denied"); });
+  fireEvent.click(screen.getByRole("button", { name: "Apply period" }));
+  expect(change).toHaveBeenCalledWith(current);
+  first.unmount(); render(view(change, current));
+  expect(screen.queryByRole("button", { name: "Restore local draft" })).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Start date")).toHaveValue(current.start);
+});
+it("does not reopen denied-read recovery on its own URL application when removal succeeds", () => {
+  vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("Denied read"); });
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Denied write"); });
+  const change = vi.fn(); const result = render(view(change));
+  fireEvent.click(screen.getByRole("button", { name: "Continue without recovery" }));
+  fireEvent.change(screen.getByLabelText("Start date"), { target: { value: current.start } });
+  fireEvent.change(screen.getByLabelText("End date"), { target: { value: current.end } });
+  const apply = screen.getByRole("button", { name: "Apply period" }); apply.focus(); fireEvent.click(apply);
+  result.rerender(view(change, current));
+  expect(apply).toBeEnabled(); expect(apply).toHaveFocus();
+  expect(screen.queryByRole("button", { name: "Continue without recovery" })).not.toBeInTheDocument();
+});

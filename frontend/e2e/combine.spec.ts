@@ -16,8 +16,8 @@ test("configure two-input transforms and propagate Pivot fields to Select Column
     await page.getByRole("button", { name: "Create workflow", exact: true }).click();
     await showAllOperations(page); await page.getByTitle("Add Excel Source").click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    const source = `${await page.locator(".react-flow__node").last().getAttribute("data-id")}:dataset`;
-    await showAllOperations(page); await page.getByTitle("Add Join").click();
+    const source = JSON.stringify([await page.locator(".react-flow__node").last().getAttribute("data-id"), "dataset"]);
+    await showAllOperations(page); await page.getByTitle("Add Join · v1", { exact: true }).click();
     await page.getByLabel("Input left").selectOption({ index: 1 });
     await page.getByLabel("Input right").selectOption({ index: 1 });
     await page.getByLabel("left join key").selectOption("col_1");
@@ -25,29 +25,29 @@ test("configure two-input transforms and propagate Pivot fields to Select Column
     await page.getByLabel("Join type").selectOption("left");
     await expect(page.getByRole("button", { name: "Preview output" })).toBeEnabled();
     await page.getByRole("button", { name: "Preview output" }).click();
-    await expect(page.getByRole("columnheader", { name: "order_id__right", exact: true })).toBeVisible();
-    await showAllOperations(page); await page.getByTitle("Add Union").click();
+    await expect(page.getByRole("columnheader", { name: "order_id__right integer", exact: true })).toBeVisible();
+    await showAllOperations(page); await page.getByTitle("Add Union", { exact: true }).click();
     await page.getByLabel("Input left").selectOption(source!);
     await page.getByLabel("Input right").selectOption(source!);
     await expect(page.getByRole("button", { name: "Preview output" })).toBeEnabled();
     await page.getByRole("button", { name: "Preview output" }).click();
     await expect(page.getByRole("table")).toBeVisible();
-    await showAllOperations(page); await page.getByTitle("Add Pivot").click();
+    await showAllOperations(page); await page.getByTitle("Add Pivot · v1", { exact: true }).click();
     await page.getByLabel("Input input").selectOption(source!);
     await page.getByLabel("Index field", { exact: true }).selectOption({ label: "country" });
     await page.getByLabel("Pivot field", { exact: true }).selectOption({ label: "category" });
     await page.getByLabel("Pivot value field", { exact: true }).selectOption({ label: "quantity" });
     await expect(page.getByRole("button", { name: "Preview output" })).toBeEnabled();
     await page.getByRole("button", { name: "Preview output" }).click();
-    await expect(page.getByRole("columnheader", { name: "pivot_Hardware", exact: true })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: /^pivot_Hardware (integer|float)$/ })).toBeVisible();
     await showAllOperations(page); await page.getByTitle("Add Select Columns").click();
-    const pivot = await page.getByLabel("Input input").locator("option").filter({ hasText: "Pivot (" }).getAttribute("value");
+    const pivot = await page.getByLabel("Input input").locator("option").filter({ hasText: "Pivot / Dataset" }).getAttribute("value");
     await page.getByLabel("Input input").selectOption(pivot!);
     await page.getByRole("checkbox", { name: /pivot_Hardware/ }).check();
     await expect(page.getByRole("button", { name: "Preview output" })).toBeEnabled();
     await page.getByRole("button", { name: "Preview output" }).click();
     await expect(page.getByRole("columnheader")).toHaveCount(1);
-    await expect(page.getByRole("columnheader", { name: "pivot_Hardware", exact: true })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: /^pivot_Hardware (integer|float)$/ })).toBeVisible();
   } finally {
     await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`);
   }

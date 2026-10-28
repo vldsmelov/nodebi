@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { configureFormLayout, expectDialogFits, formLayouts } from "./form-reflow";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
-test("author grouped Unpivot and edit repeated labels through ordinary node settings", async ({ page, request }) => {
+for (const layout of formLayouts) test(`author grouped Unpivot and edit repeated labels through ordinary node settings (${layout})`, async ({ page, request }) => {
   test.setTimeout(90000);
+  await configureFormLayout(page, layout);
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Grouped inventory" } })).json();
   try {
     const workbook = execFileSync(resolve("../backend/.venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python"), ["-c", "import sys; from io import BytesIO; from openpyxl import Workbook; w=Workbook(); s=w.active; s.append(['Item','PartA','PartB','PartC']); s.append(['Repeated',1,3,5]); s.append(['Repeated',2,4,6]); b=BytesIO(); w.save(b); sys.stdout.buffer.write(b.getvalue())"]);
@@ -24,7 +26,8 @@ test("author grouped Unpivot and edit repeated labels through ordinary node sett
     await dialog.getByLabel("Field group 3").selectOption({ label: "Inputs" });
     await dialog.getByLabel("Field group 4").selectOption({ label: "Overhead" });
     for (const index of [2, 3, 4]) await dialog.getByLabel(`Article label ${index}`, { exact: true }).fill("Shared");
-    await page.screenshot({ path: "../.backups/ux-grouped-unpivot.png" });
+    await expectDialogFits(page, dialog);
+    await page.screenshot({ path: test.info().outputPath("grouped-unpivot.png") });
     const before = await read(); expect(before.nodes).toHaveLength(1);
     await dialog.getByRole("button", { name: "Apply grouped Unpivot" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();

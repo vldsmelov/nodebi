@@ -2,10 +2,10 @@ export const themes = ["dark", "light"] as const;
 export type Theme = typeof themes[number];
 export const themeCookie = "nodebi-theme";
 export function parseTheme(value: unknown): Theme {
-  return value === "light" ? "light" : "dark";
+  return value === "dark" ? "dark" : "light";
 }
 /** Canvas libraries need concrete colors; ordinary controls use the equivalent CSS tokens. */
 export const themePalette = {
-  dark: { accent: "#b7ff5a", grid: "#33402d", mask: "rgba(4, 7, 3, 0.75)" },
-  light: { accent: "#35671c", grid: "#c8d2c0", mask: "rgba(239, 244, 234, 0.75)" },
+  dark: { accent: "#69cff7", panel: "#111d38", grid: "#354666", mask: "rgba(8, 15, 36, 0.75)" },
+  light: { accent: "#0956bb", panel: "#fff", grid: "#dee2e6", mask: "rgba(248, 249, 250, 0.75)" },
 } as const;

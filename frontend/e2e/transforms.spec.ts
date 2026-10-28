@@ -4,8 +4,9 @@ import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
+test.use({ actionTimeout: 15000 });
 
-test("build and restore filtered revenue aggregation entirely in the editor", async ({ page, request }) => {
+for (const formLayout of ["desktop", "narrow", "large-text"]) test(`build and restore filtered revenue aggregation (${formLayout}) in an existing legacy workflow`, async ({ page, request }) => {
   test.setTimeout(120000);
   await page.goto("/projects");
   await page.getByLabel("Project name", { exact: true }).fill("Sales Analysis");
@@ -14,30 +15,75 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
   const project = await (await created).json();
   try {
     await page.locator(`a[href="/projects/${project.id}"]`).click();
-    await page.getByRole("link", { name: "Data", exact: false }).click();
+    await page.getByRole("link", { name: "Data", exact: true }).click();
     await page.locator('input[type="file"]').setInputFiles(resolve("../fixtures/excel/sales.xlsx"));
     await page.getByLabel("Worksheet").selectOption("Sales");
     await expect(page.getByRole("columnheader", { name: "quantity", exact: true })).toBeVisible();
-    await page.getByRole("link", { name: "Project", exact: false }).click();
-    await page.getByRole("link", { name: "Workflow", exact: false }).click();
-    await page.getByRole("button", { name: "Create workflow", exact: true }).click();
+    // New workflows use published results. Keep this regression on the supported v1 editor;
+    // report-first creation has separate wizard/workspace acceptance, not legacy chart nodes.
+    const legacy = await request.post(`${api}/api/v1/projects/${project.id}/workflows`, { data: { name: "Legacy sales" } });
+    expect(legacy.ok()).toBe(true);
+    const legacyWorkflow = await legacy.json();
+    expect(legacyWorkflow.version).toBe(1);
+    await page.goto(`/projects/${project.id}/workflow?workflow=${legacyWorkflow.id}`);
+    if (formLayout !== "desktop") await page.setViewportSize({ width: formLayout === "narrow" ? 420 : 1280, height: 1000 });
+    if (formLayout === "large-text") await page.evaluate(() => { document.documentElement.style.fontSize = "32px"; });
+    const verifySettings = async (labels: string[]) => {
+      for (const label of labels) {
+        const control = page.getByLabel(label, { exact: true });
+        await control.scrollIntoViewIfNeeded();
+        const bounds = (await control.boundingBox())!;
+        const viewport = page.viewportSize()!;
+        expect(bounds.x, label).toBeGreaterThanOrEqual(0);
+        expect(bounds.x + bounds.width, label).toBeLessThanOrEqual(viewport.width);
+        expect(bounds.y, label).toBeGreaterThanOrEqual(0);
+        expect(bounds.y + bounds.height, label).toBeLessThanOrEqual(viewport.height);
+        const panelBounds = await control.evaluate(element => {
+          const panel = element.closest("aside")!.getBoundingClientRect();
+          return { left: panel.left, right: panel.right };
+        });
+        expect(bounds.x, `${label} inside panel`).toBeGreaterThanOrEqual(panelBounds.left);
+        expect(bounds.x + bounds.width, `${label} inside panel`).toBeLessThanOrEqual(panelBounds.right);
+      }
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    };
+    await page.getByText("Workflow parameters", { exact: true }).click();
+    await page.getByRole("button", { name: "Add parameter", exact: true }).click();
+    await page.getByLabel("Parameter name 1", { exact: true }).fill("target");
+    await page.getByLabel("Parameter label 1", { exact: true }).fill("Monthly target");
+    await page.getByLabel("Parameter type 1", { exact: true }).selectOption("decimal");
+    await page.getByLabel("Parameter default 1", { exact: true }).fill("9007199254740993.11");
+    await verifySettings(["Parameter name 1", "Parameter label 1", "Parameter type 1", "Decimal precision · Monthly target", "Decimal scale · Monthly target", "Parameter default 1", "Parameter preview 1"]);
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    const parameterGraph = await (await request.get(`${api}/api/v1/workflows/${legacyWorkflow.id}`)).json();
+    expect(parameterGraph.parameters[0]).toMatchObject({ name: "target", logical_type: "decimal", default: "9007199254740993.11", precision: 38, scale: 2 });
+    await page.getByLabel("Parameter preview 1", { exact: true }).fill("9007199254740993.12");
+    expect(await (await request.get(`${api}/api/v1/workflows/${legacyWorkflow.id}`)).json()).toEqual(parameterGraph);
+    await page.getByText("Workflow parameters", { exact: true }).click();
     await showAllOperations(page); await page.getByTitle("Add Excel Source").click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await showAllOperations(page); await page.getByTitle("Add Filter").click();
+    await showAllOperations(page); await page.getByTitle("Add Filter", { exact: true }).click();
     await page.getByLabel("Input input").selectOption({ index: 1 });
     await expect(page.getByRole("button", { name: "Add condition" })).toBeVisible();
     await page.getByRole("button", { name: "Add condition" }).click();
     await page.getByLabel("Filter column 1").selectOption({ label: "country · string" });
     await page.getByLabel("Filter operator 1").selectOption("equals");
     await page.getByLabel("Filter value 1").fill("Korea");
+    await verifySettings(["Filter column 1", "Filter operator 1", "Filter value source 1", "Filter value 1", "Remove condition 1"]);
+    await page.getByLabel("Filter column 1", { exact: true }).focus();
+    for (const label of ["Filter operator 1", "Filter value source 1", "Filter value 1", "Remove condition 1"]) {
+      await page.keyboard.press("Tab");
+      await expect(page.getByLabel(label, { exact: true })).toBeFocused();
+    }
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await showAllOperations(page); await page.getByTitle("Add Calculated Column").click();
+    await showAllOperations(page); await page.getByTitle("Add Calculated Column · v1", { exact: true }).click();
     const filterOption = page.getByLabel("Input input").locator("option").filter({ hasText: "Filter (" });
     await page.getByLabel("Input input").selectOption((await filterOption.getAttribute("value"))!);
     await page.getByLabel("Output field name").fill("revenue");
     await page.getByLabel("Expression", { exact: true }).fill("quantity * price");
+    await verifySettings(["Output field name", "Expression"]);
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await showAllOperations(page); await page.getByTitle("Add Group By").click();
+    await showAllOperations(page); await page.getByTitle("Add Group By · v1", { exact: true }).click();
     const calcOption = page.getByLabel("Input input").locator("option").filter({ hasText: "Calculated Column (" });
     await page.getByLabel("Input input").selectOption((await calcOption.getAttribute("value"))!);
     await page.getByRole("checkbox", { name: "category", exact: true }).check();
@@ -45,20 +91,27 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     await page.getByLabel("Aggregate field 1").selectOption({ label: "revenue" });
     await page.getByLabel("Aggregation 1", { exact: true }).selectOption("sum");
     await page.getByLabel("Aggregate name 1").fill("total_revenue");
+    await verifySettings(["Aggregate field 1", "Aggregation 1", "Aggregate name 1"]);
     await expect(page.getByRole("button", { name: "Preview output" })).toBeEnabled();
     await page.getByRole("button", { name: "Preview output" }).click();
-    await expect(page.getByRole("columnheader", { name: "total_revenue", exact: true })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "total_revenue float", exact: true })).toBeVisible();
     const preview = await page.getByRole("table").innerText();
+    await page.screenshot({ path: test.info().outputPath("populated-settings.png"), fullPage: true });
     const workflows = await (await request.get(`${api}/api/v1/projects/${project.id}/workflows`)).json();
     const saved = await (await request.get(`${api}/api/v1/workflows/${workflows.items[0].id}`)).json();
     const group = saved.nodes.find((node: { type: string }) => node.type === "group_by");
     expect(saved.edges).toHaveLength(3);
     await page.reload();
+    if (formLayout === "large-text") await page.evaluate(() => { document.documentElement.style.fontSize = "32px"; });
     await expect(page.locator(".react-flow__node")).toHaveCount(4);
-    // Select the restored node through the canvas and compare execution results.
-    await page.locator(`.react-flow__node[data-id="${group.id}"]`).click();
+    // Select the restored node through its named control and compare execution results.
+    await page.getByLabel("Edit workflow node", { exact: true }).selectOption(group.id);
     await page.getByRole("button", { name: "Preview output" }).click();
     await expect(page.getByRole("table")).toHaveText(preview.replaceAll("\t", "").replaceAll("\n", ""));
+    // This matrix targets populated calculation forms. Existing chart/dashboard gestures below
+    // retain their original desktop acceptance; they do not claim narrow-dashboard coverage.
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
     await showAllOperations(page); await page.getByTitle("Add Bar Chart").click();
     const groupOption = page.getByLabel("Input input").locator("option").filter({ hasText: "Group By (" });
     await page.getByLabel("Input input").selectOption((await groupOption.getAttribute("value"))!);
@@ -66,7 +119,7 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     await page.getByLabel("Chart category").selectOption({ label: "category" });
     await page.getByLabel("Chart value").selectOption({ label: "total_revenue" });
     await expect(page.getByRole("img", { name: "Revenue by category", exact: true })).toBeVisible();
-    await showAllOperations(page); await page.getByTitle("Add Group By").click();
+    await showAllOperations(page); await page.getByTitle("Add Group By · v1", { exact: true }).click();
     const calculation = page.getByLabel("Input input").locator("option").filter({ hasText: "Calculated Column (" });
     await page.getByLabel("Input input").selectOption((await calculation.getAttribute("value"))!);
     await page.getByRole("button", { name: "Add aggregation" }).click();
@@ -86,10 +139,10 @@ test("build and restore filtered revenue aggregation entirely in the editor", as
     const expectedWorkflow = await (await request.get(`${api}/api/v1/workflows/${saved.id}`)).json();
     await page.goto(`/projects/${project.id}/dashboard`);
     await page.getByRole("button", { name: "Create dashboard" }).click();
-    await page.getByLabel("Add visualization").selectOption({ label: "Revenue by category" });
-    await page.getByRole("button", { name: "Add widget" }).click();
-    await page.getByLabel("Add visualization").selectOption({ label: "Total revenue" });
-    await page.getByRole("button", { name: "Add widget" }).click();
+    for (const title of ["Revenue by category · Bar Chart", "Total revenue · KPI"]) {
+      await page.getByRole("button", { name: "Add chart", exact: true }).click();
+      await page.getByText(title, { exact: true }).locator("..").getByRole("button", { name: "Add widget", exact: true }).click();
+    }
     await expect(page.getByTestId("kpi-value")).toHaveText(total);
     const widgets = page.locator("[data-widget-id]");
     await expect(widgets).toHaveCount(2);

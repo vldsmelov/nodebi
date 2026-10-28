@@ -248,8 +248,15 @@ def test_bound_charts_render_and_restore_alongside_legacy_dashboards(
             (row[data["category_field"]], row[data["value_field"]]) for row in data["rows"]
         ] == [("A", 50), ("B", 10)]
         assert data["orientation"] == "horizontal"
+        assert data["spec"]["x"] == f"viz_{bar.replace('-', '')}_category"
+        assert data["spec"]["y"][0]["column_id"] == f"viz_{bar.replace('-', '')}_value"
         total_result = client.get(f"/api/v1/visualizations/{kpi}/result").json()
         assert total_result["rows"][0][total_result["value_field"]] == 60
+        assert total_result["spec"] == {
+            "version": 1,
+            "type": "kpi",
+            "value": f"viz_{kpi.replace('-', '')}_value",
+        }
         assert (
             client.get(f"/api/v1/visualizations/{legacy['id']}/result").json()["rows"]
             == legacy_result["rows"]

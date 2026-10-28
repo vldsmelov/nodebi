@@ -119,6 +119,15 @@ test("pack, connect, edit, undo and restore a composite without replacing calcul
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await expect(card).toBeVisible();
     }
+    const beforeMove = await (await request.get(path)).json();
+    await page.getByText("Move without dragging", { exact: true }).click();
+    await page.getByLabel("Layout item", { exact: true }).selectOption(`block:${block.id}`);
+    await page.getByRole("button", { name: "Move item down", exact: true }).click();
+    await expect.poll(async () => (await (await request.get(path)).json()).presentation.blocks[0].position.y).toBe(beforeMove.presentation.blocks[0].position.y + 20);
+    const movedBlock = await (await request.get(path)).json();
+    expect(movedBlock.nodes).toEqual(beforeMove.nodes);
+    expect(movedBlock.edges).toEqual(beforeMove.edges);
+    expect(await value()).toBe(4);
     await card.getByRole("button", { name: "Unpack block", exact: true }).click();
     await expect(page.locator(".react-flow__node")).toHaveCount(5);
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();

@@ -46,7 +46,7 @@ test("navigation before debounce preserves and restores the unsaved draft", asyn
     await page.clock.pauseAt(new Date());
     await showAllOperations(page); await page.getByTitle("Add Select Columns").click();
     const dialog = page.waitForEvent("dialog");
-    const leaving = page.getByRole("link", { name: "Project", exact: false }).click();
+    const leaving = page.getByRole("link", { name: "← Project", exact: true }).click();
     await (await dialog).accept();
     await leaving;
     await expect(page).toHaveURL(new RegExp(`/projects/${project.id}$`));
@@ -124,14 +124,15 @@ test("editor creates, saves, previews and restores an Excel source", async ({ pa
     await expect(page.getByRole("button", { name: "Preview output" })).toBeEnabled();
     await page.getByRole("button", { name: "Preview output" }).click();
     await expect(page.getByRole("table")).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "quantity", exact: true })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "quantity integer", exact: true })).toBeVisible();
     const workflows = await (await request.get(`${api}/api/v1/projects/${project.id}/workflows`)).json();
     const before = await (await request.get(`${api}/api/v1/workflows/${workflows.items[0].id}`)).json();
     await page.reload();
     await expect(page.locator(".react-flow__node")).toHaveCount(1);
     const after = await (await request.get(`${api}/api/v1/workflows/${workflows.items[0].id}`)).json();
     expect(after.nodes).toEqual(before.nodes);
-    expect(after.version).toBe(1);
+    expect(before.version).toBe(3);
+    expect(after.version).toBe(before.version);
   } finally {
     await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`);
   }

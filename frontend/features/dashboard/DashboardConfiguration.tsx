@@ -1,12 +1,12 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n";
-import { ParameterInput } from "@/features/workflow/ParametersConfiguration";
+import { ParameterInput, DecimalParameterSettings, parameterTypePatch } from "@/features/workflow/ParametersConfiguration";
 import type { WorkflowSummary, ParameterValues } from "@/features/workflow/types";
 import type { Dashboard, DashboardConfiguration, DashboardParameter, NavigationAction } from "./api";
 import { useState } from "react";
 import { ParameterOptionsConfiguration, ParameterChoices } from "./ParameterOptions";
-import { emptyConfiguration, workflowValues } from "./view-state";
+import { emptyConfiguration, resolveViewValues, workflowValues } from "./view-state";
 
 import { compatibleNavigationType, type NavigationField } from "./navigation-plan";
 
@@ -50,7 +50,8 @@ export function DashboardSettings({ config, onChange, workflows, dashboards }: {
     {definitions.map((definition, index) => <fieldset key={index} className="my-3 flex flex-wrap items-center gap-3 border-t border-outline pt-3">
       <input aria-label={t("Dashboard parameter name {0}", { 0: index + 1 })} className={control} maxLength={64} value={definition.name} onChange={e => update(index, { name: e.target.value })} />
       <input aria-label={t("Dashboard parameter label {0}", { 0: index + 1 })} className={control} maxLength={200} value={definition.label ?? ""} onChange={e => update(index, { label: e.target.value })} />
-      <select aria-label={t("Dashboard parameter type {0}", { 0: index + 1 })} className={control} value={definition.logical_type} onChange={e => update(index, { logical_type: e.target.value as DashboardParameter["logical_type"], default: null })}>{["string", "integer", "float", "boolean", "date", "datetime"].map(kind => <option key={kind} value={kind}>{t(kind)}</option>)}</select>
+      <select aria-label={t("Dashboard parameter type {0}", { 0: index + 1 })} className={control} value={definition.logical_type} onChange={e => update(index, parameterTypePatch(e.target.value as DashboardParameter["logical_type"]))}>{["string", "integer", "float", "decimal", "boolean", "date", "datetime"].map(kind => <option key={kind} value={kind}>{t(kind)}</option>)}</select>
+      <DecimalParameterSettings definition={definition} onChange={patch => update(index, patch)} />
       <label className="text-xs"><input type="checkbox" checked={definition.required ?? false} onChange={e => update(index, { required: e.target.checked })} /> {t("Required parameter")}</label>
       <label className="text-xs">{t("Default value")}<ParameterInput definition={definition} value={definition.default} label={t("Dashboard parameter default {0}", { 0: index + 1 })} onChange={value => update(index, { default: value })} /></label>
       <select aria-label={t("Bind workflow parameter {0}", { 0: index + 1 })} className={control} value="" onChange={e => { if (e.target.value) { const [workflow_id, workflow_parameter] = e.target.value.split(":"); onChange({ ...config, bindings: [...bindings.filter(item => !(item.workflow_id === workflow_id && item.workflow_parameter === workflow_parameter)), { workflow_id, workflow_parameter, dashboard_parameter: definition.name }] }); } }}><option value="">{t("Add workflow binding")}</option>{workflows.flatMap(workflow => (workflow.parameters ?? []).filter(item => item.logical_type === definition.logical_type || (definition.logical_type === "integer" && item.logical_type === "float")).map(item => <option key={`${workflow.id}:${item.name}`} value={`${workflow.id}:${item.name}`}>{workflow.name} / {item.label || item.name}</option>))}</select>
@@ -66,12 +67,16 @@ export function DashboardSettings({ config, onChange, workflows, dashboards }: {
 }
 
 export function DashboardValueForm({ dashboard, supplied, onApply }: { dashboard: Dashboard; supplied: Record<string, unknown>; onApply: (values: ParameterValues) => void }) {
-  const { t } = useI18n();
+  const { t, errorText } = useI18n();
   const definitions = (dashboard.configuration ?? emptyConfiguration).parameters ?? [];
   const [values, setValues] = useState<ParameterValues>(() => Object.fromEntries(definitions.map(item => [item.name, Object.hasOwn(supplied, item.name) ? supplied[item.name] : item.default ?? null])) as ParameterValues);
+  const [error, setError] = useState<unknown>(null);
+  const missing = definitions.filter(item => item.required && values[item.name] == null);
   if (!definitions.length) return null;
-  return <form className="my-4 flex flex-wrap items-end gap-4" onSubmit={e => { e.preventDefault(); onApply(values); }}>
+  return <form data-dashboard-selections aria-label={t("Report filters")} className="my-4 flex flex-wrap items-end gap-4" onSubmit={e => { e.preventDefault(); try { const next = resolveViewValues(dashboard.configuration ?? emptyConfiguration, values); setError(null); onApply(next); } catch (failure) { setError(failure); } }}>
     {definitions.map(item => <label className="text-xs" key={item.name}>{item.label || item.name}{item.required ? " *" : ""}{item.options ? <ParameterChoices definition={item} value={values[item.name]} parameters={workflowValues(dashboard.configuration ?? emptyConfiguration, item.options.workflow_id, values)} onChange={value => setValues(current => ({ ...current, [item.name]: value }))} /> : <ParameterInput definition={item} value={values[item.name]} label={t("Dashboard selection {0}", { 0: item.name })} onChange={value => setValues(current => ({ ...current, [item.name]: value }))} />}</label>)}
-    <button className="rounded-lg bg-primary px-4 py-2 text-sm text-on-primary">{t("Apply selections")}</button>
+    <button disabled={missing.length > 0} className="rounded-lg bg-primary px-4 py-2 text-sm text-on-primary disabled:opacity-40">{t("Apply selections")}</button>
+    {!!missing.length && <p role="status" className="w-full text-sm text-muted">{t("Choose required filters: {0}", { 0: missing.map(item => item.label || item.name).join(", ") })}</p>}
+    {error != null && <p role="alert" className="w-full text-sm text-danger">{errorText(error)}</p>}
   </form>;
 }

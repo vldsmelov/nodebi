@@ -11,6 +11,11 @@ from app.infrastructure.database import get_session
 from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.models import Dashboard
 from app.nodes import get_node_registry
+from app.schemas.dashboard_layouts import (
+    DashboardLayoutRead,
+    DashboardLayoutSave,
+    DashboardLayoutSaved,
+)
 from app.schemas.dashboards import (
     DashboardList,
     DashboardNavigationSave,
@@ -23,6 +28,7 @@ from app.schemas.dashboards import (
 )
 from app.schemas.workflows import WorkflowCreate
 from app.services.dashboard_authoring import create_visualization
+from app.services.dashboard_layouts import DashboardLayoutService
 from app.services.dashboard_navigation import save_navigation
 from app.services.dashboards import DashboardService
 from app.services.execution import (
@@ -33,6 +39,22 @@ from app.services.visualizations import render_visualization
 
 router = APIRouter(tags=["dashboards"])
 Database = Annotated[Session, Depends(get_session)]
+
+
+@router.get(
+    "/api/v1/dashboards/{dashboard_id}/layout-templates", response_model=list[DashboardLayoutRead]
+)
+def list_layout_templates(dashboard_id: uuid.UUID, session: Database) -> list[DashboardLayoutRead]:
+    return DashboardLayoutService(session).list(dashboard_id)
+
+
+@router.post(
+    "/api/v1/dashboards/{dashboard_id}/layout-templates", response_model=DashboardLayoutSaved
+)
+def save_layout_template(
+    dashboard_id: uuid.UUID, payload: DashboardLayoutSave, session: Database
+) -> DashboardLayoutSaved:
+    return DashboardLayoutService(session).save(dashboard_id, payload)
 
 
 @router.get("/api/v1/projects/{project_id}/visualizations", response_model=VisualizationList)

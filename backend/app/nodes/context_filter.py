@@ -1,6 +1,7 @@
 """Internal generic context predicates compiled from published data settings."""
 
 from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 import polars as pl
@@ -8,6 +9,7 @@ from pydantic import BaseModel
 
 from app.domain.datasets import Dataset, DatasetSchema, LogicalType
 from app.domain.nodes import ExecutionContext, NodeDefinition
+from app.domain.parameters import ParameterDefinition
 from app.domain.workflows import NodeInstance
 from app.nodes.common import UnaryExecutor, input_schema, unary_definition
 
@@ -69,13 +71,21 @@ class ContextFilterExecutor(UnaryExecutor):
                     expression = expression.dt.convert_time_zone(config.timezone)
                 predicate = (expression >= pl.lit(lower)) & (expression < pl.lit(upper))
         else:
-            value = (
+            value: str | int | float | bool | date | datetime | Decimal | None = (
                 date.fromisoformat(str(config.value))
                 if config.logical_type == "date"
                 else datetime.fromisoformat(str(config.value))
                 if config.logical_type == "datetime"
                 else config.value
             )
+            if column.logical_type == LogicalType.DECIMAL:
+                checked = ParameterDefinition(
+                    name="selection",
+                    logical_type="decimal",
+                    precision=column.metadata.get("precision"),
+                    scale=column.metadata.get("scale"),
+                ).checked(config.value)
+                value = Decimal(str(checked)) if checked is not None else None
             predicate = expression == pl.lit(value)
         return Dataset(source.frame.filter(predicate.fill_null(False)), schema, source.metadata)
 

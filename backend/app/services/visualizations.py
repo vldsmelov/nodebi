@@ -20,14 +20,28 @@ from app.models import Visualization, Workflow
 from app.nodes.visualization import VisualizationExecutor
 from app.schemas.dashboards import VisualizationResult
 from app.schemas.workflows import ResolvedColumnRead
+from app.services.analytical_tables import render_analytical_table, validate_analytical_table
+from app.services.basic_visualizations import basic_spec
+from app.services.box_plot_visualizations import render_box_plot, validate_box_plot
+from app.services.bubble_visualizations import render_bubble, validate_bubble
+from app.services.bullet_visualizations import render_bullet, validate_bullet
+from app.services.combo_visualizations import render_combo, validate_combo
 from app.services.execution import (
     ExecutionFailure,
     InMemoryExecutionCache,
     WorkflowExecutionService,
 )
+from app.services.funnel_visualizations import render_funnel, validate_funnel
+from app.services.heatmap_visualizations import render_heatmap, validate_heatmap
+from app.services.hierarchy_visualizations import render_hierarchy, validate_hierarchy
+from app.services.histogram_visualizations import render_histogram, validate_histogram
 from app.services.independent_visualizations import publication
+from app.services.normalization import transport_rows
+from app.services.pareto_visualizations import render_pareto, validate_pareto
 from app.services.publication_execution import compile_publication
+from app.services.radar_visualizations import render_radar, validate_radar
 from app.services.source_access import ProjectSourceAccess
+from app.services.waterfall_visualizations import render_waterfall, validate_waterfall
 from app.services.workflow_validation import InvalidWorkflowError
 from app.services.workflows import domain_graph, execution_context
 
@@ -45,6 +59,7 @@ def render_visualization(
     view: ViewContext | None = None,
     draft: Visualization | None = None,
     sources: ProjectSourceAccess | None = None,
+    full_data: bool = False,
 ) -> VisualizationResult:
     visualization = draft or session.get(Visualization, visualization_id)
     if visualization is None:
@@ -63,6 +78,19 @@ def render_visualization(
         if visualization.publication_id:
             published = publication(workflow, visualization.publication_id)
             catalog = ResultCatalog.model_validate(workflow.result_catalog)
+            config = VisualizationConfig.model_validate(visualization.config)
+            validate_box_plot(visualization.type, config, graph, published, catalog)
+            validate_histogram(visualization.type, config, graph, published, catalog)
+            validate_heatmap(visualization.type, config, graph, published, catalog)
+            validate_radar(visualization.type, config, graph, published, catalog)
+            validate_waterfall(visualization.type, config, graph, published, catalog)
+            validate_combo(visualization.type, config, graph, published, catalog)
+            validate_bubble(visualization.type, config, graph, published, catalog)
+            validate_bullet(visualization.type, config, graph, published, catalog)
+            validate_pareto(visualization.type, config, graph, published, catalog)
+            validate_funnel(visualization.type, config, graph, published, catalog)
+            validate_hierarchy(visualization.type, config, graph, published, catalog)
+            validate_analytical_table(visualization.type, config, graph, published, catalog)
             view = view or ViewContext()
             view = view.model_copy(update={"values": {**(parameters or {}), **view.values}})
             roles = {
@@ -116,12 +144,107 @@ def render_visualization(
                 )
             )
             if published.kind == "scalar":
+                if config.value_column_id not in {None, result.schema.columns[0].column_id}:
+                    raise ValueError("A selected visualization field is unavailable.")
                 config.value_column_id = result.schema.columns[0].column_id
             for role in view.highlight_only:
                 if role in published.semantic_fields:
                     config.highlight_column_id = published.semantic_fields[role]
                     config.highlight_parameter = role
                     break
+            if visualization.type == "box_plot":
+                return render_box_plot(
+                    visualization,
+                    workflow,
+                    config,
+                    result,
+                    context,
+                    applied,
+                    unsupported,
+                    offset,
+                    limit,
+                    full_data,
+                )
+            if visualization.type == "histogram_chart":
+                return render_histogram(
+                    visualization, workflow, config, result, context, applied, unsupported
+                )
+            if visualization.type == "heatmap_chart":
+                return render_heatmap(
+                    visualization, workflow, config, result, context, applied, unsupported
+                )
+            if visualization.type == "radar_chart":
+                return render_radar(
+                    visualization, workflow, config, result, context, applied, unsupported
+                )
+            if visualization.type == "waterfall_chart":
+                return render_waterfall(
+                    visualization, workflow, config, result, context, applied, unsupported
+                )
+            if visualization.type in {"treemap_chart", "sunburst_chart"}:
+                return render_hierarchy(
+                    visualization, workflow, config, result, context, applied, unsupported
+                )
+            if visualization.type == "funnel_chart":
+                return render_funnel(
+                    visualization, workflow, config, result, context, applied, unsupported
+                )
+            if visualization.type == "pareto_chart":
+                return render_pareto(
+                    visualization,
+                    workflow,
+                    config,
+                    result,
+                    context,
+                    applied,
+                    unsupported,
+                    offset,
+                    limit,
+                    full_data,
+                )
+            if visualization.type == "combo_chart":
+                return render_combo(
+                    visualization, workflow, config, result, context, applied, unsupported
+                )
+            if visualization.type == "bullet_chart":
+                return render_bullet(
+                    visualization,
+                    workflow,
+                    config,
+                    result,
+                    context,
+                    applied,
+                    unsupported,
+                    offset,
+                    limit,
+                    full_data,
+                )
+            if visualization.type == "bubble_chart":
+                return render_bubble(
+                    visualization,
+                    workflow,
+                    config,
+                    result,
+                    context,
+                    applied,
+                    unsupported,
+                    offset,
+                    limit,
+                    full_data,
+                )
+            if visualization.type == "analytical_table":
+                return render_analytical_table(
+                    visualization,
+                    workflow,
+                    config,
+                    result,
+                    context,
+                    applied,
+                    unsupported,
+                    offset,
+                    limit,
+                    full_data,
+                )
             node = NodeInstance(
                 visualization.id, visualization.type, 1, Position(0, 0), config.model_dump()
             )
@@ -210,6 +333,7 @@ def render_visualization(
     else:
         offset, limit = 0, result.output.row_count
     return VisualizationResult(
+        spec=basic_spec(node.type, config, result.schema, context_columns),
         additional_series=[
             {
                 "field": result.schema.by_id(series.column_id).engine_name,
@@ -258,5 +382,7 @@ def render_visualization(
         limit=limit,
         truncated=offset + page.height < result.output.row_count,
         columns=[ResolvedColumnRead(**c.to_dict()) for c in fields],
-        rows=page.to_dicts(),
+        rows=transport_rows(page)
+        if result.output.metadata.get("exact_transport")
+        else page.to_dicts(),
     )

@@ -1,18 +1,35 @@
 import { showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { resolve } from "node:path";
+import { expectFormFits } from "./form-reflow";
 
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
+test.use({ actionTimeout: 15000 });
 
 test("build dashboard drill-through in the UI and restore URL slices and history", async ({ page, request }) => {
   test.setTimeout(180000);
+  const checkSettings = async (name: string) => {
+    const original = page.viewportSize()!;
+    for (const enlarged of [false, true]) {
+      await page.evaluate(value => { document.documentElement.style.fontSize = value ? "32px" : "16px"; }, enlarged);
+      await page.setViewportSize({ width: enlarged ? 1280 : 420, height: 1000 });
+      await expectFormFits(page);
+      await page.screenshot({ path: test.info().outputPath(`${name}-${enlarged ? "large-text" : "narrow"}.png`), fullPage: true });
+    }
+    await page.evaluate(() => document.documentElement.style.removeProperty("font-size"));
+    await page.setViewportSize(original);
+  };
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Dashboard navigation acceptance" } })).json();
   try {
     await page.goto(`/projects/${project.id}/data`);
     await page.locator('input[type="file"]').setInputFiles(resolve("../fixtures/excel/sales.xlsx"));
     await expect(page.getByLabel("Worksheet")).toBeVisible();
-    await page.goto(`/projects/${project.id}/workflow`);
-    await page.getByRole("button", { name: "Create workflow", exact: true }).click();
+    // This compatibility case authors node-owned tables; new v3 reports use publications.
+    const flowResponse = await request.post(`${api}/api/v1/projects/${project.id}/workflows`, { data: { name: "Legacy navigation" } });
+    expect(flowResponse.ok()).toBe(true);
+    const flow = await flowResponse.json();
+    expect(flow.version).toBe(1);
+    await page.goto(`/projects/${project.id}/workflow?workflow=${flow.id}`);
     await page.getByText("Workflow parameters", { exact: true }).click();
     await page.getByRole("button", { name: "Add parameter", exact: true }).click();
     await page.getByLabel("Parameter name 1").fill("country");
@@ -43,16 +60,17 @@ test("build dashboard drill-through in the UI and restore URL slices and history
     await page.goto(`/projects/${project.id}/dashboard`);
     await page.getByRole("button", { name: "Create dashboard", exact: true }).click();
     await page.getByLabel("Dashboard name").fill("Overview");
-    await page.getByLabel("Add visualization").selectOption({ label: "All countries" });
-    await page.getByRole("button", { name: "Add widget", exact: true }).click();
+    await page.getByRole("button", { name: "Add chart", exact: true }).click();
+    await page.getByText("All countries · Table", { exact: true }).locator("..").getByRole("button", { name: "Add widget", exact: true }).click();
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const overviewId = new URL(page.url()).searchParams.get("dashboard")!;
     await page.getByRole("button", { name: "New dashboard", exact: true }).click();
     await expect(page.getByLabel("Dashboard name")).toHaveValue("Sales dashboard");
     await page.getByLabel("Dashboard name").fill("Country detail");
-    await page.getByLabel("Add visualization").selectOption({ label: "Selected country {country}" });
-    await page.getByRole("button", { name: "Add widget", exact: true }).click();
+    await page.getByRole("button", { name: "Add chart", exact: true }).click();
+    await page.getByText("Selected country {country} · Table", { exact: true }).locator("..").getByRole("button", { name: "Add widget", exact: true }).click();
+    await page.getByText("Advanced dashboard settings", { exact: true }).click();
     await page.getByText("Dashboard settings", { exact: true }).click();
     await page.getByRole("button", { name: "Add dashboard parameter", exact: true }).click();
     await page.getByLabel("Dashboard parameter name 1").fill("selection");
@@ -66,15 +84,18 @@ test("build dashboard drill-through in the UI and restore URL slices and history
     await page.getByRole("button", { name: "Add navigation link", exact: true }).click();
     await page.getByLabel("Navigation link label 1").fill("Back to overview");
     await page.getByLabel("Destination dashboard").selectOption(overviewId);
+    await checkSettings("parameters");
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const detailId = new URL(page.url()).searchParams.get("dashboard")!;
     const detailSaved = await (await request.get(`${api}/api/v1/dashboards/${detailId}`)).json();
     await page.getByLabel("Dashboard", { exact: true }).selectOption(overviewId);
+    await page.getByText("Advanced dashboard settings", { exact: true }).click();
     await page.getByText("Widget navigation", { exact: true }).click();
     await page.getByLabel("Configure widget navigation").selectOption({ label: "All countries" });
     await page.getByLabel("Destination dashboard").selectOption(detailId);
     await page.getByLabel("Navigation value for selection").selectOption({ label: "Field: country" });
+    await checkSettings("navigation");
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.getByRole("table").getByRole("row").filter({ has: page.getByRole("cell", { name: "Korea", exact: true }) }).first().click();

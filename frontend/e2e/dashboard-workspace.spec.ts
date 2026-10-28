@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
+import { expectFormFits } from "./form-reflow";
+import { tabTo } from "./keyboard-navigation";
 test.use({ actionTimeout: 15000 });
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
 
@@ -20,6 +22,7 @@ test("author, preview, copy, arrange and recover charts without leaving the dash
     await page.getByRole("button", { name: "Add chart", exact: true }).click();
     await page.getByRole("button", { name: "Create visualization", exact: true }).click();
     const panel = page.getByRole("complementary", { name: "Visualization settings", exact: true });
+    const fields = page.getByRole("complementary", { name: "Report fields", exact: true });
     await panel.getByLabel("Visualization name", { exact: true }).fill("Sales table");
     await panel.getByLabel("Visualization type", { exact: true }).selectOption("table");
     await panel.getByRole("button", { name: "Apply visualization", exact: true }).click();
@@ -45,6 +48,23 @@ test("author, preview, copy, arrange and recover charts without leaving the dash
     await panel.getByRole("button", { name: "Move column down", exact: true }).first().click();
     await expect(widget.locator("th").first()).toHaveText("country");
     await panel.getByRole("tab", { name: "Placement", exact: true }).click();
+    const calculationBeforePlacement = await (await request.get(`${api}/api/v1/workflows/${flow.id}`)).json();
+    const tableBeforePlacement = await widget.locator("table tr").allTextContents();
+    await expect(panel.getByText("Position and size: 1, 1 · 12 × 12", { exact: true })).toBeVisible();
+    for (const name of ["Move left", "Move right", "Move up", "Wider"]) await expect(panel.getByRole("button", { name, exact: true })).toBeDisabled();
+    await panel.getByRole("button", { name: "Narrower", exact: true }).click();
+    await panel.getByRole("button", { name: "Move right", exact: true }).click();
+    await expect(panel.getByText("Position and size: 2, 1 · 11 × 12", { exact: true })).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Wider", exact: true })).toBeDisabled();
+    await panel.getByRole("button", { name: "Move left", exact: true }).click();
+    await panel.getByRole("button", { name: "Wider", exact: true }).click();
+    await panel.getByRole("button", { name: "Move down", exact: true }).focus();
+    await page.keyboard.press("Enter");
+    await expect(panel.getByText("Position and size: 1, 2 · 12 × 12", { exact: true })).toBeVisible();
+    await panel.getByRole("button", { name: "Move up", exact: true }).click();
+    await panel.getByRole("button", { name: "Taller", exact: true }).click();
+    await expect(panel.getByText("Position and size: 1, 1 · 12 × 13", { exact: true })).toBeVisible();
+    await panel.getByRole("button", { name: "Shorter", exact: true }).click();
     await panel.getByLabel("Widget title", { exact: true }).fill("Local heading");
     await panel.getByRole("button", { name: "Shorter", exact: true }).click();
     await panel.getByRole("button", { name: "Apply visualization", exact: true }).click();
@@ -53,14 +73,22 @@ test("author, preview, copy, arrange and recover charts without leaving the dash
     await page.getByRole("button", { name: "Redo layout change", exact: true }).click();
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-
+    expect(await (await request.get(`${api}/api/v1/workflows/${flow.id}`)).json()).toEqual(calculationBeforePlacement);
+    expect(await widget.locator("table tr").allTextContents()).toEqual(tableBeforePlacement);
     const boards = (await (await request.get(`${api}/api/v1/projects/${project.id}/dashboards`)).json()).items;
     const board = boards[0], visualId = board.widgets[0].visualization_id;
+    expect(board.widgets[0]).toMatchObject({ x: 0, y: 0, width: 12, height: 11, title: "Local heading" });
     await page.getByRole("button", { name: "Add chart", exact: true }).click();
     await page.getByRole("button", { name: "Create visualization", exact: true }).click();
     await panel.getByLabel("Visualization name", { exact: true }).fill("Prepared measures");
-    await panel.getByLabel("Chart category", { exact: true }).selectOption({ label: "product" });
-    await panel.getByLabel("Chart value", { exact: true }).selectOption({ label: "quantity" });
+    await fields.getByLabel("Find a field", { exact: true }).fill("product");
+    await fields.getByRole("button", { name: "Use product as category", exact: true }).click();
+    await fields.getByLabel("Find a field", { exact: true }).fill("quantity");
+    await fields.getByRole("button", { name: "Use quantity as value", exact: true }).click();
+    await expect(panel.getByLabel("Chart category", { exact: true })).not.toHaveValue("");
+    await expect(panel.getByLabel("Chart value", { exact: true })).not.toHaveValue("");
+    await expect(page.getByRole("region", { name: "Report preview", exact: true }).getByRole("img")).toBeVisible();
+    await expect(panel.getByRole("img")).toHaveCount(0);
     await panel.getByRole("button", { name: "Add series", exact: true }).click();
     await panel.getByLabel("Series field 2", { exact: true }).selectOption({ label: "price" });
     await panel.getByLabel("Series name 2", { exact: true }).fill("Unit price");
@@ -112,18 +140,51 @@ test("author, preview, copy, arrange and recover charts without leaving the dash
       for (const theme of ["light", "dark"]) {
         await page.locator('select').filter({ has: page.locator('option[value="dark"]') }).selectOption(theme);
         await widget.locator('button').first().click();
-        await expect(page.locator('aside')).toBeVisible();
+        await expect(page.locator('#report-settings')).toBeVisible();
+        await expect(page.locator('#report-fields')).toBeVisible();
         await expect(widget.locator("table")).toBeVisible();
-        const widgetBox = (await widget.boundingBox())!, panelBox = (await page.locator("aside").boundingBox())!;
+        const widgetBox = (await widget.boundingBox())!, panelBox = (await page.locator("#report-settings").boundingBox())!;
+        const fieldsBox = (await page.locator("#report-fields").boundingBox())!;
+        expect(fieldsBox.x + fieldsBox.width).toBeLessThanOrEqual(widgetBox.x);
         expect(widgetBox.x + widgetBox.width).toBeLessThanOrEqual(panelBox.x);
         await page.screenshot({ path: test.info().outputPath(`${locale}-${theme}.png`), fullPage: true });
         await page.keyboard.press("Escape");
         await expect(page.locator('aside')).toHaveCount(0);
       }
     }
-    await page.setViewportSize({ width: 700, height: 900 });
+    for (const enlarged of [false, true]) {
+    await page.evaluate(value => { document.documentElement.style.fontSize = value ? "32px" : "16px"; }, enlarged);
+    await page.setViewportSize({ width: enlarged ? 1280 : 420, height: 900 });
     await widget.getByLabel("Edit visualization", { exact: true }).focus();
     await page.keyboard.press("Enter"); await expect(panel).toBeVisible();
+    await fields.getByLabel("Find a field", { exact: true }).fill("product");
+    await expect(fields.getByRole("button", { name: "Show product in table", exact: true })).toBeVisible();
+    await page.getByRole("navigation", { name: "Report editor sections", exact: true }).getByRole("link", { name: "Preview", exact: true }).click();
+    await expect(page.locator("#report-preview")).toBeFocused();
+    await page.getByRole("navigation", { name: "Report editor sections", exact: true }).getByRole("link", { name: "Visualization settings", exact: true }).click();
+    await expect(panel).toBeFocused();
+    await expect(panel.getByLabel("Visualization name", { exact: true })).toHaveValue("Other tab");
+    await expect(widget.locator("table")).toBeVisible();
+    await expectFormFits(page, panel);
+    await expectFormFits(page, fields);
+    const nameInput = panel.getByLabel("Visualization name", { exact: true });
+    await nameInput.scrollIntoViewIfNeeded();
+    await expect.poll(() => nameInput.evaluate(element => {
+      const bounds = element.getBoundingClientRect();
+      return document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2) === element;
+    }), { message: "The settings footer must not cover the visualization name input" }).toBe(true);
+    await tabTo(page, nameInput);
+    await expect(nameInput).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(nameInput).toHaveValue("Other tab");
+    const settingsBounds = (await panel.boundingBox())!;
+    const fieldsBounds = (await fields.boundingBox())!;
+    const previewBounds = (await page.locator("#report-preview").boundingBox())!;
+    expect(fieldsBounds.y + fieldsBounds.height).toBeLessThanOrEqual(settingsBounds.y);
+    expect(settingsBounds.y + settingsBounds.height).toBeLessThanOrEqual(previewBounds.y);
+    expect(previewBounds.width).toBeGreaterThanOrEqual(settingsBounds.width - 1);
+    await page.screenshot({ path: test.info().outputPath(`workbench-${enlarged ? "large-text" : "narrow"}.png`), fullPage: true });
     await page.keyboard.press("Escape"); await expect(panel).toHaveCount(0);
+    }
   } finally { await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
 });

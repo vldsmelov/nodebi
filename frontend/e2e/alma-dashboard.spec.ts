@@ -165,6 +165,8 @@ test("four books to editable P&L, shared series and a simple dashboard", async (
     await page.getByRole("button", { name: "View dashboard", exact: true }).click();
     await expect(page.locator("[data-widget-id] table").first()).toContainText("2026-03");
     expect(await (await request.get(path)).json()).toEqual(graph);
+    await expect(page.locator("[data-widget-id] canvas")).toHaveCount(2);
+    await page.waitForTimeout(1100); // ECharts entrance animation runs on canvas, not CSS.
     await page.screenshot({ path: test.info().outputPath("alma-dashboard.png"), fullPage: true });
     const evidence = { projectId: project.id, workflowId, monthly, graph, rows, url: page.url(), automatedSeconds: (Date.now() - started) / 1000 };
     writeFileSync(test.info().outputPath("acceptance.json"), JSON.stringify(evidence));

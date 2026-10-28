@@ -1,21 +1,25 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { listSources } from "@/features/data-sources/api";
 import { getWorkflow, listWorkflows } from "@/features/workflow/api";
 import type { components } from "@/lib/api-schema";
 import { CheckResults } from "./CheckResults";
+import { DatasetUpdates } from "./DatasetUpdates";
+import { FileExchangeDownloads } from "./FileExchangeDownloads";
 import type { Update, UpdateItem, Version } from "./api";
 
 import { useDirtyGuard } from "./useDirtyGuard";
+import { DataStatePanel, WizardHeading } from "@/components/ui/workspace";
 
 const control = "w-full rounded border border-outline bg-control p-2";
 const button = "rounded border border-outline px-3 py-2 disabled:opacity-40";
 type SheetProfile = { sheet_name: string; layout: components["schemas"]["WorksheetLayout"] };
-export function UpdateEditor({ row, busy: running, refresh, currentToken, onDirty }: { onDirty: (dirty: boolean) => void; row: Update; busy: boolean; currentToken?: string; refresh: () => Promise<unknown> }) {
+export function UpdateEditor({ row, busy: running, refresh, currentToken, onDirty, onRollbackCreated }: { onDirty: (dirty: boolean) => void; row: Update; busy: boolean; currentToken?: string; refresh: () => Promise<unknown>; onRollbackCreated?: (update: Update) => void }) {
   const { t, errorText, cell } = useI18n();
+  const queryClient = useQueryClient();
   const [name, setName] = useState(row.name), [items, setItems] = useState<UpdateItem[]>(row.items);
   const [baseRevision, setBaseRevision] = useState(row.revision);
   const [busy, setBusy] = useState(false), [error, setError] = useState<unknown>(null), [acknowledge, setAcknowledge] = useState(false);
@@ -32,17 +36,26 @@ export function UpdateEditor({ row, busy: running, refresh, currentToken, onDirt
     setBaseRevision(saved.revision); setItems(saved.items); return saved;
   }
   return <section className="rounded-xl border border-outline bg-panel p-5">
-    <h2 className="text-xl">{t("Data update")}</h2>
+    <WizardHeading stage={row.id} className="text-xl">{t("Data update")}</WizardHeading>
     <p className="my-2 text-sm text-muted">{t("Check the new books before applying. Current dashboards keep their previous data.")}</p>
-    {error || sources.error ? <p role="alert" className="text-danger">{errorText(error || sources.error)}</p> : null}
+    <FileExchangeDownloads row={row} disabled={busy || running || closed} editorBlocked={!matches} refresh={refresh} prepared={async saved => {
+      setName(saved.name); setItems(saved.items); setBaseRevision(saved.revision); setAcknowledge(false);
+      await Promise.all([refresh(), ...saved.items.map(item => queryClient.invalidateQueries({ queryKey: ["source-versions", item.source_id] }))]);
+    }} />
+    <details open={!row.file_exchange} className="mt-4"><summary className="cursor-pointer text-sm text-accent">{t("Advanced update settings")}</summary>
+    {error || sources.error ? <DataStatePanel state="error" title="Data update failed" focusOnMount={!!error}>{errorText(error || sources.error)}</DataStatePanel> : null}
     {error ? <button className={button} onClick={() => { if (window.confirm(t("Discard unsaved changes?"))) { setName(row.name); setItems(row.items); setBaseRevision(row.revision); setError(null); } }}>{t("Reload saved update")}</button> : null}
     {!matches && <p role="status" className="my-2 text-accent">{t("Unsaved update settings")}</p>}
-    <fieldset disabled={busy || running || closed} className="space-y-4 disabled:opacity-70">
+    <fieldset disabled={busy || running || closed || row.browser_editor_pending} className="space-y-4 disabled:opacity-70">
       <label className="block">{t("Update name")}<input className={control} value={name} onChange={e => { beginEdit(); setName(e.target.value); }} /></label>
-      {sources.data?.map(source => {
+      <DatasetUpdates sourceId={row.file_exchange?.source_id} projectId={row.project_id} items={items} check={row.check} onUploading={setBusy} onChange={(sourceId, value) => {
+        beginEdit(); setAcknowledge(false);
+        setItems(current => value ? [...current.filter(i => i.source_id !== sourceId), value] : current.filter(i => i.source_id !== sourceId));
+      }} />
+      {sources.data?.filter(source => !row.file_exchange || row.file_exchange.source_id === source.id).map(source => {
         const item = items.find(item => item.source_id === source.id);
         const profiles = flows.data?.flatMap(flow => flow.nodes.filter(node => node.config?.source_id === source.id).map(node => ({ sheet_name: String(node.config?.sheet_name ?? ""), layout: { header_row: Number(node.config?.header_row ?? 1), header_rows: Number(node.config?.header_rows ?? 1), include_row_number: node.config?.include_row_number === true, skip_data_rows: Number(node.config?.skip_data_rows ?? 0), drop_tail_rows: Number(node.config?.drop_tail_rows ?? 0) } }))) ?? [];
-        return <SourceVersionPicker key={source.id} sourceId={source.id} name={source.name} item={item} profiles={profiles} onChange={value => { beginEdit(); setAcknowledge(false); setItems(current => value ? [...current.filter(v => v.source_id !== source.id), value] : current.filter(v => v.source_id !== source.id)); }} />;
+        return <SourceVersionPicker key={source.id} sourceId={source.id} replacementOnly={!!row.file_exchange} name={source.name} item={item} profiles={profiles} onChange={value => { beginEdit(); setAcknowledge(false); setItems(current => value ? [...current.filter(v => v.source_id !== source.id), value] : current.filter(v => v.source_id !== source.id)); }} />;
       })}
       {row.check?.profiles?.map((profile, index) => {
         const item = items.find(item => item.source_id === profile.source_id);
@@ -62,12 +75,13 @@ export function UpdateEditor({ row, busy: running, refresh, currentToken, onDirt
       <div className="flex flex-wrap gap-3"><button className={button} disabled={!items.length || !name.trim()} onClick={() => void act(save)}>{t("Save update draft")}</button><button className={button} disabled={!items.length || !name.trim()} onClick={() => void act(async () => { const saved = matches ? row : await save(); await apiRequest(`/api/v1/updates/${row.id}/check`, { method: "POST", body: JSON.stringify({ expected_revision: saved.revision }) }); })}>{t("Check new data")}</button></div>
     </fieldset>
     {matches && (closed || row.check?.token === currentToken) ? <CheckResults value={row.check} projectId={row.project_id} /> : <p className="my-3 text-muted">{t("Run checks again after changing the draft.")}</p>}
-    {!closed && <><label className="my-4 flex gap-2"><input type="checkbox" checked={acknowledge} onChange={e => setAcknowledge(e.target.checked)} />{t("I reviewed the warnings")}</label><div className="flex flex-wrap gap-3"><button className={`${button} bg-primary text-on-primary`} disabled={busy || running || !matches || row.status !== "checked" || row.check?.token !== currentToken || !!row.check?.issues?.some(issue => issue.severity === "error") || (!!row.check?.issues?.length && !acknowledge)} onClick={() => void act(() => apiRequest(`/api/v1/updates/${row.id}/apply`, { method: "POST", body: JSON.stringify({ expected_revision: row.revision, acknowledge_warnings: acknowledge }) }))}>{t("Apply data update")}</button><button className={button} disabled={busy || running} onClick={() => { if (window.confirm(t("Discard this data update?"))) void act(() => apiRequest(`/api/v1/updates/${row.id}/cancel`, { method: "POST", body: JSON.stringify({ expected_revision: row.revision }) })); }}>{t("Discard update")}</button></div></>}
-    {row.status === "applied" && <button className={button} disabled={busy || running} onClick={() => void act(() => apiRequest(`/api/v1/updates/${row.id}/rollback`, { method: "POST", body: JSON.stringify({ expected_revision: row.revision }) }))}>{t("Prepare rollback")}</button>}
+    {!closed && <><label className="my-4 flex gap-2"><input type="checkbox" checked={acknowledge} onChange={e => setAcknowledge(e.target.checked)} />{t("I reviewed the warnings")}</label><div className="flex flex-wrap gap-3"><button className={`${button} bg-primary text-on-primary`} disabled={busy || running || row.browser_editor_pending || !matches || row.status !== "checked" || row.check?.token !== currentToken || !!row.check?.issues?.some(issue => issue.severity === "error") || (!!row.check?.issues?.length && !acknowledge)} onClick={() => void act(() => apiRequest(`/api/v1/updates/${row.id}/apply`, { method: "POST", body: JSON.stringify({ expected_revision: row.revision, acknowledge_warnings: acknowledge }) }))}>{t("Apply data update")}</button><button className={button} disabled={busy || running} onClick={() => { if (window.confirm(t("Discard this data update?"))) void act(() => apiRequest(`/api/v1/updates/${row.id}/cancel`, { method: "POST", body: JSON.stringify({ expected_revision: row.revision }) })); }}>{t("Discard update")}</button></div></>}
+    {row.status === "applied" && <button className={button} disabled={busy || running} onClick={() => void act(async () => { const update = await apiRequest<Update>(`/api/v1/updates/${row.id}/rollback`, { method: "POST", body: JSON.stringify({ expected_revision: row.revision }) }); onRollbackCreated?.(update); })}>{t("Prepare rollback")}</button>}
+    </details>
   </section>;
 }
 
-function SourceVersionPicker({ sourceId, name, item, profiles, onChange }: { sourceId: string; name: string; item?: UpdateItem; profiles: SheetProfile[]; onChange: (item?: UpdateItem) => void }) {
+function SourceVersionPicker({ sourceId, name, item, profiles, onChange, replacementOnly = false }: { sourceId: string; name: string; item?: UpdateItem; profiles: SheetProfile[]; onChange: (item?: UpdateItem) => void; replacementOnly?: boolean }) {
   const { t, errorText } = useI18n();
   const versions = useQuery({ queryKey: ["source-versions", sourceId], queryFn: () => apiRequest<Version[]>(`/api/v1/sources/${sourceId}/versions`) });
   const [busy, setBusy] = useState(false), [error, setError] = useState<unknown>(null);
@@ -83,6 +97,6 @@ function SourceVersionPicker({ sourceId, name, item, profiles, onChange }: { sou
       const selected = binding?.target_sheet ?? profile.sheet_name;
       return <label className="block" key={JSON.stringify(profile)}>{t("Incoming sheet for {0}", { 0: profile.sheet_name })}<select className={control} value={sheets.includes(selected) ? selected : ""} onChange={e => change({ bindings: [...(item.bindings ?? []).filter(entry => !same(entry)), { ...profile, target_sheet: e.target.value, columns: [] }] })}><option value="" disabled>{t("Worksheet")}</option>{sheets.map(sheet => <option key={sheet}>{sheet}</option>)}</select></label>;
     })}
-    {item && <><label className="block">{t("Update mode")}<select className={control} value={item.mode ?? "replace"} onChange={e => change({ mode: e.target.value as UpdateItem["mode"] })}><option value="replace">{t("Replace current dataset")}</option><option value="append">{t("Add a period")}</option><option value="replace_period">{t("Replace a period")}</option></select></label>{item.mode && item.mode !== "replace" && <><label className="block">{t("Incoming period label")}<input className={control} value={item.period ?? ""} onChange={e => change({ period: e.target.value })} /></label><label className="block">{t("Existing period label (first append only)")}<input className={control} value={item.baseline_period ?? ""} onChange={e => change({ baseline_period: e.target.value })} /></label><p className="text-sm text-muted">{t("Period labels do not create dates. Rows are appended without deduplication.")}</p></>}</>}
+    {item && <><label className="block">{t("Update mode")}<select className={control} value={item.mode ?? "replace"} disabled={replacementOnly} onChange={e => change({ mode: e.target.value as UpdateItem["mode"] })}><option value="replace">{t("Replace current dataset")}</option><option value="append">{t("Add a period")}</option><option value="replace_period">{t("Replace a period")}</option></select></label>{item.mode && item.mode !== "replace" && <><label className="block">{t("Incoming period label")}<input className={control} value={item.period ?? ""} onChange={e => change({ period: e.target.value })} /></label><label className="block">{t("Existing period label (first append only)")}<input className={control} value={item.baseline_period ?? ""} onChange={e => change({ baseline_period: e.target.value })} /></label><p className="text-sm text-muted">{t("Period labels do not create dates. Rows are appended without deduplication.")}</p></>}</>}
   </section>;
 }

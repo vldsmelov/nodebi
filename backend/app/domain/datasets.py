@@ -10,6 +10,7 @@ class LogicalType(StrEnum):
     STRING = "string"
     INTEGER = "integer"
     FLOAT = "float"
+    DECIMAL = "decimal"
     BOOLEAN = "boolean"
     DATE = "date"
     DATETIME = "datetime"
@@ -82,7 +83,9 @@ def polars_to_logical(dtype: pl.DataType | DataTypeClass) -> LogicalType:
         return LogicalType.BOOLEAN
     if dtype.is_integer():
         return LogicalType.INTEGER
-    if dtype.is_float() or dtype == pl.Decimal:
+    if dtype == pl.Decimal:
+        return LogicalType.DECIMAL
+    if dtype.is_float():
         return LogicalType.FLOAT
     if dtype == pl.Date:
         return LogicalType.DATE
@@ -100,6 +103,7 @@ def logical_to_polars(logical_type: LogicalType) -> pl.DataType | DataTypeClass:
         LogicalType.STRING: pl.String,
         LogicalType.INTEGER: pl.Int64,
         LogicalType.FLOAT: pl.Float64,
+        LogicalType.DECIMAL: pl.Decimal(38, 6),
         LogicalType.BOOLEAN: pl.Boolean,
         LogicalType.DATE: pl.Date,
         LogicalType.DATETIME: pl.Datetime("us"),

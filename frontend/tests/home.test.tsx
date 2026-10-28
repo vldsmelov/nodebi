@@ -9,7 +9,7 @@ describe("Home", () => {
     render(<Home />);
 
     expect(screen.getByRole("heading", { name: "Turn spreadsheets into clear decisions." })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Create your first project" })).toHaveAttribute("href", "/projects");
+    expect(screen.getByRole("link", { name: "Open projects" })).toHaveAttribute("href", "/projects");
   });
 });
 

@@ -1,4 +1,4 @@
-import { showAllOperations } from "./operation-catalog";
+import { legacyOperationTitle, showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -10,10 +10,12 @@ test("build field Bar Chart and scalar KPI through named UI connections and rest
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Typed visualization acceptance" } })).json();
   try {
     expect((await request.post(`${api}/api/v1/projects/${project.id}/sources/excel`, { multipart: { file: { name: "sales.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: readFileSync(resolve("../fixtures/excel/sales.xlsx")) } } })).ok()).toBe(true);
-    await page.goto(`/projects/${project.id}/workflow`);
-    await page.getByRole("button", { name: "New field workflow", exact: true }).click();
+    const created = await (await request.post(`${api}/api/v1/projects/${project.id}/workflows`, { data: { name: "Bound chart compatibility" } })).json();
+    const migrated = await request.put(`${api}/api/v1/workflows/${created.id}`, { data: { name: created.name, expected_revision: created.revision, format_version: 2, nodes: [], edges: [] } });
+    expect(migrated.ok()).toBe(true);
+    await page.goto(`/projects/${project.id}/workflow?workflow=${created.id}&mode=fields`);
     const saved = async () => { await expect(page.getByText("Saved", { exact: true })).toBeVisible(); await expect(page.getByText("Updating fields", { exact: true })).toHaveCount(0); };
-    const add = async (name: string) => { await showAllOperations(page); await page.getByTitle(`Add ${name}`, { exact: true }).click(); };
+    const add = async (name: string) => { await showAllOperations(page); await page.getByTitle(`Add ${legacyOperationTitle(name)}`, { exact: true }).click(); };
     const connect = async (port: string, label: string) => { await page.getByLabel(`Input ${port}`, { exact: true }).selectOption({ label }); await saved(); };
     await add("Excel Source"); await saved();
     await add("Field arithmetic");
@@ -59,7 +61,8 @@ test("build field Bar Chart and scalar KPI through named UI connections and rest
     await page.goto(`/projects/${project.id}/dashboard`);
     await page.getByRole("button", { name: "Create dashboard", exact: true }).click();
     for (const title of ["Revenue by country", "Revenue total"]) {
-      await page.getByLabel("Add visualization", { exact: true }).selectOption({ label: title });
+      await page.getByRole("button", { name: "Add chart", exact: true }).click();
+      await page.getByLabel("Search visualizations", { exact: true }).fill(title);
       await page.getByRole("button", { name: "Add widget", exact: true }).click();
     }
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click();
@@ -79,6 +82,7 @@ test("build field Bar Chart and scalar KPI through named UI connections and rest
     await expect(page.getByRole("img", { name: "Revenue by country", exact: true })).toBeVisible();
     await expect(page.getByTestId("kpi-value")).toBeVisible();
     expect((await (await request.get(`${api}/api/v1/visualizations/${bar.id}/result`)).json()).orientation).toBe("horizontal");
+    await barWidget.getByLabel("Widget actions", { exact: true }).click();
     await barWidget.getByRole("button", { name: "Independent visualization copy", exact: true }).click();
     const copyDialog = page.getByRole("dialog", { name: "Independent visualization copy", exact: true });
     await copyDialog.getByLabel("Chart title").fill("Independent revenue");
@@ -91,7 +95,10 @@ test("build field Bar Chart and scalar KPI through named UI connections and rest
     expect(newChart.version).toBe(2);
     expect(copied.edges.filter((edge: { target_node_id: string }) => edge.target_node_id === newChart.id)).toHaveLength(3);
     expect((await (await request.get(`${api}/api/v1/visualizations/${bar.id}/result`)).json()).title).toBe("Revenue by country");
-    await page.locator("[data-widget-id]").filter({ has: page.getByRole("img", { name: "Independent revenue", exact: true }) }).getByRole("link", { name: "Open calculation", exact: true }).click();
+    const copiedWidget = page.locator("[data-widget-id]").filter({ has: page.getByRole("img", { name: "Independent revenue", exact: true }) });
+    const actions = copiedWidget.getByLabel("Widget actions", { exact: true });
+    if (await actions.locator("..").getAttribute("open") === null) await actions.click();
+    await copiedWidget.getByRole("link", { name: "Open calculation", exact: true }).click();
     await expect(page).toHaveURL(/mode=fields/);
     await expect(page.getByLabel("Input category", { exact: true })).toBeVisible();
     const languages = page.getByRole("combobox").filter({ has: page.locator('option[value="tt"]') });

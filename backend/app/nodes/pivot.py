@@ -27,6 +27,24 @@ class PivotConfig(BaseModel):
     operation: Literal["count", "sum", "average", "min", "max"] = "sum"
 
 
+def pivot_field_identity(
+    node: NodeInstance, pivot: ColumnSchema, category: object, names: set[str]
+) -> tuple[str, str, str]:
+    """Shared dynamic identities/labels; aggregate versions own their numeric contracts."""
+    label = "(empty)" if category is None else str(category)
+    base = f"pivot_{label}"
+    name = base
+    suffix = 1
+    while name in names:
+        suffix += 1
+        name = f"{base}__{suffix}"
+    names.add(name)
+    identity = hashlib.sha256(
+        json.dumps([pivot.logical_type.value, category], default=str, ensure_ascii=False).encode()
+    ).hexdigest()[:20]
+    return f"pivot_{node.id.hex}_{identity}", name, label
+
+
 def validate_config(config: PivotConfig, schema: DatasetSchema) -> None:
     schema.by_id(config.index_column_id)
     schema.by_id(config.pivot_column_id)
@@ -84,19 +102,7 @@ class PivotExecutor(UnaryExecutor):
         expressions = []
         names = {index.engine_name}
         for category in categories:
-            label = "(empty)" if category is None else str(category)
-            base = f"pivot_{label}"
-            name = base
-            suffix = 1
-            while name in names:
-                suffix += 1
-                name = f"{base}__{suffix}"
-            names.add(name)
-            identity = hashlib.sha256(
-                json.dumps(
-                    [pivot.logical_type.value, category], default=str, ensure_ascii=False
-                ).encode()
-            ).hexdigest()[:20]
+            identity, name, label = pivot_field_identity(node, pivot, category, names)
             dtype = (
                 LogicalType.INTEGER
                 if config.operation == "count"
@@ -106,7 +112,7 @@ class PivotExecutor(UnaryExecutor):
             )
             columns.append(
                 ColumnSchema(
-                    f"pivot_{node.id.hex}_{identity}",
+                    identity,
                     name,
                     name,
                     dtype,

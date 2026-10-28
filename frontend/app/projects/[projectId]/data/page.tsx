@@ -4,9 +4,11 @@ import { useI18n } from "@/lib/i18n";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileSpreadsheet, Trash2, Upload } from "lucide-react";
-import Link from "next/link";
+import Link from "@/features/spreadsheet/source-link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { DatasetsPanel } from "@/features/ingestion/DatasetsPanel";
+import { MeasureCatalog } from "@/features/measures/MeasureCatalog";
 
 import {
   deleteSource,
@@ -51,8 +53,10 @@ export default function DataPage() {
   return (
     <main className="min-h-[calc(100vh-2.75rem)] bg-page px-6 py-10 text-foreground">
       <div className="mx-auto max-w-7xl">
+      <DatasetsPanel projectId={projectId} />
+      <MeasureCatalog projectId={projectId} />
         <Link href={`/projects/${projectId}`} className="text-sm text-muted">{t("← Project")}</Link>
-        <header className="mt-8 flex flex-wrap items-end justify-between gap-6"><div><p className="font-mono text-xs uppercase tracking-[0.25em] text-accent">{t("Data")}</p><h1 className="mt-3 text-4xl font-medium">{t("Excel sources")}</h1></div><label className="focus-within:outline-2 focus-within:outline-accent inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-on-primary"><Upload size={16} />{upload.isPending ? t("Uploading…") : t("Upload workbook")}<input aria-label={t("Upload workbook")} className="sr-only" type="file" accept=".xlsx,.xlsm" disabled={upload.isPending} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) upload.mutate(file); }} /></label></header>
+        <header className="mt-8 flex flex-wrap items-end justify-between gap-6"><div><p className="font-mono text-xs uppercase tracking-[0.25em] text-accent">{t("Data")}</p><h1 className="mt-3 text-4xl font-medium">{t("Excel sources")}</h1></div><Link className="af-btn af-btn--secondary" href={`/projects/${projectId}/data/update${effectiveSourceId ? `?source=${effectiveSourceId}` : ""}`}>{t("Update data from a file")}</Link><label className="focus-within:outline-2 focus-within:outline-accent inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-on-primary"><Upload size={16} />{upload.isPending ? t("Uploading…") : t("Upload workbook")}<input aria-label={t("Upload workbook")} className="sr-only" type="file" accept=".xlsx,.xlsm" disabled={upload.isPending} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) upload.mutate(file); }} /></label></header>
         {(upload.error || remove.error) ? <p role="alert" className="mt-5 rounded-xl bg-danger-surface p-4 text-sm text-danger">{errorText(upload.error ?? remove.error)}</p> : null}
         {selected && <div className="mt-6 rounded-xl border border-outline p-4"><Link className="font-medium text-accent underline" href={`/projects/${projectId}/workflow?mode=fields`}>{t("Continue to calculations")}</Link><p className="mt-2 text-sm text-muted">{t("Open a workbook sheet in the editor, then join, calculate or summarize.")}</p></div>}
         <div className="mt-10 grid gap-6 lg:grid-cols-[18rem_1fr]">

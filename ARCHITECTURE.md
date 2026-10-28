@@ -1,5 +1,824 @@
 # ARCHITECTURE.md
 
+ADR-219 adds domain CellFormatPatch and separate typed format operations to the existing browser
+draft/save contract. Sparse overrides render on bounded pages; SpreadsheetSession tracks a joint
+value/format history and dirty state. Source formatting uses append-only OOXML font/fill/xf records
+and targeted cell s references; original definitions/number formats/assets remain unchanged.
+Physical source protections are revalidated at preparation. Simple table row IDs map formatting
+after row deletion/addition. CSV rejects styling. Existing recalculation/staging/check/apply and
+receipts remain authoritative, with no migration or SDK serialization of source files.
+Plain XLSX styling-only changes bypass openpyxl serialization; value/row rewrites restore original
+numeric XML using stable row identities, with exact serialization of explicit integer/decimal
+edits. This avoids whole-book numeric coercion while retaining existing type conversion rules.
+
+ADR-218 separates source-picker readiness from canvas initialization. Spreadsheet toolbar actions
+commit native input before consuming the sparse session; values paste captures its target before
+clipboard I/O. Deleted-row groups retain stable backend row IDs for explicit restore_rows in the
+existing revisioned draft API; this local recovery stack clears at preparation/apply/discard. No extra
+persistence model/calculator. Sales showcase Pareto consumes a published aggregation through
+the normal graph; existing dedicated graphs can be rebound with revisioned workflow saves while
+retaining publication/visualization/dashboard IDs. Historical exports remain for existing history.
+
+ADR-217 replaces the separate React formula input with the native Univer formula bar/inline editor.
+SourcePresentation binds raw STRING/FORCE_STRING cells plus actual f metadata; only a render
+interceptor converts explicit number_values for native numfmt, and BEFORE_CELL_EDIT restores raw
+data. Source date-system/theme/indexed-colour/border metadata is additive and display-only.
+Native entry capture retains exact text before coercion. Selection operations update the app's
+accessible live value; the native bar directly follows SDK state. Qualified addresses route across
+sheets, and cached-but-unpainted rows render after activation. Calculation engine/result apply stay
+disabled; no worker/RPC or alternative calculator. Source/staging/LibreOffice/check/apply persists.
+
+ADR-216 adds explicit formula/override flags to cell writes and per-row advanced-edit capability
+and pending-formula metadata. WorkbookEditorService validates operation semantics and persists
+typed sparse options in the existing ReportDocument. SpreadsheetSession tracks formula identity
+through history/persistence; Univer only displays literal values. Editing a formula focuses our
+bar, while native apostrophe intent is preserved before SDK parsing. Server normalizes common
+Russian formula syntax outside quoted text, applies the safe allowlist/cached-link boundary,
+patches f cells, invalidates calcChain references and recalculates before staging. Original assets,
+precision, merged/protection metadata and update CAS/check/apply remain authoritative. Merged
+navigation resolves to anchors. Shared groups resolve through Translator and expand only when
+edited; array/data-table ranges stay immutable. No database migration.
+
+ADR-215: standalone /spreadsheet/{projectId} dynamically loads Univer OSS1.2.0. SourceAwareLink
+adapts legacy source-update entry links to a synchronous new-window gesture; old routes remain
+valid. SpreadsheetSession owns sparse string edits, atomic protection checks and bounded history,
+independent of the SDK. UniverCanvas adapts cached cells/appearance to the grid and never imports,
+exports or calculates the original workbook. Its formula engine is disabled before initialization.
+Workspace/appearance and find contracts are typed; sheet blocks remain <=100 rows/2000 cells,
+loaded per viewport with exact revision checks. No bulk dataset calculation in the frontend.
+The backend reads original OOXML styles/merges/dimensions and serializes only requested rows;
+the shared existing source/staging/LibreOffice/check/apply pipeline remains authoritative.
+SDK mounts/lifecycles are isolated; Steady readiness gates input, and view preferences/selection
+are restored after save. BroadcastChannel refreshes other local report tabs; no collaboration or
+new persistence model/migration. Native appearance changes are view-only; source style/structure
+authoring is intentionally not exposed. CSV headers are synthetic/protected and IDs stay server-owned.
+
+ADR-214 adds WorkbookEditorService behind the existing editor endpoints: automatic bounded XLSX
+fallback, sparse physical-cell patches and the same revisioned draft/staging pipeline. WorkbookCells
+reads populated OOXML extents (ignoring formatting tails) and patches worksheet cell XML only;
+unrelated archive member contents remain byte-exact. Page exposes formula/read-only coordinates,
+workbook/structural capabilities and precision/external-cache notices. Existing table contracts
+remain compatible. Server Calc receives a fresh data/formula/name/format copy with original calcPr,
+not original assets. Allowlisted external formulas reference generated local saved-cache sheets.
+Only verified result caches are merged into the original ZIP; new errors abort preparation.
+Receipt records prepared version/external-cache use; SourceUpdateService adds the warning only
+for that exact version. Existing token/revision/apply owns activation, no new table/migration.
+LibreOffice26.2.6 amd64 runtime is pinned by SHA256 in Docker; local Python supports a trusted
+NODEBI_SPREADSHEET_BINARY or installed supported LibreOffice. Macro security very-high, no trusted
+locations, no external relationships/assets passed to the engine, per-process semaphore and90s
+timeout. Formula authoring, macro execution, structural edits and external refresh remain excluded.
+Earlier plain-XLSX-only restrictions below describe ADR-211/212 and are superseded for this path.
+
+ADR-213 hardens client orchestration: the returned check job, checked update ID/token and expected
+revision must agree before apply. Network failure after apply is reconciled against an exact
+applied receipt (same update ID and expected revision+1). AbortController stops an unmounted
+editor's polling/auto-apply intent; backend transaction/CAS ownership remains unchanged.
+The PowerShell updater targets one explicit existing Compose stack, holds an exclusive local
+operator lock, builds before stopping services, snapshots database/files while API/UI are paused,
+records checksums/image identities, and verifies /ready plus UI HTTP. Preflight validates source
+volume/root and local PostgreSQL identity. Failure before deployment restarts original containers;
+failure after deployment never automatically restores/downgrades a database. Container base images
+are digest-pinned, npm/application versions locked, quality tooling uses existing constraints.
+GitHub Actions defines read-only code/quality jobs against disposable PostgreSQL, not deployment.
+
+Quick save (ADR-212) composes existing typed prepare/check-job/poll/apply APIs in a focused
+frontend helper; no calculations or validation move into the browser. Save changes authorizes
+automatic apply only for an error/warning-free completed check. Inline confirmation retains
+the checked revision; all source-base/CAS/check-token guards remain server enforced. Failure
+or closing the browser before apply leaves a staged version, not silently active input.
+browser_inputs derives nonpersistent profiles from plain legacy Excel source-node layouts and
+physical column metadata. Legacy edited cells use the same public strict scalar conversion as
+normalization to retain native numeric/boolean/date cells; prepared inputs keep literal strings.
+The fast entry optionally reuses a same-source/same-base editable browser or empty update draft
+under the project lock. Template and browser capabilities are no longer conflated. Formula/complex
+fallback uploads immutable SourceVersions and drives existing check/apply without graph changes.
+
+BrowserEditorService (ADR-211) exposes typed paged read/save/prepare/discard APIs under
+updates/{id}/editor. Sparse string patches and stable original/appended row identities live in the
+existing revisioned update ReportDocument, bound to the selected immutable storage key. Writes
+use the project lock, revision CAS, digest-checked save receipt and prepare request receipt.
+SourceUpdateService rejects pending editor patches in generic save/check/apply. Preparing renders
+CSV with confirmed delimiter/encoding or safely bounded plain XLSX through existing libraries,
+stages a SourceVersion via the existing uploader, then CAS-selects it while retaining field bindings.
+The project lock is released before uploader artifact reservation and reacquired afterward to
+avoid cross-transaction PostgreSQL FK deadlock. A concurrent revision change leaves staged data
+inactive and the browser draft unchanged. Selecting the replacement and its receipt commits
+together. Original source artifacts are never overwritten; normalization/calculation remain backend.
+Pages return <=100 rows and <=2000 cells (20 rows by default). Sparse drafts cap edits/row ops at
+10000 each and serialized state at 4 MB; XLSX preflight caps the entire workbook at 200000 cells.
+Formula caches are not recalculated: formula/complex workbooks are rejected before mutable load.
+BrowserFileEditor owns only interaction and lightweight TSV parsing; no spreadsheet dependency,
+new database schema, calculation engine or client-side dataset materialization is introduced.
+
+FileExchangeService (ADR-210) stores source/base fingerprint metadata in existing revisioned update
+ReportDocuments. POST projects/{id}/file-updates is source-validated and request-idempotent.
+GET updates/{id}/files/{current|template} validates the same base, then streams through StorageProvider;
+the frontend receives a download Blob, not a complete dataset for client calculation. Templates use
+confirmed input profiles and raw header cells; complex inputs explicitly retain original-file editing.
+SourceUpdateService preserves the metadata on save and checks it at prepare/apply; the existing
+project lock, state token, normalization/staging and atomic apply remain authoritative. An optional
+typed UpdateRead.file_exchange drives source-scoped controls; legacy update documents remain valid.
+FileUpdateStart reuses existing source lists and routes into the saved update URL. No extra database
+table/migration, connector, calculation model or append semantics are introduced.
+
+Dashboard layout variants (ADR-209) use dashboard_layout_templates (migration 0012), separate
+from analytical calculation templates and DashboardConfiguration. Immutable widget snapshots
+have a partial unique default index and cascade with their owning dashboard. DashboardService
+preserves the pre-edit nonempty baseline within its save transaction; an empty dashboard freezes
+its first nonempty save instead. GET layout-templates is read-only and may synthesize the current
+saved baseline until it is first frozen. POST layout-templates performs a CAS dashboard save plus
+immutable named capture in one transaction, with digest-checked request replay and bounded count.
+Release snapshot MODELS includes layouts; restore remaps embedded widget/visualization IDs.
+DashboardEditor uses noCompactor with preventCollision=true, never live neighbour pushing.
+placement.ts owns deterministic gap packing and single-widget insertion/sizing. Explicit actions
+flow through change/persistDraft/layout history; applying a saved variant changes the draft, not
+the default snapshot. Shared chart calculations and source/visualization versions are unchanged.
+
+Guided entry (ADR-208) is presentation-only: ProjectJourney and report-entry select links from
+existing dataset/dashboard metadata. Import continuation prefers fresh apply, then the source's
+active snapshot for the resource, then the completed draft snapshot. No saved report is rewritten.
+DashboardEditor validates supplied values with the existing typed resolver, defers only the
+required-presence check for incomplete-entry classification, and blocks visualization requests
+until all required values are supplied. DashboardValueForm performs full validation on Apply.
+Graph execution, source mapping, decimal arithmetic and transaction/revision guards remain backend
+responsibilities. Wizard cardinality guidance mirrors, and does not replace, server validation.
+
+Corporate frontend: frontend/vendor/alabuga contains pinned @alabuga/framework 0.6.0
+CSS and local WOFF2 fonts from b048bc2546a3e05131f4451a1115f7282b13523b; logo assets are
+under public/brand. globals.css imports upstream styles in the components layer, maps
+Node BI semantic tokens, and supplies a dark adaptation; corporate.css owns the React
+application bridge. CorporateHeader sits inside locale/theme providers. Forms, dialogs,
+graph state and rendering remain React-owned; upstream imperative initComponents and
+document runtime are not loaded. ECharts receives the same local body font. No additional
+dependency, remote font fetch, persisted model or calculation contract is introduced.
+See ADR-207 and frontend/vendor/alabuga/NOTICE.txt for provenance/update boundaries.
+ReportDraftBoundary renders a consistent loading state through server rendering/hydration;
+its browser-only recovery session mounts afterward. Draft reading precedes form autosave,
+preserving pending requests and restoring saved settings without hydration divergence.
+
+basicSeriesColors shares the existing eight-colour basic multi-series palette with pie/donut.
+Pie slice styles use the same sorted category identity as decals, a panel-coloured 2px stroke,
+and explicit emphasis fill to prevent automatic lightening. Context highlighting varies only
+opacity, preserving separators rather than replacing them with an accent outline. This is
+rendering metadata, not a saved option or transformation; source rows remain unaggregated.
+
+Pareto's existing value axes enable renderer-native label collision handling and retain
+endpoint labels. The shared ResizeObserver triggers ECharts layout again when height changes;
+no new tick calculation, normalized coordinate change or persisted layout migration is needed.
+
+Shared Chart projects its generated ECharts legend into ChartLegend native buttons through
+chart-legend.ts. Entries retain renderer names as identity and use its formatter as display
+text; helper-series names are deduplicated. legendToggleSelect and legendselectchanged keep
+pointer and keyboard actions synchronized without another filtering model. No options or
+visibility state are persisted. Controls are scoped to the current result/locale/theme/window;
+the chart ResizeObserver handles the disclosure row's height. See ADR-206.
+
+Chart renderer failures are scoped to result/locale/theme/window inputs, not a permanent
+component error string. An explicit retry counter recreates the renderer without a data fetch
+or persistent mutation. Catch/unmount dispose resources idempotently; one-shot retry focus
+must not be repeated by later background result updates.
+
+Pie category cues reuse the basic eight-pattern palette. pie-categories.ts derives sorted
+unique display labels only to assign presentation styles; data order, slice values and source
+indexes remain unchanged. Native ECharts legend icons inherit each slice decal. Pattern count
+is shared with the viewer's over-eight-category warning; duplicate labels do not aggregate rows.
+
+Pie/donut rendering sets stillShowZeroSum=false and showEmptyCircle=false. Missing measure
+values use ECharts' missing marker instead of numeric zero, preserving source row indexes.
+This prevents equal-sector synthesis after legend filtering without adding client aggregation
+or replacing backend validation. Exact rows and frozen/saved configuration are unchanged.
+
+Basic multi-series non-colour cues are presentation-only, selected by sorted column IDs in
+basic-series-cues.ts. Eight cues cover the existing contract. ECharts series IDs combine
+field ID and occurrence to preserve repeated-field legacy configurations; order, values,
+persisted specifications are unchanged. Light-theme series colours are darkened for 3:1
+base-fill contrast against chart surfaces; dark colours and single-series rendering are untouched.
+
+Basic chart tooltips project dataIndex/seriesIndex onto the unchanged result rows and fields
+in basic-tooltip.ts, then escape text through the shared bounded HTML renderer. Additional
+series use their own field/name rather than the primary measure. No plot coordinates are
+parsed back into source values; time axes retain original date text in hover details.
+
+Hierarchy labels use opaque themed text with a 3px neutral text halo in normal/emphasis/blur
+states, including treemap parent labels. Do not add opaque label backgrounds: ECharts sizes
+treemap label boxes to the whole tile, which would conceal category fills. Drawing weights,
+colours, selection identities and hierarchy navigation remain unchanged.
+
+Bullet custom rendering extends its clip into the existing top padding only when numeric
+labels are enabled. The plot's horizontal and bottom clipping and all mark coordinates remain
+unchanged; actual renderer text/clip geometry is tested at supported short window heights.
+
+Combination-chart non-colour cues are presentation-only: sorted field IDs within bar/line
+kinds select decal patterns or marker shapes. The typed contract requires both kinds and at
+most eight series, so seven cues per kind suffice. ECharts propagates bar decals to legend
+icons; line-axis dash semantics, backend coordinates and saved configuration remain unchanged.
+
+Box-plot median labels use a silent scatter presentation layer because native ECharts boxplot
+does not render labels. Coordinates come from backend medians, text retains exact transport,
+and null medians have no anchor. The layer shares the summary legend name, adds no interactive
+selection/tooltip and uses opaque themed label ink/backing even when boxes are muted.
+
+Heatmap, box-plot, radar, waterfall, bubble, bullet, funnel, hierarchy, histogram and combo/Pareto tooltips share chart-tooltip.ts for escaped plain-text HTML
+with preserved line breaks. Shared rendering was extracted after actual box tooltip clipping;
+it does not accept user HTML or change the backend's statistical values.
+Radar, waterfall, bubble, bullet, funnel, hierarchy, histogram and combo/Pareto use boundedPlainTextTooltip to bound width to the current chart (maximum 420px), wrap long
+unbroken names and apply ECharts confinement after measuring the wrapped HTML box.
+
+In the below-80rem dashboard workbench layout, settings' bottom sticky action rows also
+become static: the in-flow panel has no local scrolling viewport, so sticky actions otherwise
+cover visible fields. Wide fixed panels retain sticky actions and their local scrolling.
+
+Dashboard workbench (ADR-204) is wrapped in an inline-size container. Below 80rem its existing
+fields/settings panels become in-flow blocks, section navigation is visible, and main padding
+no longer reserves fixed sidebars. The mounted editors, draft ownership and saved widget layout
+remain unchanged. Wide layouts keep their existing fixed-panel composition.
+
+PreparationDialog (ADR-203) keeps one controlled table/form tree. A 60rem container query
+stacks cells with translated heading text on narrow/enlarged layouts. Existing plan generation,
+cancel confirmation and atomic graph apply are unchanged; desktop preserves column layout.
+
+ReportBuilder (ADR-202) uses an inline-size container with a 78rem three-column threshold;
+below it the same fields, preview and settings instances stack without changing form state.
+Unlike viewport media breakpoints, this container threshold follows enlarged root text.
+StatisticalReportForm shares the container threshold with a separate two-column template;
+below it settings and preview stack, preserving chart space as well as control visibility.
+
+CanvasNavigation (ADR-201) runs inside the existing React Flow provider, reading the current
+viewport and applying a 200-CSS-pixel offset without changing zoom or editor graph state.
+choiceLabels disambiguates full choice sets before filtering, reserving original labels to
+avoid suffix collisions. Select values and persisted references remain existing stable IDs.
+
+GroupPanel checkbox selection (ADR-200) is controlled by WorkflowEditor selected flags and
+inspector identity. Deselecting the inspected node clears both; grouping still calls existing
+assignGroup. Search is component-local, capped to 100 rendered matches, and never filters
+the selected-ID set used by grouping. No alternate persistence or grouping operation exists.
+
+CanvasPlacement (ADR-199) is presentation-only and receives visible item identities/positions
+from each editor. Classic callbacks update node positions; field callbacks reuse changeNodes
+for nodes and workbook/block/result presentation metadata. No alternate persistence or execution.
+
+Graph workspace reflow (ADR-198) is CSS-only. Shared workflow-workspace rules use classic
+panel-width custom properties or field defaults on desktop, and a vertical layout below 64rem.
+Named, focusable library/settings regions preserve the same mounted components and existing
+draft/autosave ownership. Field grid row minima keep canvas and preview geometrically separate.
+
+DashboardRecoveryBoundary (ADR-197) loads browser drafts after hydration, before editor mounting.
+The focused dashboard-draft parser checks identity/revision and render-safe nested shapes, not
+business semantics. Valid recovered state seeds DashboardEditorContent once; query refreshes do
+not substitute current server revisions for the recovered revision. Failed recovery requires an
+explicit decision and never mounts unsafe widgets or silently discards raw storage.
+
+Dashboard view-date recovery (ADR-196) wraps DashboardPeriod with a validated versioned envelope
+keyed by project/dashboard in the shared document store, separate from configuration drafts.
+The URL remains authoritative for execution; applied-period changes reconcile pending scratch
+without changing view parameters. A one-shot local marker identifies the component's own Apply
+so denied reads after its cleanup cannot spuriously reopen recovery. Native unload protection
+covers live edits; existing route guards/layout persistence are not replaced.
+
+Release settings recovery (ADR-195) uses a versioned project-scoped envelope in the shared
+document-draft store. Storage is read after hydration and requires restore/discard before editing;
+route instances are keyed by project. Local settings never carry check tokens, consent, datasets
+or automatic submission logic. Release POST acknowledges a job, not a completed frozen release,
+so this settings-only layer does not retire drafts on HTTP success or claim idempotent retry.
+Optional dateScratch extends the existing envelope compatibly. DashboardPeriod accepts controlled
+scratch for the release form while retaining local scratch for existing dashboard usage. Incomplete
+scratch is structurally validated, not promoted to DatePeriod; explicit application still calls
+parsePeriod. Only the applied period enters API execution contexts. A recovered form generation
+focuses the name once, never on ordinary typing/polling.
+
+Update-history selection (ADR-194) is the reports route's update query parameter. ReportCycle
+resolves it through the project-scoped query; successful create/rollback responses seed that
+query cache before router.replace selects the identity. No new persistence/API/receipt model.
+UpdateEditor focuses its heading only on identity entry and its error panel only for actions.
+
+Excel rectangles (ADR-193) are optional ReadOptions.cell_range values passed through the adapter
+to WorksheetLayout. The reader bounds headers/data and cache validation while preserving physical
+column IDs/positions. Full-workbook structural safety limits still apply. Initial apply hashes
+omit absent cell_range for compatibility with historical whole-sheet receipts. Existing JSON
+profile/snapshot/release persistence carries the option without a migration.
+
+Analytical table layout (ADR-192) observes its scroll region with ResizeObserver and derives
+effective horizontal pinning, reserving one full data column. Narrow cards can temporarily
+unpin even the row-level column; vertical header pinning stays. This presentation-only state
+never updates VisualizationSpec, calculations or persisted configuration.
+
+Inspector condition scratch (ADR-191) is a validated node-ID/version-scoped browser document
+draft, separate from graph execution config. ConditionBuilder persists explicit control edits,
+restores without graph writes, validates current field availability and retires scratch only
+after explicit insertion into ordinary graph autosave. Shared bounded memory handles storage
+failures; discard remains fail-closed. This is tab-local recovery, not server persistence.
+
+ConditionBuilder authoring (ADR-190) preserves bounded numeric literal strings and delegates
+all computation to the selected node version. Exact calculated-column configuration enables
+decimal/integer/text predicates with numeric branch results; legacy configuration remains
+Float64 and explains its approximation. No browser evaluation or implicit version migration.
+
+DashboardEditor recovery (ADR-189) uses the same bounded document draft store and confirmed-save
+retirement as graphs/reports. The original recovered revision stays attached through layout undo /
+redo via restoreDashboardLayout. Confirmed deletion retires recovery before navigation, without
+treating browser cleanup failure as failed server deletion. Explicit discard is still fail-closed.
+
+Graph browser recovery (ADR-188) reuses features/workspace/document-drafts via the lazy adapter:
+small graph settings retain the latest same-document copy and original revision; confirmed saves
+retire it, explicit discard does not retire on failed removal. A workflow-only opt-in preserves
+oversized disk writes without retaining oversized memory. Existing report draft size limits remain.
+
+WorkflowAutosave browser storage (ADR-187) is injected as lazy get/set/remove operations, avoiding
+sessionStorage property access during editor render. Existing catches report recovery failures;
+normal serialized CAS server saves remain independent. Guarded local discard is fail-closed and
+cancels queued drafts only after local removal succeeds. No implicit durable-memory fallback.
+
+Normalization (ADR-186) has a per-column native fast path for explicitly selected decimal String
+fields. A full-column representability check precedes strict Polars casting; scale truncation is
+never used as validation. Ineligible syntax/values, missing required values or native-parser failures
+use the existing scalar conversion path with unchanged diagnostics. No new execution/storage model.
+
+Dashboard layout history (ADR-185) stores bounded widget snapshots only on geometry/attachment
+changes. Restoration merges current widget metadata by stable placement ID and keeps current
+dashboard configuration and saved revision. Removed widgets retain their captured metadata when
+restored. History remains in memory; the resulting dashboard draft uses existing sessionStorage
+and explicit CAS save. Pure helpers live in features/dashboard/layout-history.ts.
+
+Template catalog metadata (ADR-183) lives beside immutable ReportDocument.payload.template:
+payload.catalog.name and saved/archived status, protected by the document revision and project lock.
+TemplateCatalogService owns typed list/edit APIs and exact template_catalog_receipt responses.
+Receipt rows do not enter state_token or frozen releases; semantic edits advance template revisions.
+Shared caps include archived entries. Family prepare accepts optional expected_template_revision,
+rejects archive state and returns normal settings without creating any new execution model.
+Release metadata adds FrozenTemplateCatalog@1 parallel to unchanged definition arrays, validated
+for matching lengths, with a backwards-compatible absent-metadata fallback. No migration is needed:
+the existing document JSON/status/revision columns store these additions.
+Catalog UI (ADR-184) is a client-initialized Reports subroute with server-owned filtering/pagination.
+Validated sessionStorage retains exact pending PATCH bodies per project; unavailable list metadata
+does not block receipt retries. Known definitive errors clear pending state and require explicit
+refresh; transport failures retain the same request. No calculations or field mapping live here.
+
+Report templates (ADR-182) use a separate typed ReportTemplate/ReportSettings family and
+report-templates endpoints alongside the unchanged analytical API. Shared input validation checks
+grain/schema/source revisions. Existing node executors infer original formula scopes; lexical
+canonicalization preserves exact numeric/string tokens while stable-ID rebinding projects only
+structural roles. New formula/measure IDs are request-namespaced. No computation occurs in templates.
+ReportDocument kind report_template joins the shared project limit, state token and frozen metadata;
+restore keeps neutral roles/literals and gives documents fresh IDs. There is no physical DDL change.
+Family-aware UI controls use isolated pending-capture scopes and ordinary wizard draft/apply paths.
+
+Guided waterfall (ADR-181) extends AnalysisSettings and the existing statistical preview/apply/edit
+services. waterfall_steps@1 has additive optional order_column_id: absent/null keeps input order;
+integer/decimal/date/datetime keys must be unique and nonnull before full-input ascending sorting.
+Guided settings require an explicit nullable choice; legacy suffix recognition supplies null without
+writing the graph. Existing WaterfallSpec validation/rendering, exact arithmetic, typed snapshots,
+revision/receipt guards and shared/manual suffix protection remain the only execution path.
+Analytical template mapping includes row-type and order roles. No schema migration is needed.
+
+Guided radar (ADR-180) extends the same report settings/preview path with optional RadarSpec.
+The report presentation service delegates config validation and full-result rendering to existing
+radar services. No new graph node or calculation recipe is introduced. Saved suffix recognition
+preserves typed axes and explicit scales; apply persists the validated spec/orientation on rebind
+and clears stale typed specs when changing to a basic presentation. Absent radar metadata is omitted
+from legacy serialization; all existing CAS/receipt/publication/release boundaries remain in force.
+
+Guided combo authoring (ADR-179) adds optional ComboSpec to report settings and optional typed
+VisualizationResult to preview responses. report_visualizations delegates combo validation/rendering
+to the existing service over the graph ExecutionResult; no new calculator or persisted recipe.
+Recognized editable suffixes retain group_by@3 identities, existing CAS/receipts and appearance.
+Absent combo/result fields are omitted from legacy serialization. Draft validation admits bounded
+incomplete combo bindings, while completed configurations are validated by backend contracts.
+
+## Report-first evolution (2026-10-08, ADR-114)
+
+Add connector/resource/import-profile/snapshot contracts alongside legacy Excel interfaces.
+Normalized immutable Parquet tables use StorageProvider; relational metadata and explicit
+schema versions use migrations. New source nodes consume snapshots; existing Excel nodes keep
+their reading and identity contracts. Preparation and report wizards produce ordinary DAG
+operations, not an independent persisted calculation engine. Visualization specs are versioned,
+semantic and type-specific; ECharts options remain frontend adapters. Full-data statistics
+belong to explicit backend nodes; bounded rendering must not change statistical populations.
+Rollout and acceptance are tracked in docs/PRODUCT_EVOLUTION.md and TASKS.md.
+
+Exact field/scalar operations (ADR-176) are explicit v2 node definitions alongside unchanged v1.
+ScalarValue can carry Decimal with validated precision/scale; constants enter as bounded strings.
+Field arithmetic retains row context and composes deferred Polars batch expressions over connected
+operands, with bounded Fraction intermediates and half-even rounding at each node boundary. Sum
+uses checked exact accumulation, single-value enforces one row, and both retain source scale.
+No implicit Float64 conversion or inferred arithmetic currency/unit. Exact scalar previews and
+bound visualization datasets set exact_transport; stable IDs, normal graph execution and release
+remapping remain authoritative. field_formula@2 (ADR-177) maps a/b/c schemas into the existing
+bounded exact formula compiler and shares physical input validation with calculated_column@2.
+It preserves connected field contexts/checks/populations and emits a decimal field or scalar;
+rounding occurs once after the entire expression. Legacy text/boolean expressions stay v1.
+Decimal workflow/dashboard parameters (ADR-178) use fixed-scale strings in API/persistence/view
+state and Decimal only at the scalar/execution boundary, carrying explicit precision/scale.
+Validation uses the common checked exact conversion without accepting rounded values. Precision
+metadata participates in scalar cache identity and lossless binding validation. Decimal choices
+and labels serialize exactly; context/filter boundaries do not convert through Float64. Existing
+nondecimal definitions omit the new metadata keys; no database migration or automatic conversion.
+
+The visualization registry now lists all 21 families (ADR-174). Basic results expose read-side
+version-1 specs projected after ordinary validation, with stable field IDs and no new calculations.
+The frontend resolves these IDs against the returned schema, preserving exact values and selection
+context. Spec-less historical results retain legacy rendering. Registry binding_contract distinguishes
+spec_or_legacy_config from spec; result_data distinguishes rows from named datasets. The independent
+API's typed input validator normalizes basic specs to VisualizationConfig before receipt hashing and
+application validation (ADR-175). Mixed binding representations are rejected. Only canonical flat
+bindings persist, so graph/report edits and old exact pending requests remain compatible. Table
+columns=null means all fields; scalar KPI value=null means its single published value. First-series
+labels use optional primary_series_name, excluded when absent to keep old serialized defaults stable.
+The editor projects its existing draft form fields into typed requests; retries replay original bytes.
+Basic public saves validate through the common renderer before commit; no browser calculations.
+Table paging/release collection keeps one rows payload, not a duplicate named copy.
+
+Report and independent-visualization drafts share a same-document serialized-settings mirror
+(ADR-173). Failed sessionStorage writes retain the newest in-memory version; failed reads use only
+already-known data. Existing draft validators and exact pending-request/CAS contracts still apply.
+Confirmed saves/pristine resets use local tombstones if persistent removal fails. The mirror is
+not server persistence and does not survive document reload; storage errors remain explicit.
+
+Exact KPI presentation (ADR-171) formats transported decimal/large-integer strings using bounded
+BigInt scaling and Intl locale affixes. It never coerces them to Number or changes backend values;
+display rounding is separate from calculation rounding. Raw tables preserve exact transport.
+The executive demo CLI uses public import/report/visualization/dashboard APIs and ordinary DAGs;
+its independent Decimal oracle is acceptance tooling, not a second application calculation engine.
+
+Report formula field inspection optionally resolves the existing graph through the last summary
+formula (ADR-170). Create/edit fields endpoints accept include_summary=false by default and return
+an additive summary_outputs map of stable formula IDs to resolved aggregate/derived columns.
+The common planner/schema resolver remains authoritative; field inspection never executes or saves.
+The UI caches only matching input/aggregation and unchanged formula prefixes, never inferred browser
+types. Existing CAS, request receipts and graph persistence remain unchanged.
+
+Analytical templates (ADR-157) are immutable typed metadata in ReportDocument, not executable report
+instances. Capture projects recognized graph settings into neutral input roles; a read-only prepare
+endpoint validates exact field types/known units/currency and source revisions, then returns ordinary
+StatisticalSettings with request-namespaced measure identities. The existing wizard/executor owns
+preview and apply. Template fingerprints join project state_token and release metadata; restoration
+does not remap their literal strings. Existing releases default to an empty template catalog.
+
+Guided R5 creation (ADR-155) extends StatisticalReportRequest's discriminated analysis settings:
+Pareto/funnel compile to pareto@1/funnel_steps@1, treemap/sunburst to table_rollup@1 with one additive
+measure and complete totals. Existing typed adapters produce the preview and saved visualization.
+No saved report recipe, browser calculation or new persistence model is introduced. Prepared inputs,
+atomic apply, revision guards, receipts and draft recovery reuse the analytical report route.
+Structural suffix recognition includes Pareto/funnel and compatible one-additive-measure hierarchy
+rollups (ADR-156). Hierarchy settings use the presentation discriminator while patches retain the
+table_rollup node. Existing hierarchy bindings are validated before projection; field changes require
+explicit rebind, preserving presentation and rejecting dangling references. Advanced multi-measure
+or shared rollups are not simplified by the wizard.
+
+BubbleSpec/prepare_bubble (ADR-149/150) is registered in the typed chart union. It consumes one
+prepared Dataset, resolves stable numeric/categorical
+roles, validates the entire frame, and computes rational full-input coordinate extents and size
+maximum before bounded transport. Radius ratios implement area encoding; zero and missing states
+are explicit. Point/group UUID5 identities depend on publication namespace and typed keys, not
+row positions. Only selected fields are serialized. The PreparedBubble result reuses the existing
+VisualizationDataset exact page contract. No aggregation node or browser calculation engine is
+introduced. The bubble adapter validates full results on save and preserves navigation/highlight
+columns in the matching page. Internal full_data rendering bypasses the page cap for releases from
+one execution; frozen API slicing keeps observations and point identities aligned with full scales.
+Display tick text may use exact offsets or scientific notation without altering exact source text.
+ECharts consumes positions/radius ratios only; viewport padding changes presentation, not scaling.
+
+Pareto (ADR-151) separates pareto@1 preparation from ParetoSpec@1 presentation. The ordinary typed
+executor projects category/value before ranking and emits ranked dataset plus population summary
+with stable node-derived field identities. Full-input guards precede bounded previews; Fraction
+intermediates and explicit Decimal128 conversion protect sums and shares. Deterministic UUID5
+category identities survive reorder/paging. The chart binds these exact ports from one execution,
+reuses ComboPresentation for normalized drawing positions and never recomputes cumulative statistics.
+The ECharts adapter changes bindings only; its reference line is appearance. Validate/save/copy
+use existing project locks, revision guards, full-result validation and retry receipts. Freeze uses
+the private full_data path; frozen paging slices rows and geometry together, preserving summary
+and scales. No new dependency, migration, browser calculation or parallel report recipe.
+
+HierarchySpec@1 (ADR-152) binds table_rollup@1 roles, ordered dimensions and one additive measure for
+treemap/sunburst. HierarchyPresentation contains a complete root, stable flat parent-linked identities,
+bounded drawing weights and exact full-root shares. prepare_hierarchy validates the complete <=5000
+node result and reconciles totals; it does not replace rollup aggregation. Float reconciliation is
+explicitly approximate; integer/decimal reconciliation is exact. The frontend assembles nesting only,
+with no reaggregation. Local branch navigation/table paging retains the full prepared population.
+Save validation and frozen results reuse the existing full-result contracts; no DDL or dependency.
+
+BulletSpec@1 (ADR-153) defines category/actual/target roles and an explicit zero-inclusive scale with
+1–5 ordered labelled ranges. prepare_bullet validates all selected rows/units before paging and
+classifies exact numeric values using Fraction, not chart-side comparisons. BulletPresentation
+contains normalized positions, zero/missing distinction, exact ticks and stable typed identities;
+VisualizationDataset retains original exact numbers. Only selected/navigation fields are transported.
+ECharts custom rendering performs pixel geometry only. Adaptive 1–5-indicator windows and API pages
+do not alter scale or full counts. Save/retry/copy and complete frozen paging use existing lifecycle
+contracts; ordinary graph nodes remain the only business calculation model. No new node/DDL/dependency.
+
+Funnel (ADR-154) separates funnel_steps@1 full-input preparation from FunnelSpec@1 presentation.
+Explicit integer order, unique stages and non-increasing finite/nonnegative amounts are validated
+before producing stage and summary datasets. Fraction intermediates and bounded Decimal128 outputs
+protect exact losses/retention; exact ratio strings accompany rounded percentages. Stage UUID5s
+derive from node namespace and typed key, not row position. The typed adapter requires matching
+roles/ports and one execution; terminal context restrictions are rejected. It returns all <=50
+stages independently of page requests. Frozen results retain the complete sequence. The ECharts
+custom adapter maps normalized widths to pixels without calculating transitions; scroll state only
+changes viewport. Existing save receipts, release/restore and source identity remapping apply.
+No new dependencies, DDL or parallel report model; aggregation/cohorts remain explicit upstream.
+
+ProjectOverview (ADR-139) composes existing typed metadata queries through independently labelled
+OverviewSection boundaries. It does not execute graphs, infer check freshness or persist a separate
+summary. Report-state fingerprints remain server-owned; failed refresh does not display cached
+success. OverviewReports owns local name search/sorted paging without mutating query results;
+ProjectHeading owns inline rename and focus handling. Existing dashboard URL helpers preserve
+view/edit mode and restored period/parameter selections. No API or persistence schema change.
+
+ReportFields (ADR-140) is a schema-only presentation component rendered through a portal owned by
+VisualizationEditor; the workbench never duplicates draft or calculation state. DashboardSidePanel
+owns responsive left/right hosts; DashboardEditor owns selected-widget/unplaced central previews.
+The existing CAS/copy/acknowledgement and graph paths are retained. Failed metadata refresh invalidates
+preview presentation and disables apply even when query cache retains an earlier schema.
+
+Visualization recovery (ADR-141) uses a validated versioned sessionStorage envelope, separate from
+server visualization/configuration contracts. Original CAS revision survives explicit restoration;
+current prepared-data schema remains authoritative. Outside-link guards replay the native/Next link
+after the existing leave decision, without patching history/router internals. Back/forward relies
+on recovery rather than cancellable popstate. Local write failures are visible and never presented
+as successful persistence. New/copy drafts are scoped to project and dashboard/library.
+
+Visualization save recovery (ADR-143) extends that envelope with the exact pending payload/copy mode.
+The optional UUID request_id is backward compatible. Under the existing project lock, a
+project-namespaced ReportDocument receipt fingerprints operation/target and typed submitted settings
+before inherited semantic guards modify them. Receipt and visualization commit in one transaction;
+replay precedes source/workflow CAS and returns the same object's current settings. Deleted results
+are not recreated. No DDL or new calculation/persistence system is introduced. Old clients without
+request_id retain historical behavior. Receipts are not copied into frozen releases/restored projects.
+
+ReportDraftBoundary (ADR-144) wraps report creation/edit/alignment before metadata loading. Its
+validated envelope contains only form state and an optional exact apply-request string. Form
+autosave is session-local; server report receipts remain the operation authority. Restored edit and
+prepared-input tokens stay pinned until explicit refresh, and previews are never persisted. Pending
+forms unmount, so retry does not depend on source/schema availability. The endpoint is derived from
+the owned project/mode/target, never from arbitrary persisted URLs. Typed forms still build existing
+requests; no graph recipe, execution or schema inference is added to the browser.
+The measure variant (ADR-145) scopes its state and pending request to workflow/publication/primary
+measure; the boundary derives the measure-reports endpoint. Catalog refresh errors invalidate
+authoring readiness, and explicit refresh clears preview/pinned token. The existing measure receipt
+and backend grain guards remain authoritative; report creation never copies calculation nodes.
+
+StatisticalReportRequest (ADR-146) shares ReportSourceRequest and ReportInputService.resolve with
+the aggregation wizard, preserving source ownership, active-snapshot and prepared-input CAS guards.
+Its discriminated analysis config reuses HistogramConfig/BoxPlotStatsConfig and, with ADR-147,
+HeatmapConfig/TableRollupConfig. The compiler emits
+normal filter/statistical nodes and publishes dataset; the existing typed renderer consumes both
+named outputs from one execution, including bounded outlier paging. Preview returns graph + typed
+VisualizationResult without persistence. Atomic apply uses a statistical_report_receipt with typed
+request fingerprint, project lock and the existing graph/document tables. Replay precedes current
+input validation; deleted chart/dashboard results are not recreated. No new execution engine/DDL.
+The statistics draft mode uses the same local recovery boundary; raw preview rows are not stored.
+The same typed renderer factories bind heatmap roles and stable rollup measures to the compiled
+ordinary node. Table preview uses 100-row server pages; heatmap returns its complete bounded matrix.
+The generic offset query retains outlier_offset compatibility, rejects conflicting values and uses
+signed-64-bit bounds. Existing distribution request normalization/fingerprints remain unchanged.
+Shared graph configuration controls accept explicitly incomplete local drafts; strict discriminated
+API contracts validate submitted settings. No implicit heatmap aggregation or browser totals.
+
+StatisticalEditingService/StatisticalSuffix (ADR-148) recognize supported v1 terminal publications
+from the graph itself, including restored projects. The projection patches only the terminal config
+and a private simple immediate filter, preserving existing identities/order and other branches.
+Shared/parameterized/presentation-bound preparation stays upstream. Contexts, named measures, shared
+outputs and widget actions on the terminal branch are protected advanced cases. Preview creation/edit
+use the same typed execution/render helper. State-token CAS plus project/visualization locks and a
+target-bound statistical_edit_receipt protect writes/retries. Graph/chart/revision/receipt commit
+together, without dashboard writes or new persistence tables. Table field rebinding changes only
+explicit semantic bindings; raw nested appearance remains intact. Dangling rules/format fields fail.
+The statistics-edit draft mode scopes recovery to the visualization and retains the original token.
+Its boundary wraps metadata loading, allowing pending replay even when read metadata is unavailable.
+
+Legacy chart sizing (ADR-142) uses a data-free axis/grid patch from actual container dimensions.
+ResizeObserver resizes the existing ECharts instance and updates only presentation, leaving series
+and server results unchanged. LegacyChartView exposes raw returned values through bounded local table
+pages and stable field-ID selection. Exact strings are never cast to Number in this alternative.
+New typed statistical adapters and their explicit scale contracts remain separate and unchanged.
+
+boxplot_stats@1 (ADR-128) is a TypedNodeExecutor with dataset/outliers table outputs derived in one
+execution from one input. Static schemas expose stable node-based field IDs. Quantiles and Tukey
+fences use rational intermediates; integer/decimal statistics serialize exactly, with explicit
+Decimal128 overflow errors, while Float64 inputs remain approximate. Nulls are counted, not zero-filled.
+Stable group/outlier multiset identities do not depend on source row order. Downstream frontend field
+selectors resolve the actual connected named output; only legacy schemas without outputs use columns.
+The box_plot renderer (ADR-129) consumes both named results from one common graph execution.
+BoxPlotSpec@1 records explicit field roles; a typed registry describes preparation requirements.
+Legacy chart config/node execution is unchanged. Publication schema suggests eligible bindings;
+save/draft/render reject incompatible types, fields, ports and output-level context restrictions.
+VisualizationResult adds optional spec and named datasets; old payloads omit the new empty fields.
+Summary stays complete while outliers are paged. Internal full-data rendering preserves both layers
+in release artifacts; frozen reads page the stored outliers. Restored node IDs remap all role IDs.
+ECharts gets presentation-only numeric coordinates; exact values remain in tables and tooltips.
+
+histogram@1 (ADR-130) emits dataset intervals and summary accounting from one source table. Rational
+assignment avoids exact-number coordinate collapse. Boundaries are explicit exact text, not Float64
+schema fields; counts/index are integers. HistogramSpec@1 adds a second disjoint typed role model;
+the union preserves the earlier box-plot defaults without automatic document migration. The
+histogram_chart adapter validates publication eligibility and upstream context ownership and reads
+both named outputs from one execution. ECharts renders equal-width category bars with exact labels,
+never computes bins. All intervals and accounting are retained in the existing release artifact.
+
+heatmap_stats@1 (ADR-131) adds a static-schema dataset output with typed X/Y categories, stable
+axis/cell IDs, explicit aggregate, presence and row/valid/missing counts. Bound the full Cartesian
+domain before materialization (200 categories/axis, 10000 cells). Aggregate the full input, never
+the preview page. Rational intermediates preserve integer/decimal values; average is the only
+exact-operation rounding boundary. Empty categories are retained; absent pairs have null values.
+Ordinary publication/table/release APIs support this output. HeatmapSpec@1/heatmap_chart (ADR-132)
+bind semantic roles and extent/zero_centered/fixed colour configuration. The renderer reads all
+prepared cells from one graph execution and uses rational differences for [0,1] presentation positions;
+HeatmapScaleResult preserves exact bounds and stable cell identities. ECharts only maps positions to
+colours. Missing layers have separate markers/colours; exact tables use local pagination. Releases
+retain every cell and scale; restore remaps field roles. Upstream context ownership is validated.
+
+RadarSpec@1/radar_chart (ADR-133) consumes any prepared dataset publication, not a special statistical
+node. Full-table validation checks one row per nonempty profile, numeric axes, declared units, bounds
+and the 20-profile limit. API save orchestration supplies a render-validation callback to the document
+service before persistent mutation, under the existing project lock/CAS; absence of the callback
+fails closed for radar. Shared scales check units/bounds; explicit per-axis min-max uses rational
+differences for presentation coordinates. RadarPresentation carries stable profile IDs, optional
+coordinates and completeness alongside the named profiles dataset. Missing axes are never filled;
+original values, not drawing coordinates, drive exact tables/tooltips. Frozen artifacts contain the
+complete bounded result. No alternate calculation engine, persistence schema or migration is needed.
+
+waterfall_steps@1 (ADR-134) prepares ordered contributions, opening balances and explicit subtotal/
+final markers through the common typed executor. Input schema determines static output IDs/types;
+exact integer/decimal accumulation uses Fraction and checked Decimal128 conversion at the input scale.
+Float64 input remains approximate. The dataset carries start/end/value/balance, row kind and stable
+step identities. Expected totals reconcile against the running balance without double-counting.
+Null contributions, invalid marker order, duplicate labels, overflow and more than 2000 output steps
+fail explicitly. Rendering/statistical limits never truncate a sequence. WaterfallSpec@1/waterfall_chart
+(ADR-135) validates exact roles and pre-preparation context ownership, and consumes the dataset from
+one execution. WaterfallScale transports exact full-data ticks/bounds and rationally normalized
+endpoints keyed by step ID. ECharts custom rectangles draw those endpoints, not cumulative sums;
+original values drive tables/tooltips. Keyboard viewport controls, slider zoom and local table paging
+do not alter the full result/scale. Release artifacts retain every step and typed presentation data.
+
+ComboSpec@1/combo_chart (ADR-136) consumes an ordinary prepared publication. Full-data validation
+checks unique category rows, numeric fields, axis assignments, units and the 2000-row limit before
+save, using the same lock/CAS callback boundary as radar. Presentation uses exact rational zero-
+inclusive extents and bounded signed coordinates, retaining zero as the bar baseline. Typed exact
+ticks and stable publication/category identities accompany the projected observations dataset.
+ECharts uses explicit ticks, never recalculates measures/scales or connects missing line values.
+Complete presentations survive release artifacts; existing recursive field-ID remapping handles
+restoration. Context filtering changes the selected population; viewport/table pagination does not.
+
+table_rollup@1 (ADR-137) prepares analytical-table rows via the common TypedNodeExecutor. Static
+schema binds ordered dimensions and UUID-backed measures to explicit row/parent/kind/depth/count
+roles. Leaf groups retain rational observation states; ancestors merge unrounded sums/counts/
+extrema/denominators, never displayed aggregate cells. Project only selected fields before Python
+iteration; bound output to 20000 rows and existing engine limits. Typed null dimension keys remain
+distinct from total placeholders through kind/depth/identity. Plain table publications and full
+frozen artifacts consume this dataset. AnalyticalTableSpec@1 (ADR-138) binds exact preparation roles,
+visible measures, pinned columns, density and bounded ordered threshold rules. The adapter compares
+decimal strings on the server and returns typed row/column-keyed presentation markers alongside
+the same bounded table page. Full-data releases retain all rows/markers; frozen reads page them
+together. The HTML renderer displays exact cells and semantic labels, never aggregates or evaluates
+numeric rules. Existing restoration remaps stable bindings; legacy table contracts are unchanged.
+
+Exact expressions are opt-in calculated_column@2 (ADR-118), with typed Decimal128 output metadata
+and a single explicit half-even rounding boundary. A bounded allowlisted rational evaluator handles
+decimal/integer inputs inside the common backend node executor; only referenced columns leave the
+Polars frame, and no user code is evaluated. Shared syntax/reference parsing preserves v1 semantics.
+Output is a normal Dataset with exact transport, usable by group_by@2/@3, publications and releases.
+Frontend only edits the versioned config; v1 helpers do not rewrite v2 nodes. No persistence migration.
+ADR-160 extends this same allowlisted evaluator with typed predicates and lazy numeric if_else.
+Scalar string/boolean/date/datetime fields can participate in predicates, not monetary arithmetic.
+Null comparisons use three-valued logic; null if_else predicates select the otherwise branch.
+Both branches are validated/included in lineage; only the selected branch executes per row.
+Release restoration remaps expression identities outside string tokens, preserving business literals.
+window@3 (ADR-161) uses a separate exact executor with the existing ordered config shape. Polars
+sorts and groups row indices; bounded full-population rational state produces Decimal128 values at
+the source scale, preserving input fields and provenance. No hidden Float64 conversion or per-row
+rounding. Ordered keys must be unique inside partitions, including row_number; explicit output
+limits bound sorting/materialization. Legacy windows retain their existing execution and limits.
+Exact pivot@2 (ADR-164) shares dynamic field identity construction with v1, not its Float64 execution.
+Native role projection/grouping maps observations to bounded output cells; rational aggregation emits
+explicit Decimal128 metadata/transport. Count remains Int64. The common data-dependent schema resolver
+and cache execute the node to discover categories and propagate fields to downstream nodes.
+Convert Types applies its existing whole-value integer guard to decimal as well as float (ADR-165).
+Join/Union and Join record diagnostics share decimal schema/cast rules (ADR-166): precision 38,
+maximum explicit source scale, physical-scale validation and strict overflow rejection. Known
+unit/currency conflicts fail; unknown annotations do not assert compatibility. Non-key Join fields
+are untouched. Diagnostics reuse Join schema inference without materializing the combined result;
+exact transport survives composition, while upstream diagnostic summaries do not propagate.
+CompiledFormula/ValueSchema retain decimal metadata through field projection and materialization
+(ADR-167). Decimal branch selection and comparison reuse common-scale validation, with explicit
+strict casts before conditional selection. Input physical scales are checked against declared
+metadata. Append/preview/legacy pass-through column schemas agree with execution; no schema is
+inferred from preview samples. Decimal scalars remain outside the legacy scalar contract and are
+rejected in preflight, not implicitly converted to float.
+
+Universal file refresh reuses SourceVersion, UpdateItem, report jobs and SourceSnapshot overrides
+(ADR-115). DatasetBinding maps stable logical resources/fields to incoming resources/columns.
+Checks normalize every active table into retained, immutable staged snapshots; only apply changes
+active pointers. Staging commits independently from the cancellable check job and is reusable by
+version/profile fingerprint. New refresh artifacts have durable cleanup intents before writing.
+Apply/rollback increments source and referencing workflow revisions; rollback never rewinds CAS.
+
+Initial imports use typed ReportDocument(kind=import_draft) authoring state separate from active
+source metadata and report-check fingerprints (ADR-116). Draft revision and source revision both
+guard apply; the draft request ID is stable across retries. Snapshot/pointers/revisions and the
+completed draft receipt commit together. Session reads synthesize unsaved revision-zero settings
+without persistence; resumed previews are recomputed. Source deletion also deletes its draft.
+Initial raw uploads and profile-apply Parquet use the same reserve-before-lock artifact intents.
+The startup file_cleanup CLI recovers unadopted writes before serving requests; committed adoption
+removes the intent atomically, protecting a snapshot whose HTTP response was lost. No new DDL.
+
+Existing-report wizard editing is a projection of the current published graph (ADR-117), not
+the creation receipt. A pure suffix recognizer/patcher owns group_by@2/@3, an exclusive literal
+filter@1 and recognized exact row/summary formula chains (ADR-119); preserved upstream steps use
+the normal schema/execution services. Unrelated
+nodes, catalog, presentation and dashboard documents remain unchanged. Unsupported/shared/context
+graphs have a read-only projection. Preview and apply validate the project state token; apply
+uses save_graph(commit=False), visualization revision and a report_edit_receipt in one transaction.
+Lock project -> workflow read -> selected visualization before checking widget usage, respecting
+the existing shared visualization lock used by dashboard attachment. No schema migration required.
+
+New wizard reports use group_by@3 with stable per-measure UUID identities, independent of order
+and labels. Legacy versions remain unchanged. Row and after-total formulas compile into ordinary
+calculated_column@2 nodes with explicit per-node rounding. The UI scope marker supports suffix
+recognition only; the graph remains the calculation authority. /fields endpoints resolve typed
+schemas; preview/apply executes full data. Manually contained/shared summary steps are graph-only.
+Publication targets follow the last summary node; stable output IDs survive renaming/reordering.
+New empty request defaults are omitted from receipt fingerprints for backward-compatible retries.
+
+Prepared-input report creation (ADR-120) selects a saved dataset publication and appends an ordinary
+branch to its existing workflow. Typed input catalog/detail APIs expose names, compatible schemas
+and the project state token. Apply preserves the graph prefix and all metadata; the new publication,
+visualization, dashboard, graph CAS and receipt share one transaction. No cross-workflow executor or
+materialized source is introduced. The created edge references the selected physical table endpoint,
+not a runtime publication alias; later publication retargeting does not change that edge. Shared
+upstream edits use existing graph safety, source invalidation and release-remapping contracts.
+View-context publications are excluded rather than losing their filters. Use workflow parameter
+defaults and require full-table block output ports. Input reload invalidates preview without
+discarding local measure settings; schema caches include publication identity as well as revision.
+
+Named measures (ADR-121) are typed metadata in PublishedOutput.measures, referencing existing
+numeric fields and explicit grain. Registration executes the complete publication, not a sample.
+Direct reuse creates only visualization/dashboard/widget/receipt, leaving the graph unchanged.
+VisualizationConfig.grain_column_ids distinguishes legacy absence from an empty single-total grain;
+the shared visualization executor validates numeric schema and full-data uniqueness before rendering
+limits. Guarded appearance saves/copies preserve field/publication identity and grain. Old graph
+clients omitting measure metadata do not erase it. Catalog mutations use existing graph revision CAS;
+report creation uses the project token/lock and atomic idempotent receipts. No DDL is needed.
+
+ADR-125 extends direct reuse with up to seven additional measure IDs from the same publication.
+Definitions must bind distinct fields and identical grain sets (primary grain order is preserved).
+One render of the common publication supplies every value; no join, new graph node or reaggregation.
+Multi-measure tables persist measure_column_ids alongside grain_column_ids in VisualizationConfig.
+The common executor validates every selected numeric field, full-data finiteness and grain before
+pagination. A shared structural guard also rejects incompatible presentation/hidden selected measures
+on appearance saves. Older saves/copies restore original guards; catalog deletion does not erase them.
+Absent measure_column_ids preserves existing single-measure/legacy behavior. Empty additional IDs
+are omitted from receipt fingerprints. Release ID remapping covers the field list; no new DDL.
+
+align_measures@1 (ADR-126) consumes left/right prepared datasets within one graph. Explicit key
+pairs require identical supported logical/physical types, full-data uniqueness and an explicit
+null-key policy. Full outer alignment preserves numeric dtypes, metadata and nulls; presence flags
+distinguish absent rows. Key-only matching checks output cardinality before the wide join. Stable
+output IDs use node/side or node/left-key identity, compatible with ordinary release remapping.
+PreviewRead.alignment_diagnostics reports complete matched/unmatched counts only for that node,
+not inherited downstream metadata. Graph controls use resolved columns from the corresponding port.
+Existing Join and historical wizard receipts remain unchanged.
+
+ADR-127 adds typed alignment-reports preview/apply APIs. AlignmentReportService resolves two eligible
+publications in one workflow through ReportInputService, appends one ordinary node/two edges, and
+executes the common engine. Preview returns exact first-50 rows and full diagnostics without writes.
+Project lock/token plus workflow CAS protect atomic graph/publication/table/dashboard/receipt apply.
+The new receipt kind has its own fingerprint/UUID namespace; identical retries are served before
+checking the now-changed token. The table stores grain and both numeric-field guards. UI schema tokens
+must agree; explicit reload retains selections but invalidates preview. No separate calculation recipe
+or cross-workflow executor is introduced. The existing suffix editor leaves aligned reports graph-only.
+ADR-158 extends creation with ordered calculated_column@2 nodes after alignment. A shared graph
+composer powers schema-only field inference, full execution preview and atomic apply. Formula
+identities and backward references are ordinary graph contracts; terminal publication/table selects
+the resulting chain while retaining both reused-measure guards and full alignment diagnostics.
+Empty formula lists are omitted from receipt hashes for historical retry compatibility. Drafts retain
+formula IDs/settings, not schemas or previews; the UI uses only unchanged server-checked prefixes.
+ADR-159 recognizes/patches a guarded alignment suffix in place. The two concrete input edges are
+preserved; only alignment configuration and owned marked exact formulas change. Shared/context/
+container references block wizard ownership. A separate typed edit API shares creation's schema
+and execution helpers, retaining project CAS, visual lock, atomic graph/visual update and exact
+target-bound receipts. Publication identity is stable when its terminal formula changes. Table
+rebinding is explicit and rejects dangling appearance/navigation fields. No second saved recipe.
+
+Calendar comparisons (ADR-122) use calendar_period@1 before aggregation and period_comparison@1
+after summary formulas. Both are ordinary schema-aware unary nodes. Calendar ordinals plus explicit
+partitions provide exact previous-period/year lookup; missing dates are never replaced by row lag.
+The comparison executor validates full-data uniqueness and uses existing exact rounding primitives
+for decimal/integer arithmetic. ADR-123 extends
+suffix ownership to matching calendar/comparison pairs, including their exclusive edges and stable
+identities. Shared, manually contained and incompatible steps remain graph-only. Adding/removing
+the pair requires explicit field rebinding; omitted comparison settings on an existing comparison
+are rejected as a stale client, while explicit null requests removal. Filters precede bucketing and affect both
+periods. All state lives in node config; new empty comparison settings are excluded from old receipt
+fingerprints. Freeze/restore uses the standard ID remapper, without a new persistence schema.
+
+Comparison charts (ADR-124) reuse ordinary Bar/Line configurations. The binding compiler receives
+the terminal comparison node ID and selects its stable previous-value field plus the configured
+current measure. No derived field is discovered by its label or column position. No percentage,
+difference, boolean or unrelated measure is automatically added to the axis. Only the date dimension
+is permitted. Empty additional-series names follow schema labels after renaming. During wizard edits,
+bindings must match current comparison roles or explicit rebind_fields is required. Existing manual
+appearance remains intact; missing values remain null and lines explicitly do not connect nulls.
+The ordinary renderer retains prepared ordering; no browser aggregation or hidden calendar filling.
+
 ## Reliable report cycle (ADR-113, 2026-09-24)
 
 DataSource retains its logical ID and active storage pointer. SourceVersion owns immutable
@@ -390,6 +1209,11 @@ produces PlannedStep records with stable UUID references; appendUnaryChain check
 branch before one graph update. Share uses Window + Calculated Column, rank uses Window, and
 optional parameter selection uses a trailing Filter. The existing backend registry remains the
 only execution model. Upstream filter explanations traverse actual input edges with cycle guards.
+ADR-162 adds optional PlannedStep.version with a v1 default and exact catalog lookup before mutation.
+Decimal or explicitly opted-in integer share/rank plans use window@3 and calculated_column@2; the
+dialog only prepares typed configuration. Explicit output scale and trailing parameter filters retain
+the same precision and calculation-scope contracts as manually authored graphs. Float64/legacy paths
+remain v1. No recipe persistence, endpoint or second execution engine is introduced.
 
 
 ## Formula source presentation (ADR-077)
@@ -536,7 +1360,10 @@ positional; original header levels and source row identity are explicit metadata
 
 Convert Types, Unpivot and Window implement the ordinary NodeExecutor contract.
 They have no storage/session dependencies. Convert Types preserves column identity;
-Unpivot emits stable field IDs separately from display labels; Window keeps input
+Unpivot emits stable field IDs separately from display labels and preserves
+decimal values at the maximum declared source scale with explicit precision/scale metadata
+and exact transport (ADR-163). Conflicting units/currencies, missing scales and overflow fail; the
+generic Decimal(38,6) dtype default is not used for reshaping decimal values. Window keeps input
 fields and adds a partition sum or an ordered row number. Each is configured through
 the editor registry. Formulas compile an allowlisted typed AST into Polars; strings,
 trim/lower, coalesce/nullif and safe_divide share inference and execution logic.

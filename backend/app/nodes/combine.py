@@ -4,7 +4,8 @@ from typing import Literal, Self
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema, LogicalType, logical_to_polars
+from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema, LogicalType
+from app.domain.decimal_composition import composition_cast, decimal_metadata, with_decimal_metadata
 from app.domain.errors import NodeExecutionError
 from app.domain.join_diagnostics import JoinDiagnostics
 from app.domain.nodes import ExecutionContext, NodeDefinition, PortDefinition, PortKind
@@ -89,8 +90,24 @@ class JoinExecutor(UnaryExecutor):
             for key in config.keys
         }
         right_types = {key.right_key: key_types[key.left_key] for key in config.keys}
+        key_metadata = {
+            key.left_key: decimal_metadata(left.by_id(key.left_key), right.by_id(key.right_key))
+            for key in config.keys
+            if key_types[key.left_key] == LogicalType.DECIMAL
+        }
+        right_metadata = {
+            key.right_key: key_metadata[key.left_key]
+            for key in config.keys
+            if key.left_key in key_metadata
+        }
         columns = [
-            replace(c, logical_type=key_types.get(c.column_id, c.logical_type))
+            replace(
+                c,
+                logical_type=key_types.get(c.column_id, c.logical_type),
+                metadata=with_decimal_metadata(c, key_metadata[c.column_id])
+                if c.column_id in key_metadata
+                else c.metadata,
+            )
             for c in left.columns
         ]
         reserved = {c.engine_name for c in (*left.columns, *right.columns)}
@@ -111,7 +128,15 @@ class JoinExecutor(UnaryExecutor):
                     name,
                     right_types.get(field.column_id, field.logical_type),
                     field.nullable or config.how == "left",
-                    {**field.metadata, "source_columns": [field.column_id], "input_port": "right"},
+                    {
+                        **(
+                            with_decimal_metadata(field, right_metadata[field.column_id])
+                            if field.column_id in right_metadata
+                            else field.metadata
+                        ),
+                        "source_columns": [field.column_id],
+                        "input_port": "right",
+                    },
                 )
             )
         return DatasetSchema(tuple(columns))
@@ -132,13 +157,29 @@ class JoinExecutor(UnaryExecutor):
             )
         }
         right_keys = [mapping[right.schema.by_id(key.right_key).engine_name] for key in config.keys]
-        dtypes = [logical_to_polars(schema.by_id(key.left_key).logical_type) for key in config.keys]
-        left_frame = left.frame.with_columns(
-            [pl.col(key).cast(dtype) for key, dtype in zip(left_keys, dtypes, strict=True)]
-        )
-        right_frame = right.frame.rename(mapping).with_columns(
-            [pl.col(key).cast(dtype) for key, dtype in zip(right_keys, dtypes, strict=True)]
-        )
+        try:
+            left_frame = left.frame.with_columns(
+                [
+                    composition_cast(
+                        left, left.schema.by_id(key.left_key), schema.by_id(key.left_key)
+                    )
+                    for key in config.keys
+                ]
+            )
+            right_frame = right.frame.with_columns(
+                [
+                    composition_cast(
+                        right,
+                        right.schema.by_id(key.right_key),
+                        schema.by_name(mapping[right.schema.by_id(key.right_key).engine_name]),
+                    )
+                    for key in config.keys
+                ]
+            ).rename(mapping)
+        except pl.exceptions.PolarsError as exc:
+            raise NodeExecutionError(
+                "Combined values cannot fit the common field types. Check precision and scale."
+            ) from exc
         # Count composite keys before materializing potentially expanding joins.
         names = [f"key_{i}" for i in range(len(config.keys))]
         counts_left = (
@@ -210,7 +251,16 @@ class JoinExecutor(UnaryExecutor):
         return Dataset(
             frame.select([c.engine_name for c in schema.columns]),
             schema,
-            {"join_diagnostics": diagnostics.model_dump(mode="json")},
+            {
+                "join_diagnostics": diagnostics.model_dump(mode="json"),
+                **(
+                    {"exact_transport": True}
+                    if left.metadata.get("exact_transport")
+                    or right.metadata.get("exact_transport")
+                    or any(c.logical_type == LogicalType.DECIMAL for c in schema.columns)
+                    else {}
+                ),
+            },
         )
 
 
@@ -220,13 +270,18 @@ def union_schema(left: DatasetSchema, right: DatasetSchema) -> DatasetSchema:
     columns = []
     for field in left.columns:
         other = right.by_name(field.engine_name)
+        kind = compatible(field.logical_type, other.logical_type)
         columns.append(
             replace(
                 field,
-                logical_type=compatible(field.logical_type, other.logical_type),
+                logical_type=kind,
                 nullable=field.nullable or other.nullable,
                 metadata={
-                    **field.metadata,
+                    **(
+                        with_decimal_metadata(field, decimal_metadata(field, other))
+                        if kind == LogicalType.DECIMAL
+                        else field.metadata
+                    ),
                     "source_columns": [field.column_id, other.column_id],
                 },
             )
@@ -238,13 +293,28 @@ def union_datasets(left: Dataset, right: Dataset) -> Dataset:
     """Shared bounded Union; no deduplication or financial logic."""
     schema = union_schema(left.schema, right.schema)
     check_size(left.row_count + right.row_count, len(schema.columns))
-    frames = [
-        source.frame.select(
-            [pl.col(c.engine_name).cast(logical_to_polars(c.logical_type)) for c in schema.columns]
-        )
-        for source in (left, right)
-    ]
-    return Dataset(pl.concat(frames, how="vertical"), schema)
+    try:
+        frames = [
+            source.frame.select(
+                [
+                    composition_cast(source, source.schema.by_name(c.engine_name), c)
+                    for c in schema.columns
+                ]
+            )
+            for source in (left, right)
+        ]
+    except pl.exceptions.PolarsError as exc:
+        raise NodeExecutionError(
+            "Combined values cannot fit the common field types. Check precision and scale."
+        ) from exc
+    exact = (
+        left.metadata.get("exact_transport")
+        or right.metadata.get("exact_transport")
+        or any(c.logical_type == LogicalType.DECIMAL for c in schema.columns)
+    )
+    return Dataset(
+        pl.concat(frames, how="vertical"), schema, {"exact_transport": True} if exact else {}
+    )
 
 
 class UnionExecutor(UnaryExecutor):

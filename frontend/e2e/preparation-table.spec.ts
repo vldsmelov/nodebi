@@ -1,9 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { configureFormLayout, expectDialogFits, formLayouts } from "./form-reflow";
+import { activateByKeyboard, chooseByKeyboard, tabTo, typeByKeyboard } from "./keyboard-navigation";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
-test("prepare an inventory workbook with explicit ordinary nodes and preserve exact integers", async ({ page, request }) => {
+for (const layout of formLayouts) test(`prepare an inventory workbook with explicit ordinary nodes and preserve exact integers (${layout})`, async ({ page, request }) => {
   test.setTimeout(90000);
+  await configureFormLayout(page, layout);
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Inventory preparation" } })).json();
   try {
     const workbook = execFileSync(resolve("../backend/.venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python"), ["-c", "import sys; from io import BytesIO; from openpyxl import Workbook; w=Workbook(); s=w.active; s.append(['Asset','Amount','Units','Label','Ignore']); s.append(['A','10.5','9007199254740993',None,'x']); s.append(['B',None,None,'B','x']); s.append([None,'4','2','drop','x']); s.append(['C','bad','4','C','x']); b=BytesIO(); w.save(b); sys.stdout.buffer.write(b.getvalue())"]);
@@ -12,29 +15,32 @@ test("prepare an inventory workbook with explicit ordinary nodes and preserve ex
     const sourceId = crypto.randomUUID();
     expect((await request.put(`${api}/api/v1/workflows/${workflow.id}`, { data: { name: workflow.name, expected_revision: workflow.revision, nodes: [{ id: sourceId, type: "excel_source", version: 1, position: { x: 0, y: 0 }, ui: {}, config: { source_id: source.id, sheet_name: source.workbook.sheets[0].name } }], edges: [], parameters: [] } })).ok()).toBe(true);
     const read = async () => (await request.get(`${api}/api/v1/workflows/${workflow.id}`)).json();
-    await page.goto(`/projects/${project.id}/workflow`); await page.getByLabel("Edit workflow node").selectOption(sourceId);
-    await page.getByRole("button", { name: "Prepare data table", exact: true }).click();
+    await page.goto(`/projects/${project.id}/workflow`); await chooseByKeyboard(page, page.getByLabel("Edit workflow node"), { value: sourceId });
+    await activateByKeyboard(page, page.getByRole("button", { name: "Prepare data table", exact: true }));
     const dialog = page.getByRole("dialog", { name: "Prepare data table" });
-    await dialog.getByLabel("Keep field 5").uncheck();
-    await dialog.getByLabel("Prepared missing 1").selectOption("drop");
-    await dialog.getByLabel("Prepared name 2").fill("Cost");
-    await dialog.getByLabel("Prepared type 2").selectOption("float");
-    await dialog.getByLabel("Prepared missing 2").selectOption("zero");
-    await dialog.getByLabel("Prepared type 3").selectOption("integer");
-    await dialog.getByLabel("Prepared missing 3").selectOption("zero");
-    await dialog.getByLabel("Prepared missing 4").selectOption("empty");
+    await tabTo(page, dialog.getByLabel("Keep field 5"));
+    await page.keyboard.press("Space");
+    await expect(dialog.getByLabel("Keep field 5")).not.toBeChecked();
+    await chooseByKeyboard(page, dialog.getByLabel("Prepared missing 1"), { value: "drop" });
+    await typeByKeyboard(page, dialog.getByLabel("Prepared name 2"), "Cost");
+    await chooseByKeyboard(page, dialog.getByLabel("Prepared type 2"), { value: "float" });
+    await chooseByKeyboard(page, dialog.getByLabel("Prepared missing 2"), { value: "zero" });
+    await chooseByKeyboard(page, dialog.getByLabel("Prepared type 3"), { value: "integer" });
+    await chooseByKeyboard(page, dialog.getByLabel("Prepared missing 3"), { value: "zero" });
+    await chooseByKeyboard(page, dialog.getByLabel("Prepared missing 4"), { value: "empty" });
     await expect(dialog.getByLabel("Prepared errors 2")).toHaveValue("error");
-    await page.screenshot({ path: "../.backups/ux-preparation-table.png" });
+    await expectDialogFits(page, dialog);
+    await page.screenshot({ path: test.info().outputPath("preparation-table.png") });
     const before = await read(); expect(before.nodes).toHaveLength(1);
-    await dialog.getByRole("button", { name: "Apply preparation" }).click();
+    await activateByKeyboard(page, dialog.getByRole("button", { name: "Apply preparation" }));
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const created = await read(); expect(created.revision).toBe(before.revision + 1);
     const last = created.nodes.find((node: { type: string }) => node.type === "rename_columns");
     const preview = () => request.post(`${api}/api/v1/workflows/${workflow.id}/nodes/${last.id}/preview`, { data: { limit: 100 } });
     const failed = await preview(); expect(failed.ok()).toBe(false); expect(await failed.text()).toContain("Cannot convert field col_2 at row 4 to float.");
     const convert = created.nodes.find((node: { type: string; config: { conversions?: { column_id: string; target: string }[] } }) => node.type === "convert_types" && node.config.conversions?.some(rule => rule.column_id === "col_2" && rule.target === "float"));
-    await page.getByLabel("Edit workflow node").selectOption(convert.id);
-    await page.getByLabel("Invalid values", { exact: true }).first().selectOption("null");
+    await chooseByKeyboard(page, page.getByLabel("Edit workflow node"), { value: convert.id });
+    await chooseByKeyboard(page, page.getByLabel("Invalid values", { exact: true }).first(), { value: "null" });
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     const result = await preview(); expect(result.ok(), await result.text()).toBe(true);
     const raw = await result.text(); expect(raw).toContain("9007199254740993");
@@ -43,11 +49,11 @@ test("prepare an inventory workbook with explicit ordinary nodes and preserve ex
     expect(data.rows.map((row: { Cost: number }) => row.Cost)).toEqual([10.5, 0, 0]);
     expect(data.rows.map((row: { Label: string }) => row.Label)).toEqual(["", "B", "C"]);
     expect(data.columns.find((column: { engine_name: string }) => column.engine_name === "Units").logical_type).toBe("integer");
-    await page.getByRole("button", { name: "Undo graph change", exact: true }).click(); await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Undo graph change", exact: true }).click(); await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await activateByKeyboard(page, page.getByRole("button", { name: "Undo graph change", exact: true })); await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await activateByKeyboard(page, page.getByRole("button", { name: "Undo graph change", exact: true })); await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     expect((await read()).nodes).toHaveLength(1);
-    await page.getByRole("button", { name: "Redo graph change", exact: true }).click(); await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Redo graph change", exact: true }).click(); await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await activateByKeyboard(page, page.getByRole("button", { name: "Redo graph change", exact: true })); await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await activateByKeyboard(page, page.getByRole("button", { name: "Redo graph change", exact: true })); await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.reload(); expect((await preview()).ok()).toBe(true);
   } finally { await request.delete(`${api}/api/v1/projects/${project.id}?confirm=true`); }
 });

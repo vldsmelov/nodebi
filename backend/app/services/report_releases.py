@@ -12,10 +12,13 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.domain.errors import ApplicationError
+from app.domain.formulas import remap_expression
 from app.infrastructure.storage import StorageProvider
 from app.models import (
     Dashboard,
+    DashboardLayoutTemplate,
     DashboardWidget,
+    DatasetSnapshot,
     DataSource,
     Project,
     ReportDocument,
@@ -34,17 +37,20 @@ from app.services.projects import ProjectService
 from app.services.report_checks import check_project
 from app.services.source_access import ProjectSourceAccess
 from app.services.source_updates import state_token
+from app.services.template_catalog import freeze_template_catalog, restore_template_catalog
 from app.services.visualizations import render_visualization
 
 MODELS: tuple[type[Any], ...] = (
     DataSource,
     SourceVersion,
+    DatasetSnapshot,
     Workflow,
     WorkflowNode,
     WorkflowEdge,
     Visualization,
     Dashboard,
     DashboardWidget,
+    DashboardLayoutTemplate,
 )
 
 
@@ -54,11 +60,11 @@ def snapshot(session: Session, project_id: uuid.UUID) -> dict[str, Any]:
     dashboards = select(Dashboard.id).where(Dashboard.project_id == project_id)
     output = {}
     for model in MODELS:
-        if model is SourceVersion:
+        if model in (SourceVersion, DatasetSnapshot):
             query = select(model).where(model.source_id.in_(sources))
         elif model in (WorkflowNode, WorkflowEdge):
             query = select(model).where(model.workflow_id.in_(workflows))
-        elif model is DashboardWidget:
+        elif model in (DashboardWidget, DashboardLayoutTemplate):
             query = select(model).where(model.dashboard_id.in_(dashboards))
         else:
             query = select(model).where(model.project_id == project_id)
@@ -112,6 +118,7 @@ def create_release(
                 )
             )
         ],
+        **freeze_template_catalog(session, project_id),
         "dashboards": [],
         "results": {},
     }
@@ -165,6 +172,7 @@ def create_release(
                 settings,
                 cache,
                 limit=1000,
+                full_data=True,
                 view=widget_view,
                 parameters=parameters,
                 sources=sources,
@@ -299,15 +307,26 @@ def restore_release(
     collect(content.get("rules", []))
     keys: dict[str, str] = {}
     try:
-        for item in [*documents["data_sources"], *documents["source_versions"]]:
+        for item in [
+            *documents["data_sources"],
+            *documents["source_versions"],
+            *documents.get("dataset_snapshots", []),
+        ]:
             original = item["storage_key"]
             if original not in keys:
                 with storage.open(original) as source:
-                    keys[original] = storage.save(source, suffix=".xlsx")
+                    from pathlib import PurePosixPath
+
+                    keys[original] = storage.save(source, suffix=PurePosixPath(original).suffix)
 
         def remap(value: Any) -> Any:
             if isinstance(value, dict):
-                return {remap(key): remap(item) for key, item in value.items()}
+                return {
+                    remap(key): remap_expression(item, ids)
+                    if key == "expression" and isinstance(item, str)
+                    else remap(item)
+                    for key, item in value.items()
+                }
             if isinstance(value, list):
                 return [remap(item) for item in value]
             if isinstance(value, str):
@@ -323,7 +342,7 @@ def restore_release(
         session.add(project)
         session.flush()
         for model in MODELS:
-            for original in documents[model.__tablename__]:
+            for original in documents.get(model.__tablename__, []):
                 values = remap(original)
                 for column in model.__mapper__.column_attrs:
                     if column.columns[0].type.python_type is uuid.UUID and values.get(column.key):
@@ -336,6 +355,9 @@ def restore_release(
                     project_id=project.id, kind="rules", status="saved", payload=remap(rules)
                 )
             )
+        # Templates contain role keys and literal filter values, not references to this graph.
+        # Do not remap literals that happen to look like a source/node UUID.
+        restore_template_catalog(session, project.id, content)
         views = [
             {
                 "dashboard_id": remap(board["id"]),

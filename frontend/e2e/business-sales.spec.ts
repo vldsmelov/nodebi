@@ -164,6 +164,8 @@ test("business guide: three workbooks to six editable sales widgets", async ({ p
     await expect(page.getByText("Загрузка визуализации...", { exact: true })).toHaveCount(0);
     await expect(page.locator("[data-widget-id] table")).toContainText("2026-03");
     await expect(page.locator("[data-widget-id]").filter({ hasText: "Выполнение плана квартала" })).toContainText(/95[,.]24/);
+    await expect(page.locator("[data-widget-id] canvas")).toHaveCount(2);
+    await page.waitForTimeout(1100); // Capture completed ECharts geometry, not a partial entrance frame.
     await page.screenshot({ path: test.info().outputPath("business-sales.png"), fullPage: true });
     const evidence = { projectId: project.id, workflowId, url: page.url(), expected };
     writeFileSync(test.info().outputPath("acceptance.json"), JSON.stringify(evidence, null, 2));

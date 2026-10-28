@@ -30,3 +30,24 @@ it("includes only upstream filters, handles both input branches and terminates c
   const edges = [["a", "join"], ["b", "join"], ["join", "a"]].map(([source, target]) => ({ id: source + target, source_node_id: source, target_node_id: target, source_port: "dataset", target_port: "input" }));
   expect(upstreamFilters(nodes, edges, "join").map(node => node.id).sort()).toEqual(["a", "b"]);
 });
+
+it("uses versioned exact graph nodes for decimal and explicitly selected integer shares", () => {
+  const decimal = columns.map(column => column.column_id === "amount" ? { ...column, logical_type: "decimal", metadata: { precision: 38, scale: 2 } } : column);
+  for (const [fields, options] of [[decimal, base], [columns, { ...base, exact: true }]] as const) {
+    const plan = analyticsPlan([...fields], { ...options, scale: 12, filterField: "id", parameter: "item" }, parameters)!;
+    expect(plan.map(step => step.version ?? 1)).toEqual([3, 2, 1]);
+    expect(plan[1].config).toMatchObject({ precision: 38, scale: 12, rounding: "half_even" });
+    expect(plan[0].config.partitions).toEqual(["group"]);
+    expect(plan[2].type).toBe("filter");
+  }
+  expect(analyticsPlan(decimal, { ...base, mode: "rank" }, [])![0].version).toBe(3);
+  expect(analyticsPlan(columns, base, [])!.map(step => step.version)).toEqual([1, 1]);
+  expect(analyticsPlan(decimal, base, [])![1].config.scale).toBe(6);
+});
+
+it("rejects implicit Float64 conversion and invalid exact rounding settings", () => {
+  const floating = columns.map(column => column.column_id === "amount" ? { ...column, logical_type: "float" } : column);
+  expect(analyticsPlan(floating, { ...base, exact: true }, [])).toBeNull();
+  for (const scale of [-1, 39, 1.5, NaN, Infinity]) expect(analyticsPlan(columns, { ...base, exact: true, scale }, [])).toBeNull();
+  for (const scale of [0, 38]) expect(analyticsPlan(columns, { ...base, exact: true, scale }, [])![1].config.scale).toBe(scale);
+});

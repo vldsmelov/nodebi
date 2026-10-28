@@ -5,14 +5,18 @@ executors without changing their transformation contracts.
 """
 
 import math
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
-from typing import Literal
+from decimal import Decimal
+from fractions import Fraction
+from typing import Any, Literal, cast
 from uuid import UUID
 
 import polars as pl
 
 from app.domain.datasets import ColumnSchema, Dataset, DatasetSchema, LogicalType, logical_to_polars
+from app.domain.decimal_composition import common_decimal_metadata, validate_decimal_references
+from app.domain.exact_formulas import round_exact
 from app.domain.formulas import CompiledFormula, FormulaValidationError, compile_formula
 from app.domain.parameters import ParameterDefinition, ParameterValue, resolve_parameters
 
@@ -49,10 +53,28 @@ class FieldValue:
 
 @dataclass(frozen=True)
 class ScalarValue:
-    value: str | int | float | bool | None
+    value: str | int | float | bool | Decimal | None
     logical_type: LogicalType | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        if self.logical_type == LogicalType.DECIMAL:
+            precision, scale = self.metadata.get("precision"), self.metadata.get("scale")
+            if (
+                type(precision) is not int
+                or type(scale) is not int
+                or not 0 <= scale <= precision <= 38
+                or precision < 1
+            ):
+                raise ValueConnectionError(
+                    "Exact scalar requires explicit decimal precision and scale."
+                )
+            if self.value is not None:
+                if not isinstance(self.value, Decimal) or not self.value.is_finite():
+                    raise ValueConnectionError("Exact scalar requires a finite decimal value.")
+                if round_exact(Fraction(self.value), precision, scale) != self.value:
+                    raise ValueConnectionError("Exact scalar value exceeds its declared scale.")
+            return
         if type(self.value) not in (str, int, float, bool, type(None)):
             raise ValueConnectionError("Unsupported scalar type.")
         if self.logical_type is None:
@@ -79,7 +101,7 @@ class ScalarValue:
                 try:
                     ParameterDefinition.model_validate(
                         {"name": "scalar", "logical_type": self.logical_type.value}
-                    ).checked(self.value)
+                    ).checked(cast(ParameterValue, self.value))
                 except ValueError as exc:
                     raise ValueConnectionError(str(exc)) from exc
 
@@ -87,6 +109,16 @@ class ScalarValue:
     def formula(self) -> CompiledFormula:
         kind = self.logical_type
         assert kind is not None
+        if kind == LogicalType.DECIMAL:
+            return CompiledFormula(
+                pl.lit(
+                    self.value, dtype=pl.Decimal(self.metadata["precision"], self.metadata["scale"])
+                ),
+                (),
+                self.value is None,
+                kind,
+                dict(self.metadata),
+            )
         expression = pl.lit(self.value)
         if kind == LogicalType.DATE and isinstance(self.value, str):
             expression = pl.lit(date.fromisoformat(self.value))
@@ -111,6 +143,7 @@ class ValueSchema:
     referenced_columns: tuple[str, ...] = ()
     complexity: int = 1
     depth: int = 1
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def project(self, column_id: str) -> "ValueSchema":
         if self.kind != "dataset" or self.table is None or self.context is None:
@@ -122,6 +155,7 @@ class ValueSchema:
             context=self.context,
             nullable=field.formula.nullable,
             referenced_columns=(column_id,),
+            metadata=dict(field.formula.metadata),
         )
 
 
@@ -135,6 +169,13 @@ def parameter_scalar(
         values = resolve_parameters(definitions, supplied)
     except ValueError as exc:
         raise ValueConnectionError(str(exc)) from exc
+    if definition.logical_type == "decimal":
+        value = values[name]
+        return ScalarValue(
+            Decimal(str(value)) if value is not None else None,
+            LogicalType.DECIMAL,
+            definition.decimal_metadata,
+        )
     return ScalarValue(values[name], LogicalType(definition.logical_type))
 
 
@@ -148,10 +189,19 @@ def project_schema(context: RowContext, schema: DatasetSchema, column_id: str) -
         column = schema.by_id(column_id)
     except StopIteration as exc:
         raise ValueConnectionError(f"Connected field {column_id} no longer exists.") from exc
+    if column.logical_type == LogicalType.DECIMAL:
+        try:
+            common_decimal_metadata([column.metadata])
+        except ValueError as exc:
+            raise ValueConnectionError(str(exc)) from exc
     return FieldValue(
         context,
         CompiledFormula(
-            pl.col(column.engine_name), (column.column_id,), column.nullable, column.logical_type
+            pl.col(column.engine_name),
+            (column.column_id,),
+            column.nullable,
+            column.logical_type,
+            dict(column.metadata),
         ),
     )
 
@@ -217,7 +267,7 @@ def combine(expression: str, operands: dict[str, Operand]) -> Operand:
         raise ValueConnectionError(
             "Arithmetic produced a non-finite value; check division by zero."
         )
-    return ScalarValue(result, formula.logical_type)
+    return ScalarValue(result, formula.logical_type, dict(formula.metadata))
 
 
 def compare(
@@ -290,11 +340,16 @@ def append_field(
         name,
         value.formula.logical_type,
         value.formula.nullable,
-        {"source_columns": list(value.formula.referenced_columns)},
+        {**value.formula.metadata, "source_columns": list(value.formula.referenced_columns)},
     )
     # Validate identities before executing: duplicate labels are safe; duplicate IDs/names are not.
     schema = DatasetSchema((*table.dataset.schema.columns, column))
-    frame = table.dataset.frame.with_columns(value.formula.expression.alias(name))
+    try:
+        frame = table.dataset.frame.with_columns(value.formula.expression.alias(name))
+    except pl.exceptions.PolarsError as exc:
+        raise ValueConnectionError(
+            "Field expression could not process a value. Check types, precision and scale."
+        ) from exc
     if table.dataset.row_count == 0:
         # Polars expands a scalar to one row on a zero-column frame. A field
         # append must preserve the input's cardinality, including an empty schema.
@@ -307,7 +362,10 @@ def append_field(
         raise ValueConnectionError(
             "Arithmetic produced a non-finite value; check division by zero."
         )
-    return TableValue(output_context, Dataset(frame, schema, dict(table.dataset.metadata)))
+    metadata = dict(table.dataset.metadata)
+    if column.logical_type == LogicalType.DECIMAL:
+        metadata["exact_transport"] = True
+    return TableValue(output_context, Dataset(frame, schema, metadata))
 
 
 def sum_field(table: TableValue, value: FieldValue) -> ScalarValue:
@@ -322,6 +380,10 @@ def sum_field(table: TableValue, value: FieldValue) -> ScalarValue:
 
 def validate_field(table: TableValue, value: FieldValue) -> None:
     require_context(table.context, value.context)
+    try:
+        validate_decimal_references(table.dataset, value.formula.referenced_columns)
+    except ValueError as exc:
+        raise ValueConnectionError(str(exc)) from exc
     if (
         value.checks
         and table.dataset.frame.select(
@@ -341,6 +403,10 @@ def dataset_outputs(dataset: Dataset, context: RowContext) -> dict[str, Executio
 def single_value(table: TableValue, value: FieldValue) -> ScalarValue:
     """Explicit cardinality boundary; never silently sum or choose a first row."""
     require_context(table.context, value.context)
+    if value.formula.logical_type == LogicalType.DECIMAL:
+        raise ValueConnectionError(
+            "Decimal scalar outputs are not supported. Keep an exact table result.", field="value"
+        )
     if table.dataset.row_count != 1:
         raise ValueConnectionError(
             "Single value requires exactly one row. Filter or aggregate the table explicitly.",

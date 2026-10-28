@@ -8,6 +8,16 @@ import { Trash2 } from "lucide-react";
 import { VisualizationConfiguration } from "./VisualizationConfiguration";
 import { ConvertTypesConfiguration, UnpivotConfiguration, WindowConfiguration } from "./PreparationConfiguration";
 import { CalendarConfiguration } from "./CalendarConfiguration";
+import { PeriodConfiguration } from "./PeriodConfiguration";
+import { AlignMeasuresConfiguration } from "./AlignMeasuresConfiguration";
+import { BoxPlotStatsConfiguration } from "./BoxPlotStatsConfiguration";
+import { HistogramConfiguration } from "./HistogramConfiguration";
+import { HeatmapConfiguration } from "./HeatmapConfiguration";
+import { WaterfallConfiguration } from "./WaterfallConfiguration";
+import { ParetoConfiguration } from "./ParetoConfiguration";
+import { FunnelConfiguration } from "./FunnelConfiguration";
+import { TableRollupConfiguration } from "./TableRollupConfiguration";
+import { DatasetSourceConfiguration } from "@/features/ingestion/DatasetSourceConfiguration";
 import { CombineConfiguration } from "./CombineConfiguration";
 import { CalculatedColumnConfiguration, GroupByConfiguration, LimitConfiguration, SortConfiguration } from "./ArithmeticConfiguration";
 type FilterCondition = { column_id: string; operator: string; value?: unknown; parameter?: string };
@@ -21,6 +31,7 @@ import type { DataSource } from "@/features/data-sources/api";
 import type { GraphIssue, ResolvedColumn, WorkflowParameter } from "./types";
 
 type Props = {
+  nodeId?: string;
   version?: number;
   provenance?: ProvenanceMap;
   issues?: GraphIssue[];
@@ -34,6 +45,17 @@ type Props = {
   onChange: (config: Record<string, unknown>) => void;
 };
 const configurations: Record<string, ComponentType<Props>> = {
+  pareto: ParetoConfiguration,
+  funnel_steps: FunnelConfiguration,
+  waterfall_steps: WaterfallConfiguration,
+  table_rollup: TableRollupConfiguration,
+  boxplot_stats: BoxPlotStatsConfiguration,
+  histogram: HistogramConfiguration,
+  heatmap_stats: HeatmapConfiguration,
+  align_measures: AlignMeasuresConfiguration,
+  calendar_period: PeriodConfiguration,
+  period_comparison: PeriodConfiguration,
+  dataset_source: DatasetSourceConfiguration,
   convert_types: ConvertTypesConfiguration,
   unpivot: UnpivotConfiguration,
   window: WindowConfiguration,
@@ -62,11 +84,11 @@ const configurations: Record<string, ComponentType<Props>> = {
 export function NodeConfiguration(props: Props) {
   const { t } = useI18n();
   const Configuration = configurations[props.type];
-  return Configuration ? <Configuration {...props} /> : <p className="mt-5 text-sm">{t("Configuration is unavailable.")}</p>;
+  return Configuration ? <Configuration key={`${props.nodeId ?? props.type}:${props.version ?? 1}`} {...props} /> : <p className="mt-5 text-sm">{t("Configuration is unavailable.")}</p>;
 }
 
 function operatorsFor(type: string) {
-  if (["integer", "float", "date", "datetime"].includes(type)) return [...comparisonOperators, ...nullOperators];
+  if (["integer", "float", "decimal", "date", "datetime"].includes(type)) return [...comparisonOperators, ...nullOperators];
   if (type === "string") return [...stringOperators, ...nullOperators];
   if (type === "boolean") return ["equals", "not_equals", ...nullOperators];
   return nullOperators;

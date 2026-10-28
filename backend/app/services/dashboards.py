@@ -106,6 +106,9 @@ class DashboardService:
                 "INVALID_VISUALIZATION",
                 "A selected visualization is missing or belongs to another project.",
             )
+        from app.services.dashboard_layouts import preserve_default
+
+        preserve_default(self.session, self.read(identity))
         self.session.execute(
             update(Dashboard)
             .where(Dashboard.id == identity)
@@ -136,6 +139,7 @@ class DashboardService:
         )
         self.session.flush()
         result = self.read(identity)
+        preserve_default(self.session, result)
         if commit:
             self.session.commit()
         return result

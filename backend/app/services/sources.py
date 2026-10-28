@@ -22,7 +22,15 @@ from app.infrastructure.excel import (
     WorksheetNotFoundError,
 )
 from app.infrastructure.storage import StorageProvider
-from app.models import DataSource, Project, ReportDocument, SourceVersion, Workflow, WorkflowNode
+from app.models import (
+    DatasetSnapshot,
+    DataSource,
+    Project,
+    ReportDocument,
+    SourceVersion,
+    Workflow,
+    WorkflowNode,
+)
 from app.services.file_cleanup import drain_deletions, enqueue_deletion
 from app.services.projects import ProjectService
 
@@ -143,12 +151,27 @@ class SourceService:
         ):
             enqueue_deletion(self.session, key)
         enqueue_deletion(self.session, source.storage_key)
+        for key in self.session.scalars(
+            select(DatasetSnapshot.storage_key).where(DatasetSnapshot.source_id == source.id)
+        ):
+            enqueue_deletion(self.session, key)
+        from app.services.import_drafts import ImportDraftService
+
+        draft = ImportDraftService(self.session).document(source)
+        if draft is not None:
+            self.session.delete(draft)
         self.session.delete(source)
         self.session.commit()
         drain_deletions(self.session, self.storage)
 
     def delete_project(self, project: Project) -> None:
         project = ProjectService(self.session).lock(project.id)
+        for key in self.session.scalars(
+            select(DatasetSnapshot.storage_key)
+            .join(DataSource)
+            .where(DataSource.project_id == project.id)
+        ):
+            enqueue_deletion(self.session, key)
         for key in self.session.scalars(
             select(SourceVersion.storage_key)
             .join(DataSource)

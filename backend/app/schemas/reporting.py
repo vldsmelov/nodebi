@@ -4,8 +4,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.domain.ingestion import ReadOptions, SourceResource
 from app.domain.publications import ViewContext
 from app.domain.workbooks import WorksheetLayout
+from app.schemas.file_exchange import FileExchangeRead
 from app.schemas.workflows import ResolvedColumnRead, WorkflowRead
 
 
@@ -17,6 +19,8 @@ class VersionRead(BaseModel):
     sha256: str
     created_at: datetime
     sheet_names: list[str] = Field(default_factory=list)
+    resources: list[SourceResource] = Field(default_factory=list)
+    read_options: ReadOptions | None = None
 
 
 class RevisionRequest(BaseModel):
@@ -50,10 +54,18 @@ class SheetBinding(BaseModel):
     columns: list[ColumnBinding] = Field(default_factory=list)
 
 
+class DatasetBinding(BaseModel):
+    resource_id: str = Field(min_length=1, max_length=255)
+    target_resource_id: str = Field(min_length=1, max_length=255)
+    options: ReadOptions | None = None
+    columns: list[ColumnBinding] = Field(default_factory=list, max_length=1024)
+
+
 class UpdateItem(BaseModel):
     source_id: uuid.UUID
     version_id: uuid.UUID
     bindings: list[SheetBinding] = Field(default_factory=list)
+    dataset_bindings: list[DatasetBinding] = Field(default_factory=list, max_length=1024)
     mode: Literal["replace", "append", "replace_period"] = "replace"
     period: str = Field(default="", max_length=100)
     baseline_period: str = Field(default="", max_length=100)
@@ -88,6 +100,21 @@ class CheckIssue(BaseModel):
     examples: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class DatasetMappingProfile(BaseModel):
+    source_id: uuid.UUID
+    version_id: uuid.UUID
+    resource_id: str
+    target_resource_id: str
+    name: str
+    options: ReadOptions
+    old_columns: list[ResolvedColumnRead]
+    new_columns: list[ResolvedColumnRead]
+    suggestions: list[ColumnBinding]
+    old_rows: int
+    new_rows: int
+    new_examples: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class ControlValue(BaseModel):
     workflow_id: str
     node_id: str
@@ -101,6 +128,7 @@ class CheckResult(BaseModel):
     token: str
     issues: list[CheckIssue] = Field(default_factory=list)
     profiles: list[MappingProfile] = Field(default_factory=list)
+    dataset_profiles: list[DatasetMappingProfile] = Field(default_factory=list)
     affected_workflows: list[str] = Field(default_factory=list)
     affected_visualizations: list[str] = Field(default_factory=list)
     metrics: list[ControlValue] = Field(default_factory=list)
@@ -108,6 +136,8 @@ class CheckResult(BaseModel):
 
 
 class UpdateRead(BaseModel):
+    browser_editor_pending: bool = False
+    file_exchange: FileExchangeRead | None = None
     id: uuid.UUID
     project_id: uuid.UUID
     revision: int

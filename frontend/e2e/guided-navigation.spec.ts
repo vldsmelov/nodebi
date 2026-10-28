@@ -20,8 +20,16 @@ test("stage and preview a widget transition without losing other dashboard edits
     const widgetId = crypto.randomUUID();
     expect((await request.put(`${api}/api/v1/dashboards/${board.id}`, { data: { name: board.name, expected_revision: board.revision, widgets: [{ id: widgetId, visualization_id: chartId, x: 0, y: 0, width: 8, height: 10 }] } })).ok()).toBe(true);
     await page.goto(`/projects/${project.id}/dashboard?dashboard=${board.id}`);
-    await page.getByLabel("Widget title", { exact: true }).fill("Unsaved title");
-    const open = () => page.getByRole("button", { name: "Configure navigation", exact: true }).click();
+    const widget = page.locator(`[data-widget-id="${widgetId}"]`);
+    const settings = page.getByRole("dialog", { name: "Edit visualization", exact: true });
+    await widget.getByRole("button", { name: "Edit visualization", exact: true }).click();
+    await settings.getByLabel("Widget title", { exact: true }).fill("Unsaved title");
+    await settings.getByRole("button", { name: "Cancel", exact: true }).click();
+    const open = async () => {
+      const actions = widget.locator("details").filter({ has: page.getByLabel("Widget actions", { exact: true }) });
+      if (await actions.getAttribute("open") === null) await widget.getByLabel("Widget actions", { exact: true }).click();
+      await widget.getByRole("button", { name: "Configure navigation", exact: true }).click();
+    };
     await open();
     const dialog = page.getByRole("dialog", { name: "Configure navigation", exact: true });
     await dialog.getByLabel("Destination dashboard").selectOption(detail.id);
@@ -36,7 +44,9 @@ test("stage and preview a widget transition without losing other dashboard edits
     page.once("dialog", confirmation => confirmation.accept());
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(dialog).not.toBeVisible();
-    await expect(page.getByLabel("Widget title", { exact: true })).toHaveValue("Unsaved title");
+    await widget.getByRole("button", { name: "Edit visualization", exact: true }).click();
+    await expect(settings.getByLabel("Widget title", { exact: true })).toHaveValue("Unsaved title");
+    await settings.getByRole("button", { name: "Cancel", exact: true }).click();
     await open();
     await expect(dialog.getByLabel("Destination dashboard")).toHaveValue("");
     await dialog.getByLabel("Destination dashboard").selectOption(detail.id);

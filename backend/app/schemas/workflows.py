@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.domain.join_diagnostics import JoinDiagnostics
+from app.domain.join_diagnostics import AlignmentDiagnostics, JoinDiagnostics
 from app.domain.parameters import ParameterDefinition, ParameterValue, ParameterValues
 from app.domain.publications import ResultCatalog
 from app.schemas.presentation import WorkflowPresentation
@@ -222,6 +222,9 @@ class NodeValuesRead(BaseModel):
 
 
 class PreviewRead(BaseModel):
+    alignment_diagnostics: AlignmentDiagnostics | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     join_diagnostics: JoinDiagnostics | None = Field(
         default=None, exclude_if=lambda value: value is None
     )

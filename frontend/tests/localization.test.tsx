@@ -92,6 +92,25 @@ it("retranslates an existing error when the language changes", () => {
 });
 
 describe("catalog completeness", () => {
+  it("translates source-neutral, calendar and exact analytical operation descriptions", () => {
+    const descriptions = [
+      "Fully align two unique prepared measures without aggregation. Missing sides remain empty.",
+      "Create an inclusive daily calendar.",
+      "Replace dates with calendar period starts.",
+      "Read a normalized table independent of its original source.",
+      "Exact decimal sums and half-even averages; legacy numeric fields retain v1 behavior.",
+      "Compare prepared values with an exact calendar baseline.",
+      "Exact pivot totals, averages and extrema with explicit average rounding.",
+      "Exact partition and cumulative totals, extrema and previous values.",
+    ];
+    for (const description of descriptions) {
+      expect(translate("en", description)).toBe(description);
+      for (const locale of ["ru", "tt"] as const) {
+        expect(translate(locale, description), `${locale}: ${description}`).not.toBe(description);
+        expect(translate(locale, description).trim()).not.toBe("");
+      }
+    }
+  });
   it("covers literal UI messages and all registered node labels in both translations", () => {
     const missing: string[] = [];
     for (const dir of ["app", "features", "lib"]) {

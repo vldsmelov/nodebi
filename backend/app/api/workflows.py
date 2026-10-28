@@ -44,6 +44,7 @@ from app.services.execution import (
 )
 from app.services.join_records import join_records
 from app.services.node_values import node_values
+from app.services.normalization import transport_rows
 from app.services.workflow_validation import GraphIssue, WorkflowSchemaResolver
 from app.services.workflows import (
     domain_graph as _domain_graph,
@@ -242,8 +243,17 @@ def preview_workflow_node(
             },
         ) from exc
     limit = min(payload.limit, settings.max_preview_rows)
-    rows = result.output.frame.slice(payload.offset, limit).to_dicts()
+    page = result.output.frame.slice(payload.offset, limit)
+    rows = (
+        transport_rows(page) if result.output.metadata.get("exact_transport") else page.to_dicts()
+    )
     return PreviewRead(
+        alignment_diagnostics=(
+            result.output.metadata.get("alignment_diagnostics")
+            if result.output.metadata.get("alignment_diagnostics", {}).get("node_id")
+            == str(node_id)
+            else None
+        ),
         join_diagnostics=(
             result.output.metadata.get("join_diagnostics")
             if result.output.metadata.get("join_diagnostics", {}).get("node_id") == str(node_id)

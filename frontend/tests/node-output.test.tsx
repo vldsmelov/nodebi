@@ -6,6 +6,17 @@ import { NodeOutputPanel } from "@/features/workflow/NodeOutputPanel";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+it("shows full-input alignment counts and hides them after a draft changes", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ revision: 1, columns: [], rows: [], total_rows: 0, duration_ms: 1, alignment_diagnostics: { node_id: "node", matched_rows: 1000, left_only_rows: 2, right_only_rows: 3, result_rows: 1005 } }))));
+  const client = new QueryClient();
+  const panel = (dirty: boolean) => <QueryClientProvider client={client}><NodeOutputPanel workflowId="workflow" nodeId="node" revision={1} dirty={dirty} issues={[]} /></QueryClientProvider>;
+  const view = render(panel(false));
+  fireEvent.click(screen.getByRole("button", { name: "Preview output" }));
+  expect(await screen.findByText(/Full alignment:.*2 only left, 3 only right/)).toHaveTextContent("Counts cover all rows.");
+  view.rerender(panel(true));
+  expect(screen.queryByText(/Full alignment:/)).toBeNull();
+});
+
 it("does not show a late Join failure after choosing diagnostic records", async () => {
   let resolve!: (response: Response) => void;
   vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(done => { resolve = done; })));

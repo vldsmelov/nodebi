@@ -21,3 +21,11 @@ class JoinDiagnostics(BaseModel):
     additional_rows: int = Field(ge=0)
     dropped_left_rows: int = Field(ge=0)
     result_rows: int = Field(ge=0)
+
+
+class AlignmentDiagnostics(BaseModel):
+    node_id: UUID
+    matched_rows: int = Field(ge=0)
+    left_only_rows: int = Field(ge=0)
+    right_only_rows: int = Field(ge=0)
+    result_rows: int = Field(ge=0)

@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.domain.visualization_specs import VisualizationSpec
 from app.domain.workflows import NodeInstance
 
 ChartType = Literal[
@@ -14,6 +15,19 @@ ChartType = Literal[
     "pie_chart",
     "donut_chart",
     "scatter_chart",
+    "box_plot",
+    "histogram_chart",
+    "heatmap_chart",
+    "radar_chart",
+    "waterfall_chart",
+    "combo_chart",
+    "bubble_chart",
+    "pareto_chart",
+    "treemap_chart",
+    "sunburst_chart",
+    "bullet_chart",
+    "funnel_chart",
+    "analytical_table",
 ]
 CHART_NAMES: dict[ChartType, str] = {
     "bar_chart": "Bar Chart",
@@ -24,6 +38,19 @@ CHART_NAMES: dict[ChartType, str] = {
     "pie_chart": "Pie Chart",
     "donut_chart": "Donut Chart",
     "scatter_chart": "Scatter Chart",
+    "box_plot": "Box plot",
+    "histogram_chart": "Histogram",
+    "heatmap_chart": "Heatmap",
+    "radar_chart": "Radar",
+    "waterfall_chart": "Waterfall",
+    "combo_chart": "Combination chart",
+    "bubble_chart": "Bubble chart",
+    "pareto_chart": "Pareto chart",
+    "treemap_chart": "Treemap",
+    "sunburst_chart": "Sunburst",
+    "bullet_chart": "Bullet chart",
+    "funnel_chart": "Funnel",
+    "analytical_table": "Analytical table",
 }
 CHART_TYPES = tuple(CHART_NAMES)
 TITLE_PARAMETER = re.compile(r"\{([A-Za-z][A-Za-z0-9_]{0,63})\}")
@@ -53,6 +80,16 @@ class AdditionalSeries(BaseModel):
 
 
 class VisualizationConfig(VisualizationAppearance):
+    primary_series_name: str | None = Field(
+        default=None, max_length=200, exclude_if=lambda value: value is None
+    )
+    spec: VisualizationSpec | None = Field(default=None, exclude_if=lambda value: value is None)
+    measure_column_ids: list[str] | None = Field(
+        default=None, min_length=2, max_length=8, exclude_if=lambda value: value is None
+    )
+    grain_column_ids: list[str] | None = Field(
+        default=None, max_length=8, exclude_if=lambda value: value is None
+    )
     additional_series: list[AdditionalSeries] = Field(
         default_factory=list, max_length=7, exclude_if=lambda value: not value
     )

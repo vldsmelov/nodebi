@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { configureFormLayout, expectDialogFits, formLayouts } from "./form-reflow";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
-test("author grouped/global shares and stable ranks before parameter selection with ordinary nodes", async ({ page, request }) => {
+for (const layout of formLayouts) test(`author grouped/global shares and stable ranks before parameter selection with ordinary nodes (${layout})`, async ({ page, request }) => {
   test.setTimeout(90000);
+  await configureFormLayout(page, layout);
   const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Analytics helper" } })).json();
   try {
     const workbook = execFileSync(resolve("../backend/.venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python"), ["-c", "import sys; from io import BytesIO; from openpyxl import Workbook; w=Workbook(); s=w.active; s.append(['Item','Group','Amount']); [s.append(r) for r in [[2,'A',30],[1,'A',30],[3,'B',10],[4,'B',30],[5,'C',0],[6,'C',0]]]; b=BytesIO(); w.save(b); sys.stdout.buffer.write(b.getvalue())"]);
@@ -24,7 +26,8 @@ test("author grouped/global shares and stable ranks before parameter selection w
     await dialog.getByLabel("Selection field", { exact: true }).selectOption("col_1");
     await dialog.getByLabel("Parameter", { exact: true }).selectOption("item");
     await expect(dialog).toContainText("Totals and ranks are calculated before this optional selection.");
-    await page.screenshot({ path: "../.backups/ux-analytics-helper.png" });
+    await expectDialogFits(page, dialog);
+    await page.screenshot({ path: test.info().outputPath("analytics-helper.png") });
     const before = await read();
     await dialog.getByRole("button", { name: "Apply analytical operation" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
@@ -70,7 +73,7 @@ test("author grouped/global shares and stable ranks before parameter selection w
     await scope.getByRole("button", { name: "Highlight path to selected node" }).click();
     await expect(page.locator(`.react-flow__node[data-id="${sourceId}"]`)).toHaveCSS("opacity", "0.2");
     await expect(page.locator(`.react-flow__node[data-id="${filter.id}"]`)).toHaveCSS("opacity", "1");
-    await page.screenshot({ path: "../.backups/ux-calculation-scope.png" });
+    await page.screenshot({ path: test.info().outputPath("calculation-scope.png") });
     await page.getByLabel("Show dependencies", { exact: true }).selectOption("all");
     await expect(page.locator(`.react-flow__node[data-id="${sourceId}"]`)).toHaveCSS("opacity", "1");
     await scope.getByRole("button", { name: "Open calculation node" }).click();

@@ -1,5 +1,6 @@
 import json
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from functools import reduce
 from typing import Any, Literal, cast
@@ -19,6 +20,7 @@ from app.domain.nodes import (
     ValidationIssue,
     ValidationResult,
 )
+from app.domain.parameters import ParameterDefinition, compatible_parameters
 from app.domain.workflows import NodeInstance
 
 
@@ -72,6 +74,7 @@ def allowed_operators(logical_type: LogicalType) -> set[FilterOperator]:
     if logical_type in {
         LogicalType.INTEGER,
         LogicalType.FLOAT,
+        LogicalType.DECIMAL,
         LogicalType.DATE,
         LogicalType.DATETIME,
     }:
@@ -126,6 +129,16 @@ class FilterExecutor:
                     raise ValueError(
                         f"Filter parameter '{condition.parameter}' has an incompatible type."
                     )
+                if column.logical_type == LogicalType.DECIMAL and not compatible_parameters(
+                    definition,
+                    ParameterDefinition(
+                        name="field",
+                        logical_type="decimal",
+                        precision=column.metadata.get("precision"),
+                        scale=column.metadata.get("scale"),
+                    ),
+                ):
+                    raise ValueError("Decimal filter parameter precision/scale must fit the field.")
                 if executing:
                     value = definition.checked(
                         context.parameters.get(definition.name, definition.default)
@@ -158,6 +171,13 @@ class FilterExecutor:
                 if isinstance(value, bool):
                     raise ValueError
                 return float(value)
+            if logical_type == LogicalType.DECIMAL:
+                if isinstance(value, bool):
+                    raise ValueError
+                number = Decimal(str(value))
+                if not number.is_finite():
+                    raise ValueError
+                return number
             if logical_type == LogicalType.BOOLEAN:
                 if isinstance(value, bool):
                     return value
@@ -172,7 +192,7 @@ class FilterExecutor:
             if logical_type == LogicalType.DATETIME:
                 return datetime.fromisoformat(str(value))
             return str(value)
-        except (TypeError, ValueError) as exc:
+        except (TypeError, ValueError, InvalidOperation) as exc:
             raise ValueError(f"Value '{value}' is invalid for {logical_type}.") from exc
 
     def validate(

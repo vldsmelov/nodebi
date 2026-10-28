@@ -1,0 +1,76 @@
+import { expect, test, request as createRequest } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+const api = process.env.NODEBI_E2E_API ?? "http://localhost:8010";
+
+test("global links and browser history preserve new drafts; restored edits retain their original revision", async ({ page, request }) => {
+  test.setTimeout(120000);
+  const project = await (await request.post(`${api}/api/v1/projects`, { data: { name: "Draft protection acceptance" } })).json();
+  page.on("dialog", dialog => dialog.accept());
+  try {
+    const source = await (await request.post(`${api}/api/v1/projects/${project.id}/sources/excel`, { multipart: { file: { name: "sales.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: readFileSync(resolve("../fixtures/excel/sales.xlsx")) } } })).json();
+    const flow = await (await request.post(`${api}/api/v1/projects/${project.id}/workflows`, { data: { name: "Sales" } })).json();
+    const node = crypto.randomUUID(), publication = crypto.randomUUID();
+    expect((await request.put(`${api}/api/v1/workflows/${flow.id}`, { data: { name: flow.name, expected_revision: 1, format_version: 3, nodes: [{ id: node, type: "excel_source", version: 1, position: { x: 0, y: 0 }, config: { source_id: source.id, sheet_name: "Sales" } }], edges: [], result_catalog: { outputs: [{ id: publication, name: "Sales", node_id: node, port: "dataset", kind: "dataset" }] } } })).ok()).toBeTruthy();
+    await page.goto(`/projects/${project.id}/dashboard`);
+    await page.getByRole("button", { name: "Create dashboard", exact: true }).click();
+    const navigation = page.getByRole("navigation", { name: "Project navigation", exact: true });
+    const settings = page.getByRole("complementary", { name: "Visualization settings", exact: true });
+    await page.getByRole("button", { name: "Add chart", exact: true }).click();
+    await page.getByRole("button", { name: "Create visualization", exact: true }).click();
+    await settings.getByLabel("Visualization name", { exact: true }).fill("Recover new table");
+    await settings.getByLabel("Visualization type", { exact: true }).selectOption("table");
+    await navigation.getByRole("link", { name: "Overview", exact: true }).click();
+    await settings.getByRole("button", { name: "Continue editing", exact: true }).click();
+    await expect(settings.getByLabel("Visualization name", { exact: true })).toHaveValue("Recover new table");
+    await navigation.getByRole("link", { name: "Overview", exact: true }).click();
+    await settings.getByRole("button", { name: "Keep draft and continue", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/projects/${project.id}$`));
+    await navigation.getByRole("link", { name: "Reports", exact: true }).click();
+    const resume = async () => {
+      await page.getByRole("button", { name: "Resume new visualization draft", exact: true }).click();
+      await expect(settings.getByLabel("Visualization name", { exact: true })).toBeDisabled();
+      await page.screenshot({ path: test.info().outputPath("draft-recovery.png"), fullPage: true });
+      await settings.getByRole("button", { name: "Restore local draft", exact: true }).click();
+      await expect(settings.getByLabel("Visualization name", { exact: true })).toHaveValue("Recover new table");
+      await expect(settings.getByLabel("Visualization type", { exact: true })).toHaveValue("table");
+    };
+    await resume();
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`/projects/${project.id}$`));
+    await page.goForward();
+    await resume();
+    const typedSave = page.waitForRequest(req => req.method() === "POST" && req.url() === `${api}/api/v1/projects/${project.id}/visualizations`);
+    await settings.getByRole("button", { name: "Apply visualization", exact: true }).click();
+    const submitted = (await typedSave).postDataJSON();
+    expect(submitted.config.spec).toMatchObject({ version: 1, type: "table", columns: null });
+    expect(submitted.config).not.toHaveProperty("column_ids");
+    await expect(settings).toHaveCount(0);
+    await page.getByRole("button", { name: "Save dashboard", exact: true }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Resume new visualization draft", exact: true })).toHaveCount(0);
+    const charts = (await (await request.get(`${api}/api/v1/projects/${project.id}/visualizations`)).json()).items;
+    expect(charts).toHaveLength(1);
+    const chart = charts[0];
+    expect(chart.config).not.toHaveProperty("spec");
+    expect(chart.config.column_ids).toBeNull();
+    await page.getByRole("button", { name: "Edit visualization", exact: true }).click();
+    await settings.getByLabel("Visualization name", { exact: true }).fill("My unsaved edit");
+    expect((await request.put(`${api}/api/v1/visualizations/${chart.id}`, { data: { workflow_id: flow.id, publication_id: publication, expected_workflow_revision: 2, expected_revision: chart.revision, name: "Other saved revision", type: chart.type, config: chart.config } })).ok()).toBeTruthy();
+    await page.reload();
+    await page.getByRole("button", { name: "Edit visualization", exact: true }).click();
+    await settings.getByRole("button", { name: "Restore local draft", exact: true }).click();
+    await settings.getByRole("button", { name: "Apply visualization", exact: true }).click();
+    await expect(settings.getByRole("button", { name: "Reload saved settings", exact: true })).toBeVisible();
+    await expect(settings.getByLabel("Visualization name", { exact: true })).toHaveValue("My unsaved edit");
+    expect((await (await request.get(`${api}/api/v1/visualizations/${chart.id}`)).json()).name).toBe("Other saved revision");
+    await settings.getByRole("button", { name: "Reload saved settings", exact: true }).click();
+    await settings.getByRole("button", { name: "Discard local draft", exact: true }).click();
+    await expect(settings.getByLabel("Visualization name", { exact: true })).toHaveValue("Other saved revision");
+    await expect(settings.getByRole("button", { name: "Apply visualization", exact: true })).toBeDisabled();
+  } finally {
+    const cleanup = await createRequest.newContext();
+    expect((await cleanup.delete(`${api}/api/v1/projects/${project.id}?confirm=true`)).ok()).toBeTruthy();
+    await cleanup.dispose();
+  }
+});

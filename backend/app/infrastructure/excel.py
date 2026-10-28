@@ -7,6 +7,7 @@ from zipfile import BadZipFile, ZipFile
 import polars as pl
 from defusedxml.common import DefusedXmlException  # type: ignore[import-untyped]
 from openpyxl import load_workbook
+from openpyxl.utils.cell import column_index_from_string, coordinate_from_string
 from openpyxl.utils.exceptions import InvalidFileException
 
 from app.domain.datasets import (
@@ -25,6 +26,7 @@ from app.domain.workbooks import (
     WorksheetLayout,
     WorksheetLoadOptions,
     WorksheetPreview,
+    cell_range_bounds,
 )
 from app.infrastructure.storage import StorageProvider
 from app.infrastructure.worksheet_layout import inspect_structure
@@ -59,7 +61,9 @@ def _logical_type(values: list[CellValue]) -> tuple[LogicalType, bool]:
     return LogicalType.STRING, nullable
 
 
-def _columns(headers: tuple[Any, ...], data_rows: list[tuple[Any, ...]]) -> list[ColumnInfo]:
+def _columns(
+    headers: tuple[Any, ...], data_rows: list[tuple[Any, ...]], offset: int = 0
+) -> list[ColumnInfo]:
     used: set[str] = set()
     labels = [
         (str(value).strip() if value is not None else "") or f"Column {index + 1}"
@@ -82,7 +86,7 @@ def _columns(headers: tuple[Any, ...], data_rows: list[tuple[Any, ...]]) -> list
         logical_type, nullable = _logical_type(values)
         result.append(
             ColumnInfo(
-                column_id=f"col_{index + 1}",
+                column_id=f"col_{index + offset + 1}",
                 display_name=display_name,
                 engine_name=engine_name,
                 logical_type=logical_type,
@@ -145,21 +149,33 @@ class OpenPyxlWorkbookReader:
             structure = inspect_structure(stream, sheet._worksheet_path)
         except ValueError as exc:
             raise ExcelWorkbookError(str(exc)) from exc
-        header_end = layout.header_row + layout.header_rows
+        first_column, header_row, last_column, last_row = (
+            cell_range_bounds(layout.cell_range)
+            if layout.cell_range
+            else (1, layout.header_row, structure.columns, structure.rows)
+        )
+        if layout.cell_range and (last_column > structure.columns or last_row > structure.rows):
+            raise ExcelWorkbookError("The selected range extends beyond the populated worksheet.")
+        header_end = header_row + layout.header_rows
         data_start = header_end + layout.skip_data_rows
-        data_end = max(header_end - 1, structure.rows - layout.drop_tail_rows)
+        data_end = max(header_end - 1, last_row - layout.drop_tail_rows)
         missing = [
             cell
             for cell in structure.missing_formula_results
-            if layout.header_row <= int(re.sub(r"\D", "", cell)) < header_end
-            or data_start <= int(re.sub(r"\D", "", cell)) <= data_end
+            if first_column
+            <= column_index_from_string(coordinate_from_string(cell)[0])
+            <= last_column
+            and (
+                header_row <= int(re.sub(r"\D", "", cell)) < header_end
+                or data_start <= int(re.sub(r"\D", "", cell)) <= data_end
+            )
         ]
         if missing:
             raise ExcelWorkbookError(
                 f"Formula has no saved result at {sheet.title}!{missing[0]}. "
                 "Recalculate and save the workbook in Excel before uploading."
             )
-        width = structure.columns
+        width = max(0, last_column - first_column + 1)
         if not width:
             return (), iter(()), []
         if width + layout.include_row_number > 1024:
@@ -171,20 +187,39 @@ class OpenPyxlWorkbookReader:
             raise ExcelWorkbookError("Worksheet exceeds the 250000-row or 2000000-cell limit.")
         header_values = list(
             sheet.iter_rows(
-                min_row=layout.header_row,
+                min_row=header_row,
                 max_row=header_end - 1,
-                max_col=width,
+                max_col=last_column,
                 values_only=True,
             )
         )
         headers = [list(row) for row in header_values]
         for left, top, right, bottom in structure.merges:
-            if layout.header_row <= top < header_end:
-                value = headers[top - layout.header_row][left - 1] if left <= width else None
+            if (
+                layout.cell_range
+                and left <= last_column
+                and right >= first_column
+                and top < header_end
+                and bottom >= header_row
+                and (
+                    left < first_column
+                    or right > last_column
+                    or top < header_row
+                    or bottom >= header_end
+                )
+            ):
+                raise ExcelWorkbookError(
+                    "The selected headers cut through a merged cell. "
+                    "Expand the range or header count."
+                )
+            if header_row <= top < header_end:
+                value = headers[top - header_row][left - 1] if left <= last_column else None
                 for row in range(top, min(bottom + 1, header_end)):
-                    for column in range(left, min(right, width) + 1):
-                        headers[row - layout.header_row][column - 1] = value
-        levels = [[row[column] for row in headers] for column in range(width)]
+                    for column in range(left, min(right, last_column) + 1):
+                        headers[row - header_row][column - 1] = value
+        levels = [
+            [row[column] for row in headers] for column in range(first_column - 1, last_column)
+        ]
         labels = tuple(
             " / ".join(dict.fromkeys(str(value).strip() for value in values if value is not None))
             or None
@@ -194,7 +229,8 @@ class OpenPyxlWorkbookReader:
             sheet.iter_rows(
                 min_row=data_start,
                 max_row=data_end,
-                max_col=width,
+                min_col=first_column,
+                max_col=last_column,
                 values_only=True,
             )
             if data_end >= data_start
@@ -223,7 +259,12 @@ class OpenPyxlWorkbookReader:
                 return WorksheetPreview(sheet_name, [], [], 0, False)
             truncated = len(sampled) > options.limit
             data_rows = sampled[: options.limit]
-            columns = _columns(headers, data_rows)
+            offset = (
+                cell_range_bounds(options.layout.cell_range)[0] - 1
+                if options.layout.cell_range
+                else 0
+            )
+            columns = _columns(headers, data_rows, offset)
             rows = [
                 {
                     column.column_id: _serialize(row[index] if index < len(row) else None)
@@ -255,7 +296,8 @@ class OpenPyxlWorkbookReader:
                 rows.append(row)
             if not headers or (all(value is None for value in headers) and not rows):
                 return Dataset(pl.DataFrame(), DatasetSchema(()), {"sheet_name": sheet_name})
-            inferred = _columns(headers, rows)
+            offset = cell_range_bounds(layout.cell_range)[0] - 1 if layout.cell_range else 0
+            inferred = _columns(headers, rows, offset)
             # Polars' row inference samples a prefix. Our logical inference examines
             # all rows and explicitly normalizes mixed values before construction.
             frame = pl.DataFrame(
@@ -278,7 +320,7 @@ class OpenPyxlWorkbookReader:
                     nullable=frame[column.engine_name].null_count() > 0,
                     metadata={"source_row_number": True}
                     if layout.include_row_number and index == len(inferred) - 1
-                    else {"source_position": index, "header_levels": levels[index]},
+                    else {"source_position": index + offset, "header_levels": levels[index]},
                 )
                 for index, column in enumerate(inferred)
             )

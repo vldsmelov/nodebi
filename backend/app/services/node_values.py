@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 
 import polars as pl
@@ -83,7 +84,11 @@ def node_values(
     def choice(row: dict[str, Any]) -> NodeValueChoice:
         return NodeValueChoice(
             **{
-                key: value.isoformat() if isinstance(value, (date, datetime)) else value
+                key: value.isoformat()
+                if isinstance(value, (date, datetime))
+                else format(value, "f")
+                if isinstance(value, Decimal)
+                else value
                 for key, value in row.items()
             }
         )
@@ -92,7 +97,16 @@ def node_values(
     if request.selected_value is not None:
         try:
             checked = ParameterDefinition(
-                name="selected", logical_type=column.logical_type.value
+                name="selected",
+                logical_type=column.logical_type.value,
+                **(
+                    {
+                        "precision": column.metadata.get("precision"),
+                        "scale": column.metadata.get("scale"),
+                    }
+                    if column.logical_type.value == "decimal"
+                    else {}
+                ),
             ).checked(request.selected_value)
         except ValueError as exc:
             raise ApplicationError(
@@ -103,6 +117,8 @@ def node_values(
             if column.logical_type.value == "date"
             else datetime.fromisoformat(str(checked))
             if column.logical_type.value == "datetime"
+            else Decimal(str(checked))
+            if column.logical_type.value == "decimal"
             else checked
         )
         selected_frame = frame.filter(

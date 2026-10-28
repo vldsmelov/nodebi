@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { ResolvedColumn } from "./types";
 import type { PlannedStep } from "./unary-chain";
@@ -16,12 +16,14 @@ export function PreparationDialog({ columns, apply, close }: { columns: Resolved
   const cancel = () => { if (!changed || window.confirm(t("Discard unapplied preparation changes?"))) close(); };
   const update = (index: number, patch: Partial<PreparationRow>) => setRows(current => current.map((row, i) => i === index ? { ...row, ...patch } : row));
   const control = "w-full rounded border border-outline bg-control p-2 text-xs disabled:opacity-40";
-  return <dialog ref={ref} aria-label={t("Prepare data table")} onKeyDown={event => event.stopPropagation()} onCancel={event => { event.preventDefault(); cancel(); }} className="m-auto max-h-[90vh] w-[min(1200px,96vw)] overflow-auto rounded-xl border border-outline bg-panel p-6 text-foreground backdrop:bg-black/60">
+  const headings = ["Keep", "Source field", "Output field name", "Target type", "Conversion errors", "Missing values"];
+  const labels = Object.fromEntries(headings.map((label, index) => [`--preparation-label-${index + 1}`, JSON.stringify(t(label))])) as CSSProperties;
+  return <dialog ref={ref} aria-label={t("Prepare data table")} onKeyDown={event => event.stopPropagation()} onCancel={event => { event.preventDefault(); cancel(); }} className="preparation-dialog m-auto max-h-[90vh] w-[min(1200px,96vw)] overflow-auto rounded-xl border border-outline bg-panel p-6 text-foreground backdrop:bg-black/60">
     <h2 className="text-lg">{t("Prepare data table")}</h2>
     <p className="my-3 text-sm text-muted">{t("Create a new branch from the selected output. Existing downstream connections stay unchanged. Review the ordinary nodes before applying.")}</p>
     <p className="my-3 text-xs text-muted">{t("Types are converted before missing-value handling. Invalid text fails by default; converting errors to null is an explicit choice. Empty text is not null.")}</p>
-    <table className="w-full text-left text-xs"><thead><tr>{["Keep", "Source field", "Output field name", "Target type", "Conversion errors", "Missing values"].map(label => <th key={label} className="p-2">{t(label)}</th>)}</tr></thead>
-      <tbody>{rows.map((row, index) => { const column = columns[index], type = row.target || column.logical_type; return <tr key={row.id} className="border-t border-outline">
+    <table role="table" style={labels} className="preparation-fields w-full text-left text-xs"><thead role="rowgroup"><tr role="row">{headings.map(label => <th role="columnheader" scope="col" key={label} className="p-2">{t(label)}</th>)}</tr></thead>
+      <tbody role="rowgroup">{rows.map((row, index) => { const column = columns[index], type = row.target || column.logical_type; return <tr role="row" key={row.id} className="border-t border-outline">
         <td className="p-2"><input aria-label={t("Keep field {0}", { 0: index + 1 })} type="checkbox" checked={row.keep} onChange={event => update(index, { keep: event.target.checked })} /></td>
         <td className="max-w-52 break-words p-2" title={`${column.engine_name} · ${column.column_id}`}>{column.display_name}<p className="text-muted">{t(column.logical_type)}</p></td>
         <td className="p-2"><input aria-label={t("Prepared name {0}", { 0: index + 1 })} className={control} maxLength={255} value={row.name} disabled={!row.keep} onChange={event => update(index, { name: event.target.value })} /></td>

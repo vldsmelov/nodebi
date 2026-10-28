@@ -1,43 +1,83 @@
 @import "tailwindcss";
+@import "../vendor/alabuga/styles.css" layer(components);
 
 :root {
-  color-scheme: dark;
-  --page: #0b0f0a;
-  --panel: #10150e;
-  --surface: #11170f;
-  --control: #151b12;
-  --raised: #151a13;
-  --foreground: #f6f8f3;
-  --muted: #a1aa9b;
-  --outline: #3c4537;
-  --accent: #b7ff5a;
-  --primary: #b7ff5a;
-  --primary-hover: #cbff89;
-  --on-primary: #11170d;
-  --danger: #ffb4b4;
-  --danger-surface: #421d23;
-  --warning: #f5d87b;
-  --shade: #000;
-}
-
-:root[data-theme="light"] {
   color-scheme: light;
-  --page: #f3f6ef;
+  --page: #f8f9fa;
   --panel: #fff;
   --surface: #fff;
   --control: #fff;
   --raised: #fff;
-  --foreground: #1f2b19;
-  --muted: #52624b;
-  --outline: #bbc7b2;
-  --accent: #35671c;
-  --primary: #35671c;
-  --primary-hover: #284f15;
+  --foreground: #161616;
+  --muted: #606a73;
+  --outline: #85909c;
+  --accent: #0956bb;
+  --primary: #0c6ff1;
+  --primary-hover: #0a5bcd;
   --on-primary: #fff;
-  --danger: #a3192c;
-  --danger-surface: #ffe9ed;
-  --warning: #735400;
-  --shade: #829575;
+  --danger: #9b1717;
+  --danger-surface: #fde8e8;
+  --warning: #874700;
+  --success: #176b38;
+  --shade: #000d3c;
+  --control-outline: #6c757d;
+  --shell-header-height: 5rem;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #080f24;
+  --panel: #111d38;
+  --surface: #162442;
+  --control: #101b35;
+  --raised: #1d2e50;
+  --foreground: #f0f4fc;
+  --muted: #aebcd2;
+  --outline: #7184a6;
+  --accent: #69cff7;
+  --primary: #69cff7;
+  --primary-hover: #a3e2fc;
+  --on-primary: #000d3c;
+  --danger: #ffb4b4;
+  --danger-surface: #421d23;
+  --warning: #f5d87b;
+  --success: #8ee0b5;
+  --shade: #000;
+  --control-outline: #8194b3;
+  --af-bg-canvas: var(--page);
+  --af-bg-surface: var(--panel);
+  --af-bg-subtle: #1d3153;
+  --af-text-primary: var(--foreground);
+  --af-text-secondary: var(--muted);
+  --af-text-tertiary: var(--muted);
+  --af-text-link: var(--accent);
+  --af-border-default: var(--outline);
+  --af-border-strong: var(--control-outline);
+  --af-border-focus: var(--accent);
+  --af-action-primary-bg-default: var(--primary);
+  --af-action-primary-bg-hover: var(--primary-hover);
+  --af-action-primary-bg-pressed: #a3e2fc;
+  --af-action-primary-text: var(--on-primary);
+  --af-action-secondary-bg-default: var(--panel);
+  --af-action-secondary-bg-hover: var(--raised);
+  --af-action-secondary-bg-pressed: var(--raised);
+  --af-action-secondary-text: var(--accent);
+  --af-action-secondary-border: var(--accent);
+  --af-action-ghost-bg-default: var(--panel);
+  --af-action-ghost-bg-hover: var(--raised);
+  --af-action-ghost-bg-pressed: var(--raised);
+  --af-action-ghost-text: var(--foreground);
+  --af-action-ghost-border: var(--control-outline);
+  --af-action-clear-text-default: var(--accent);
+  --af-state-disabled-bg: var(--raised);
+  --af-state-disabled-text: var(--muted);
+  --af-state-disabled-border-icon: var(--outline);
+  --af-feedback-info-bg: var(--raised);
+  --af-feedback-info-text: var(--accent);
+  --af-feedback-success-text: var(--success);
+  --af-feedback-warning-text: var(--warning);
+  --af-feedback-danger-text: var(--danger);
+  --af-feedback-danger-bg: var(--danger-surface);
 }
 
 @theme inline {
@@ -56,6 +96,7 @@
   --color-danger: var(--danger);
   --color-danger-surface: var(--danger-surface);
   --color-warning: var(--warning);
+  --color-success: var(--success);
   --color-shade: var(--shade);
 }
 
@@ -63,11 +104,14 @@
   box-sizing: border-box;
 }
 
-body {
+body.af {
   margin: 0;
   background: var(--page);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-family: var(--af-font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
 }
 
 .glow {
@@ -78,8 +122,8 @@ body {
   top: -16rem;
   right: -8rem;
   border-radius: 9999px;
-  background: #7fcf32;
-  opacity: 0.13;
+  background: var(--accent);
+  opacity: 0.05;
   filter: blur(90px);
 }
 
@@ -101,3 +145,71 @@ body {
   outline-offset: 3px;
 }
 button:disabled { cursor: not-allowed; }
+
+/* New shared forms: comfortable targets without resizing graph handles. */
+.form-control { min-height: 2.5rem; border: 1px solid var(--control-outline); border-radius: var(--af-radius-8); background: var(--control); padding: .5rem .75rem; color: var(--foreground); width: 100%; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.data-table :is(th, td) { padding: .625rem .75rem; border-bottom: 1px solid var(--outline); text-align: left; }
+.data-table[data-density="compact"] :is(th, td) { padding: .25rem .5rem; }
+.data-table [data-numeric="true"] { text-align: right; font-variant-numeric: tabular-nums; }
+.data-table th { font-weight: 600; background: var(--panel); }
+
+/* Container rem units follow enlarged root text; viewport media breakpoints do not.
+   Keep the preview and settings stacked until all three panels have usable space. */
+.report-builder-container { container-type: inline-size; }
+.dashboard-layout-container { container-type: inline-size; }
+@container (max-width: 79.99rem) {
+  /* In-flow settings have no local scroll viewport: sticky actions would cover fields. */
+  .dashboard-workbench > #report-settings .sticky.bottom-0 { position: static; }
+  .dashboard-workbench { padding-inline: 1.5rem; }
+  .dashboard-workbench > nav { display: flex; }
+  .dashboard-workbench > :is(#report-fields, #report-settings) {
+    position: static;
+    width: auto;
+    margin-bottom: 1.25rem;
+    border-radius: .75rem;
+    overflow: visible;
+  }
+}
+.report-builder-panels { grid-template-columns: minmax(0, 1fr); grid-template-areas: "settings" "preview" "fields"; }
+.report-builder-panels > fieldset { grid-area: settings; }
+.report-builder-panels > section { grid-area: preview; }
+.report-builder-panels > aside { grid-area: fields; }
+.statistical-builder-panels { grid-template-columns: minmax(0, 1fr); }
+.preparation-dialog { container-type: inline-size; }
+@container (width < 60rem) {
+  .preparation-fields, .preparation-fields tbody, .preparation-fields tr { display: block; }
+  .preparation-fields thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .preparation-fields td { display: block; max-width: none; overflow-wrap: anywhere; }
+  .preparation-fields td::before { display: block; margin-bottom: .5rem; font-weight: 600; }
+  .preparation-fields td:nth-child(1)::before { content: var(--preparation-label-1); }
+  .preparation-fields td:nth-child(2)::before { content: var(--preparation-label-2); }
+  .preparation-fields td:nth-child(3)::before { content: var(--preparation-label-3); }
+  .preparation-fields td:nth-child(4)::before { content: var(--preparation-label-4); }
+  .preparation-fields td:nth-child(5)::before { content: var(--preparation-label-5); }
+  .preparation-fields td:nth-child(6)::before { content: var(--preparation-label-6); }
+  .preparation-fields :is(input, select) { min-width: 0; max-width: 100%; }
+}
+@container (min-width: 78rem) {
+  .report-builder-panels { grid-template-columns: 16rem minmax(0, 1fr) 22rem; grid-template-areas: "fields preview settings"; }
+  .statistical-builder-panels { grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr); }
+}
+
+/* Keep the same editor instances and drafts when panels reflow. The canvas remains
+   two-dimensional; forms outside it must not require horizontal page scrolling. */
+.workflow-workspace {
+  display: grid;
+  min-width: 0;
+  height: calc(100dvh - var(--shell-header-height) - 4rem);
+  grid-template-columns: var(--workflow-columns, 220px minmax(320px, 1fr) 350px);
+}
+.workflow-workspace-classic { min-height: 38rem; }
+.workflow-workspace-fields { min-height: 38rem; grid-template-rows: minmax(24rem, 1fr) auto; }
+.workflow-workspace > :is(aside, section) { min-width: 0; }
+@media (width < 64rem) {
+  .workflow-workspace { display: flex; flex-direction: column; height: auto; }
+  .workflow-library { max-height: 24rem; }
+  .workflow-canvas { height: 32rem; min-height: 32rem; flex: none; }
+  .workflow-workspace > :is(aside, section) { overflow-wrap: anywhere; }
+  .workflow-workspace :is(input, select, textarea) { min-width: 0; max-width: 100%; }
+}

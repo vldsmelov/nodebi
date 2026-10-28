@@ -59,6 +59,7 @@ function NodeOutputContent({ isJoin, workflowId, nodeId, revision, dirty, schema
         <span className="text-[11px] text-muted">{t("Rows: {0} · {1} ms", { 0: cell(result.total_rows), 1: cell(result.duration_ms) })}</span>
       </div>
       {result.join_diagnostics && <JoinDiagnostics value={result.join_diagnostics} />}
+      {result.alignment_diagnostics && <p className="mt-3 text-sm" role="status">{t("Full alignment: {0} matched, {1} only left, {2} only right. Counts cover all rows.", { 0: cell(result.alignment_diagnostics.matched_rows), 1: cell(result.alignment_diagnostics.left_only_rows), 2: cell(result.alignment_diagnostics.right_only_rows) })}</p>}
       {result.truncated && <p className="mt-2 text-xs text-muted">{t("Showing {0} of {1} rows", { 0: cell(result.returned_rows), 1: cell(result.total_rows) })}</p>}
       {result.rows.length === 0 ? <p className="mt-3 text-xs text-muted">{t("The result is empty.")}</p> :
         <div className="mt-3 max-h-[30vh] overflow-auto rounded-xl border border-outline"><table className="min-w-full text-xs">

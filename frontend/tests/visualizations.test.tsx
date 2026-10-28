@@ -1,5 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { I18nProvider } from "@/lib/i18n";
+import { translate } from "@/lib/locale";
 import { render } from "./render";
 import { afterEach, expect, it, vi } from "vitest";
 import type { VisualizationResult } from "@/features/dashboard/api";
@@ -17,6 +19,88 @@ const result: VisualizationResult = {
   rows: [{ day: "2026-01-01", total: 10 }, { day: "2026-01-02", total: 20 }],
 };
 afterEach(() => vi.unstubAllGlobals());
+
+it("disables plain-table pagination while retaining a requested page and restores it after arrival", async () => {
+  const table: VisualizationResult = { ...result, type: "table", total_rows: 201, limit: 100, truncated: true };
+  let finish!: (response: Response) => void;
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(table)))
+    .mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve; }));
+  vi.stubGlobal("fetch", fetcher);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><VisualizationView id="paged-table" /></QueryClientProvider>);
+  const next = await screen.findByRole("button", { name: "Next page" });
+  fireEvent.click(next);
+  await screen.findByText("Showing previous result. Waiting for updated data.");
+  expect(next).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
+  expect(screen.getByText("Total rows: 201 · page 1")).toBeVisible();
+  fireEvent.click(next);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  await act(async () => finish(new Response(JSON.stringify({ ...table, offset: 100, rows: [{ day: "2026-01-03", total: 30 }] }))));
+  await screen.findByText("Total rows: 201 · page 2");
+  expect(next).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Previous page" })).toBeEnabled();
+  expect(String(fetcher.mock.calls[1][0])).toContain("offset=100");
+  client.clear();
+});
+
+for (const locale of ["en", "ru", "tt"] as const) it(`labels retained results and blocks stale selection during refetch/error/retry (${locale})`, async () => {
+  const table: VisualizationResult = { ...result, type: "table" };
+  let finish!: (response: Response) => void;
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(table)))
+    .mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve; }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ ...table, rows: [{ day: "2026-01-03", total: 30 }] })));
+  vi.stubGlobal("fetch", fetcher);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const select = vi.fn();
+  render(<I18nProvider initialLocale={locale}><QueryClientProvider client={client}><VisualizationView id="refresh" onSelect={select} /></QueryClientProvider></I18nProvider>);
+  const oldCell = await screen.findByRole("cell", { name: /^10[.,]00$/ });
+  fireEvent.click(oldCell);
+  expect(select).toHaveBeenCalledTimes(1);
+  act(() => { void client.invalidateQueries({ queryKey: ["visualization-result"] }); });
+  const notice = await screen.findByRole("status");
+  expect(notice).toHaveTextContent(translate(locale, "Showing previous result. Waiting for updated data."));
+  expect(notice).not.toHaveClass("sr-only");
+  expect(oldCell).toBeVisible();
+  await waitFor(() => expect(oldCell.closest("tr")).not.toHaveAttribute("tabindex"));
+  fireEvent.click(oldCell);
+  expect(select).toHaveBeenCalledTimes(1);
+  await act(async () => finish(new Response(JSON.stringify({ detail: { message: "Unavailable", code: "UNAVAILABLE" } }), { status: 503 })));
+  expect(await screen.findByRole("alert")).toHaveTextContent(translate(locale, "Unavailable"));
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: translate(locale, "Retry visualization") }));
+  const newCell = await screen.findByRole("cell", { name: /^30[.,]00$/ });
+  expect(screen.queryByText(translate(locale, "Showing previous result. Waiting for updated data."))).not.toBeInTheDocument();
+  fireEvent.click(newCell);
+  expect(select).toHaveBeenCalledTimes(2);
+  client.clear();
+});
+
+it("formats exact KPI percentages/currency but keeps raw table cells and text codes unchanged", () => {
+  const kpi: VisualizationResult = { ...result, type: "kpi", number_format: "percent", columns: [{ ...result.columns[1], logical_type: "decimal" }] };
+  expect(format("0.300570", kpi, "en")).toBe("30.06%");
+  expect(format("9007199254740993.12", { ...kpi, number_format: "currency" }, "en")).toBe("$9,007,199,254,740,993.12");
+  expect(format("0.300570", { ...kpi, type: "table" }, "en", "decimal")).toBe("0.300570");
+  expect(format("001", { ...kpi, columns: [{ ...result.columns[1], logical_type: "string" }] }, "en")).toBe("001");
+});
+
+it("aligns decimal strings by their schema while retaining leading-zero text codes", async () => {
+  const table = { ...result, type: "table", columns: [
+    { ...result.columns[0], engine_name: "code", display_name: "Code", logical_type: "string" },
+    { ...result.columns[1], logical_type: "decimal" },
+  ], rows: [{ code: "001", total: "0.35" }] };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(table))));
+  render(<QueryClientProvider client={new QueryClient()}><VisualizationView id="numeric-alignment" /></QueryClientProvider>);
+  expect(await screen.findByRole("cell", { name: "0.35" })).toHaveClass("text-right", "tabular-nums");
+  expect(screen.getByRole("cell", { name: "001" })).toHaveClass("text-left");
+  expect(screen.getByRole("columnheader", { name: "Total" })).toHaveClass("text-right");
+  expect(screen.getByRole("columnheader", { name: "Code" })).toHaveAttribute("scope", "col");
+  expect(screen.getByRole("table")).toHaveClass("text-sm");
+  expect(screen.getByRole("table")).toHaveAccessibleName();
+  expect(screen.getByRole("table").parentElement).toHaveAttribute("role", "region");
+  expect(screen.getByRole("table").parentElement).toHaveAttribute("tabindex", "0");
+  expect(screen.getByRole("table").parentElement).toHaveClass("min-w-0");
+});
 
 it("renders multiple prepared series with gaps and no implicit aggregation", () => {
   const options = chartOptions({ ...result, additional_series: [{ field: "plan", name: "Plan" }],
@@ -62,6 +146,14 @@ it("uses horizontal bars without changing the prepared ordering", () => {
   const percent = chartOptions({ ...result, type: "bar_chart", orientation: "horizontal", number_format: "percent", decimals: 1 }, "en");
   const series = percent.series as { label: { formatter: (params: { value: number }) => string } }[];
   expect(series[0].label.formatter({ value: 0.125 })).toBe("12.5%");
+});
+
+it("keeps missing comparison baselines as gaps and exact strings unchanged", () => {
+  const options = chartOptions({ ...result, additional_series: [{ field: "previous", name: "Previous period" }], rows: [{ day: "2026-01-01", total: "9007199254740993.25", previous: null }, { day: "2026-02-01", total: "0.00", previous: "9007199254740993.25" }] });
+  expect(options.series).toMatchObject([
+    { connectNulls: false, data: [[Date.parse("2026-01-01T00:00:00Z"), "9007199254740993.25"], [Date.parse("2026-02-01T00:00:00Z"), "0.00"]] },
+    { name: "Previous period", connectNulls: false, data: [[Date.parse("2026-01-01T00:00:00Z"), null], [Date.parse("2026-02-01T00:00:00Z"), "9007199254740993.25"]] },
+  ]);
 });
 
 it("uses a temporal axis for dates and preserves prepared values", () => {

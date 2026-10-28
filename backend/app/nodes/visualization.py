@@ -2,6 +2,11 @@ import polars as pl
 
 from app.domain.datasets import Dataset, DatasetSchema, LogicalType
 from app.domain.errors import NodeExecutionError
+from app.domain.measure_contracts import (
+    validate_measure_grain,
+    validate_measure_schema,
+    validate_measure_selection,
+)
 from app.domain.nodes import (
     ExecutionContext,
     NodeCategory,
@@ -21,6 +26,32 @@ class VisualizationExecutor(UnaryExecutor):
     ) -> DatasetSchema:
         schema = input_schema(input_schemas)
         config = VisualizationConfig.model_validate(node.config)
+        validate_measure_selection(config, node.type)
+        if config.measure_column_ids is not None:
+            fields = config.measure_column_ids
+            assert config.grain_column_ids is not None
+            for identity in fields:
+                validate_measure_schema(schema, identity, config.grain_column_ids)
+        if config.grain_column_ids is not None:
+            grain = config.grain_column_ids
+            validate_measure_schema(schema, config.value_column_id, grain)
+            if node.type == "table":
+                if config.column_ids is not None and not {*grain, config.value_column_id} <= set(
+                    config.column_ids
+                ):
+                    raise ValueError("A measure table must display its value and all grain fields.")
+            elif node.type == "kpi":
+                if grain:
+                    raise ValueError("A reusable KPI requires a single total with no grain fields.")
+            elif (
+                node.type not in {"bar_chart", "line_chart"}
+                or len(grain) != 1
+                or config.category_column_id != grain[0]
+            ):
+                raise ValueError(
+                    "Use a table for a multi-dimensional measure, "
+                    "or a chart with its single grain field."
+                )
         if config.additional_series:
             if node.type not in {"bar_chart", "line_chart"}:
                 raise ValueError("Multiple series require Bar or Line.")
@@ -34,6 +65,7 @@ class VisualizationExecutor(UnaryExecutor):
                 if schema.by_id(series.column_id).logical_type not in {
                     LogicalType.INTEGER,
                     LogicalType.FLOAT,
+                    LogicalType.DECIMAL,
                     LogicalType.UNKNOWN,
                 }:
                     raise ValueError("Select a numeric value field.")
@@ -67,24 +99,25 @@ class VisualizationExecutor(UnaryExecutor):
             )
             if schema.columns and not ids:
                 raise ValueError("Select at least one table field.")
-            return DatasetSchema(
-                tuple(
-                    schema.by_id(identity)
-                    for identity in dict.fromkeys(
-                        [
-                            *ids,
-                            *config.context_column_ids,
-                            *([config.highlight_column_id] if config.highlight_column_id else []),
-                        ]
-                    )
+            # Resolve eagerly: a generator converts a missing-field StopIteration to RuntimeError.
+            selected = [
+                schema.by_id(identity)
+                for identity in dict.fromkeys(
+                    [
+                        *ids,
+                        *config.context_column_ids,
+                        *([config.highlight_column_id] if config.highlight_column_id else []),
+                    ]
                 )
-            )
+            ]
+            return DatasetSchema(tuple(selected))
         if not config.value_column_id:
             raise ValueError("Select a numeric value field.")
         value = schema.by_id(config.value_column_id)
         if value.logical_type not in {
             LogicalType.INTEGER,
             LogicalType.FLOAT,
+            LogicalType.DECIMAL,
             LogicalType.UNKNOWN,
         } and not (node.type == "kpi" and value.logical_type == LogicalType.STRING):
             raise ValueError("Select a numeric value field.")
@@ -95,6 +128,7 @@ class VisualizationExecutor(UnaryExecutor):
             if node.type == "scatter_chart" and category.logical_type not in {
                 LogicalType.INTEGER,
                 LogicalType.FLOAT,
+                LogicalType.DECIMAL,
                 LogicalType.UNKNOWN,
             }:
                 raise ValueError("Scatter X field must be numeric.")
@@ -105,8 +139,21 @@ class VisualizationExecutor(UnaryExecutor):
     ) -> Dataset:
         source = inputs["input"]
         schema = self.infer_schema(node, {"input": source.schema}, context)
+        config = VisualizationConfig.model_validate(node.config)
+        if config.grain_column_ids is not None:
+            validate_measure_grain(source, config.grain_column_ids)
+            for identity in config.measure_column_ids or [config.value_column_id or ""]:
+                name = source.schema.by_id(identity).engine_name
+                if (~source.frame[name].cast(pl.Float64).is_finite()).any():
+                    raise NodeExecutionError(
+                        "Visualization values must be finite numbers or empty."
+                    )
         if node.type == "table":
-            return Dataset(source.frame.select([c.engine_name for c in schema.columns]), schema)
+            return Dataset(
+                source.frame.select([c.engine_name for c in schema.columns]),
+                schema,
+                source.metadata,
+            )
         config = VisualizationConfig.model_validate(node.config)
         assert config.value_column_id is not None
         value_name = source.schema.by_id(config.value_column_id).engine_name
@@ -156,4 +203,20 @@ def visualization_definitions() -> tuple[NodeDefinition, ...]:
             executor=VisualizationExecutor(),
         )
         for kind in CHART_TYPES
+        if kind
+        not in {
+            "box_plot",
+            "histogram_chart",
+            "heatmap_chart",
+            "radar_chart",
+            "waterfall_chart",
+            "combo_chart",
+            "bubble_chart",
+            "pareto_chart",
+            "funnel_chart",
+            "treemap_chart",
+            "sunburst_chart",
+            "bullet_chart",
+            "analytical_table",
+        }
     )

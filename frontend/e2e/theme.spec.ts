@@ -7,7 +7,7 @@ test("light theme persists in server rendering and keeps language and form draft
   await page.goto("/");
   await page.getByLabel("Theme", { exact: true }).selectOption("light");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(page.locator("main")).toHaveCSS("background-color", "rgb(243, 246, 239)");
+  await expect(page.locator("main")).toHaveCSS("background-color", "rgb(244, 246, 250)");
   await page.screenshot({ path: test.info().outputPath("home-light.png"), fullPage: true });
   await page.getByRole("link", { name: "Create your first project" }).click();
   await page.getByLabel("Project name", { exact: true }).fill("Unsaved project name");

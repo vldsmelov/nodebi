@@ -8,6 +8,7 @@ import type { DataSource } from "@/features/data-sources/api";
 import type { GraphDraft } from "./autosave";
 import type { WorkflowSchemaResult } from "./types";
 import { emptyCalculation, parseSimpleCalculation } from "./simple-calculation";
+import { useUnappliedChanges } from "./useUnappliedChanges";
 
 export type TableEndpoint = { nodeId: string; port: string };
 export function TableStepDialog({ mode, source, graph, schema, sources = [], editNodeId, close, apply }: {
@@ -27,6 +28,10 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], edi
   const [name, setName] = useState(String(existing?.config?.name ?? "")), [advanced, setAdvanced] = useState(Boolean(originalExpression && !parsed)), [formula, setFormula] = useState(originalExpression);
   const [a, setA] = useState(initial.a), [b, setB] = useState(initial.b), [ac, setAc] = useState(initial.ac), [bc, setBc] = useState(initial.bc), [operation, setOperation] = useState(initial.operation), [zero, setZero] = useState(initial.zero);
   const [modeError, setModeError] = useState(false);
+  const draft = JSON.stringify({ right, how, keys, relationship, name, advanced, formula, a, b, ac, bc, operation, zero });
+  const [initialDraft] = useState(draft);
+  const [conditionDirty, setConditionDirty] = useState(false);
+  const cancel = useUnappliedChanges(draft !== initialDraft || conditionDirty, close);
   const tables = schema.nodes.flatMap(node => Object.entries(node.outputs ?? {}).filter(([, output]) => output.kind === "dataset").map(([port, output]) => {
     const actual = graph.nodes.find(item => item.id === node.node_id)!;
     const book = sources.find(item => item.id === actual.config?.source_id);
@@ -45,6 +50,7 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], edi
   const valid = mode === "join" ? target && validKeys && !mismatch : name.trim() && !columns.some(column => column.engine_name === name.trim()) && (advanced ? formula.trim() : a && b && (a !== "constant" || validNumber(ac)) && (b !== "constant" || validNumber(bc)) && (operation !== "/" || zero));
   const submit = () => {
     if (!valid) return;
+    if (conditionDirty && !window.confirm(t("The condition has unapplied changes. Save the current calculation without them?"))) return;
     if (existing) {
       apply({ ...graph, nodes: graph.nodes.map(node => node.id === existing.id ? { ...node, config: { ...node.config, name: name.trim(), expression } } : node) }, existing.id);
       return;
@@ -56,7 +62,7 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], edi
   };
   const control = "my-2 w-full rounded border border-outline bg-control p-2";
   const selectOperand = (label: string, value: string, change: (value: string) => void, constant: string, changeConstant: (value: string) => void) => <label>{t(label)}<select aria-label={t(label)} className={control} value={value} onChange={e => change(e.target.value)}><option value="">{t("Select field")}</option><option value="constant">{t("Constant")}</option>{columns.filter(column => ["integer", "float", "unknown"].includes(column.logical_type)).map(column => <option key={column.column_id} value={column.column_id}>{column.display_name}</option>)}</select>{value === "constant" && <input aria-label={t(`${label} constant`)} className={control} value={constant} onChange={e => changeConstant(e.target.value)} />}</label>;
-  return <dialog ref={dialog} onCancel={close} className="max-h-[85vh] w-[560px] max-w-[95vw] overflow-auto rounded-xl border border-outline bg-panel p-6 text-main">
+  return <dialog ref={dialog} aria-label={t(mode === "join" ? "Join with…" : existing ? "Edit calculation" : "Add calculated field")} onKeyDown={event => event.stopPropagation()} onCancel={event => { event.preventDefault(); cancel(); }} className="max-h-[85vh] w-[560px] max-w-[95vw] overflow-auto rounded-xl border border-outline bg-panel p-6 text-main">
     <h2>{t(mode === "join" ? "Join with…" : existing ? "Edit calculation" : "Add calculated field")}</h2>
     <p className="my-2 text-sm">{tables.find(table => table.nodeId === source.nodeId && table.port === source.port)?.label}</p>
     {mode === "join" ? <>
@@ -76,7 +82,7 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], edi
         setAdvanced(false);
       }} /> {t("Formula")}</label>
       {modeError && <p role="alert">{t("This expression needs formula mode. It has not been changed.")}</p>}
-      <ConditionBuilder columns={columns} onApply={expression => { setFormula(expression); setAdvanced(true); }} />
+      <ConditionBuilder columns={columns} onDirtyChange={setConditionDirty} onApply={expression => { setFormula(expression); setAdvanced(true); }} />
       {advanced ? <FormulaEditor expression={formula} columns={columns} onChange={setFormula} /> : <>
         {selectOperand("Left operand", a, setA, ac, setAc)}
         <label>{t("Operation")}<select aria-label={t("Operation")} className={control} value={operation} onChange={e => setOperation(e.target.value)}>{["+", "-", "*", "/"].map(value => <option key={value}>{value}</option>)}</select></label>
@@ -85,6 +91,7 @@ export function TableStepDialog({ mode, source, graph, schema, sources = [], edi
         <p>{t("Missing values remain empty.")}</p>
       </>}
     </>}
-    <div className="mt-4 flex gap-4"><button onClick={close}>{t("Cancel")}</button><button disabled={!valid} className="disabled:opacity-40" onClick={submit}>{t(existing ? "Save calculation" : "Add step")}</button></div>
+    {conditionDirty && <p role="status" className="my-3 text-sm text-warning">{t("Condition changes are not in the formula yet. Choose Use condition to include them.")}</p>}
+    <div className="mt-4 flex gap-4"><button onClick={cancel}>{t("Cancel")}</button><button disabled={!valid} className="disabled:opacity-40" onClick={submit}>{t(existing ? "Save calculation" : "Add step")}</button></div>
   </dialog>;
 }

@@ -16,17 +16,17 @@ test("a newer catalog contract does not change saved node ports or inspector bin
     const saved = await request.put(path, { data: { name: workflow.name, format_version: 2, expected_revision: workflow.revision, nodes, edges } });
     expect(saved.ok()).toBe(true);
     const revision = (await saved.json()).revision;
-    // Test-only catalog entries deliberately precede v1 and use incompatible handles.
-    // No invented v2 node is persisted or executed by the real backend.
+    // Test-only v99 precedes real versions and uses incompatible handles.
+    // Do not shadow production v2 or persist/execute the invented contract.
     await page.route("**/api/v1/node-catalog?format_version=2", async route => {
       const response = await route.fetch();
       const body = await response.json();
-      const newer = body.items.filter((item: NodeDefinition) => ["scalar_constant", "field_arithmetic"].includes(item.type)).map((item: NodeDefinition) => ({ ...item, version: 2, input_ports: item.input_ports.map(port => ({ ...port, id: `new_${port.id}` })), output_ports: item.output_ports.map(port => ({ ...port, id: "new_value" })) }));
+      const newer = body.items.filter((item: NodeDefinition) => item.version === 1 && ["scalar_constant", "field_arithmetic"].includes(item.type)).map((item: NodeDefinition) => ({ ...item, version: 99, input_ports: item.input_ports.map(port => ({ ...port, id: `new_${port.id}` })), output_ports: item.output_ports.map(port => ({ ...port, id: "new_value" })) }));
       await route.fulfill({ response, json: { ...body, items: [...newer, ...body.items] } });
     });
     await page.goto(`/projects/${project.id}/workflow?workflow=${workflow.id}&mode=fields`);
     await expect(page.getByRole("button", { name: "+ Field arithmetic · v1", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "+ Field arithmetic · v2", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "+ Field arithmetic · v99", exact: true })).toBeVisible();
     await page.locator(`.react-flow__node[data-id="${nodes[1].id}"]`).click();
     await expect(page.getByLabel("Input a", { exact: true })).toHaveValue(JSON.stringify([nodes[0].id, "value"]));
     await expect(page.getByLabel("Input b", { exact: true })).toBeVisible();

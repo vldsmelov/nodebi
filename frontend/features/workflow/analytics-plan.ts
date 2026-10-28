@@ -5,22 +5,27 @@ export type AnalyticsOptions = {
   mode: "share" | "rank"; value: string; partitions: string[]; name: string;
   denominatorName: string; zero: "null" | "zero"; tie: string;
   direction: "ascending" | "descending"; filterField: string; parameter: string;
+  exact?: boolean; scale?: number;
 };
 export function analyticsPlan(columns: ResolvedColumn[], options: AnalyticsOptions, parameters: WorkflowParameter[]): PlannedStep[] | null {
   const byId = new Map(columns.map(column => [column.column_id, column]));
   const name = normalizedName(options.name), denominator = normalizedName(options.denominatorName);
   const free = (value: string) => !!value && value.length <= 255 && !columns.some(column => column.engine_name === value);
-  if (!free(name) || !["integer", "float"].includes(byId.get(options.value)?.logical_type ?? "")
+  const valueType = byId.get(options.value)?.logical_type;
+  const exact = valueType === "decimal" || options.exact === true;
+  const scale = options.scale ?? 6;
+  if (!free(name) || !["integer", "float", "decimal"].includes(valueType ?? "")
     || new Set(options.partitions).size !== options.partitions.length || options.partitions.some(id => !byId.has(id))) return null;
+  if (exact && (valueType === "float" || options.mode === "share" && (!Number.isInteger(scale) || scale < 0 || scale > 38))) return null;
   const steps: PlannedStep[] = [];
   if (options.mode === "share") {
     if (!free(denominator) || name === denominator) return null;
     const id = crypto.randomUUID();
-    steps.push({ id, type: "window", config: { operation: "sum", partitions: options.partitions, column_id: options.value, name: denominator }, fields: [denominator] });
-    steps.push({ id: crypto.randomUUID(), type: "calculated_column", config: { name, expression: `safe_divide([${options.value}], [window_${id.replaceAll("-", "")}], ${options.zero === "zero" ? "0" : "nullif(0, 0)"})` }, fields: [name] });
+    steps.push({ id, type: "window", version: exact ? 3 : 1, config: { operation: "sum", partitions: options.partitions, column_id: options.value, name: denominator }, fields: [denominator] });
+    steps.push({ id: crypto.randomUUID(), type: "calculated_column", version: exact ? 2 : 1, config: { name, expression: `safe_divide([${options.value}], [window_${id.replaceAll("-", "")}], ${options.zero === "zero" ? "0" : "nullif(0, 0)"})`, ...(exact ? { precision: 38, scale, rounding: "half_even" } : {}) }, fields: [name] });
   } else {
     if (!byId.has(options.tie) || options.tie === options.value || byId.get(options.tie)?.logical_type === "unknown") return null;
-    steps.push({ id: crypto.randomUUID(), type: "window", config: { operation: "row_number", partitions: options.partitions, name,
+    steps.push({ id: crypto.randomUUID(), type: "window", version: exact ? 3 : 1, config: { operation: "row_number", partitions: options.partitions, name,
       order_by: [{ column_id: options.value, direction: options.direction }, { column_id: options.tie, direction: "ascending" }] }, fields: [name] });
   }
   if (options.parameter || options.filterField) {

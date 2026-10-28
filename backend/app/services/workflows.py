@@ -28,6 +28,7 @@ from app.schemas.workflows import (
     WorkflowRead,
     WorkflowSave,
 )
+from app.services.dataset_access import ProjectDatasetAccess
 from app.services.execution import InMemoryExecutionCache, default_execution_logger
 from app.services.projects import ProjectService
 from app.services.source_access import ProjectSourceAccess
@@ -141,6 +142,18 @@ def save_graph(
             select(Workflow.result_catalog).where(Workflow.id == workflow.id)
         )
     catalog = payload.result_catalog or ResultCatalog.model_validate(stored_catalog or {})
+    old_outputs = {
+        item.id: item for item in ResultCatalog.model_validate(stored_catalog or {}).outputs
+    }
+    for output in catalog.outputs:
+        if "measures" not in output.model_fields_set and output.id in old_outputs:
+            output.measures = old_outputs[output.id].measures
+    try:
+        catalog = ResultCatalog.model_validate(catalog.model_dump())
+    except ValueError as exc:
+        raise ApplicationError(
+            "INVALID_PUBLICATION", "Measure identities must be unique within a workflow."
+        ) from exc
     publication_ids = {output.id for output in catalog.outputs}
     if payload.presentation is None or "results" not in payload.presentation.model_fields_set:
         presentation = presentation.model_copy(
@@ -186,7 +199,11 @@ def save_graph(
         )
     protect_used_visualizations(session, workflow, payload)
     for node in payload.nodes:
-        if node.type not in {"excel_source", "excel_periods"} or not node.config.get("source_id"):
+        if node.type not in {
+            "excel_source",
+            "excel_periods",
+            "dataset_source",
+        } or not node.config.get("source_id"):
             continue
         try:
             source_id = uuid.UUID(str(node.config["source_id"]))
@@ -365,11 +382,13 @@ def execution_context(
         values = resolve_parameters(definitions, parameters or {})
     except ValueError as exc:
         raise ApplicationError("INVALID_PARAMETER", str(exc)) from exc
+    source_access = sources or ProjectSourceAccess(workflow.project_id, session, storage, cache)
     return ExecutionContext(
         workflow.project_id,
         workflow.id,
         uuid.uuid4(),
-        sources=sources or ProjectSourceAccess(workflow.project_id, session, storage, cache),
+        sources=source_access,
+        datasets=ProjectDatasetAccess(source_access),
         cache=cache,
         logger=default_execution_logger(),
         settings=settings,

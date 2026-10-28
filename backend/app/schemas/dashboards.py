@@ -1,11 +1,18 @@
 import uuid
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
 
+from app.domain.basic_visualization_specs import BasicVisualizationSpec
+from app.domain.bubble import BubblePresentation
+from app.domain.bullet import BulletPresentation
 from app.domain.dashboards import DashboardConfiguration, NavigationAction
+from app.domain.funnel import FunnelPresentation
+from app.domain.hierarchy import HierarchyPresentation
 from app.domain.parameters import ParameterDefinition, ParameterValue, ParameterValues
 from app.domain.publications import ViewContext
+from app.domain.visualization_inputs import BasicVisualizationInput, canonical_visualization_input
+from app.domain.visualization_specs import VisualizationSpec
 from app.domain.visualizations import ChartType, NumberFormatConfig, VisualizationConfig
 from app.schemas.workflows import ResolvedColumnRead, WorkflowCreate
 
@@ -13,7 +20,7 @@ from app.schemas.workflows import ResolvedColumnRead, WorkflowCreate
 class VisualizationRequest(BaseModel):
     context: ViewContext = Field(default_factory=ViewContext)
     parameters: ParameterValues = Field(default_factory=dict)
-    offset: int = Field(default=0, ge=0)
+    offset: int = Field(default=0, ge=0, le=2**63 - 1)
     limit: int = Field(default=100, ge=1, le=1000)
 
 
@@ -37,7 +44,113 @@ class SeriesField(BaseModel):
     name: str
 
 
+class VisualizationDataset(BaseModel):
+    columns: list[ResolvedColumnRead]
+    rows: list[dict[str, Any]]
+    total_rows: int
+    offset: int
+    limit: int
+    truncated: bool
+
+
+class HeatmapScaleResult(BaseModel):
+    mode: Literal["extent", "zero_centered", "fixed"]
+    minimum: str | None
+    maximum: str | None
+    positions: dict[str, float | None]
+    below_count: int = 0
+    above_count: int = 0
+
+
+class RadarProfileResult(BaseModel):
+    id: str
+    category: ParameterValue
+    positions: list[float | None]
+    complete: bool
+
+
+class RadarPresentation(BaseModel):
+    profiles: list[RadarProfileResult]
+    incomplete_count: int
+
+
+class WaterfallPosition(BaseModel):
+    start: float
+    end: float
+    sign: Literal[-1, 0, 1]
+
+
+class WaterfallTick(BaseModel):
+    position: float
+    label: str
+
+
+class WaterfallScale(BaseModel):
+    minimum: str
+    maximum: str
+    zero: float
+    ticks: list[WaterfallTick]
+    positions: dict[str, WaterfallPosition]
+
+
+class ComboTick(BaseModel):
+    position: float
+    label: str
+
+
+class ComboScale(BaseModel):
+    minimum: str
+    maximum: str
+    lower: float
+    upper: float
+    ticks: list[ComboTick]
+
+
+class ComboObservation(BaseModel):
+    id: str
+    positions: list[float | None]
+
+
+class ComboPresentation(BaseModel):
+    primary: ComboScale
+    secondary: ComboScale | None = None
+    observations: list[ComboObservation]
+
+
+class TableCellFormat(BaseModel):
+    rule_id: uuid.UUID
+    label: str
+    tone: Literal["positive", "warning", "negative", "neutral"]
+
+
+class AnalyticalTablePresentation(BaseModel):
+    cells: dict[str, dict[str, TableCellFormat]] = Field(default_factory=dict)
+
+
 class VisualizationResult(BaseModel):
+    funnel: FunnelPresentation | None = Field(default=None, exclude_if=lambda value: value is None)
+    bullet: BulletPresentation | None = Field(default=None, exclude_if=lambda value: value is None)
+    hierarchy: HierarchyPresentation | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    bubble: BubblePresentation | None = Field(default=None, exclude_if=lambda value: value is None)
+    analytical_table: AnalyticalTablePresentation | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    combo: ComboPresentation | None = Field(default=None, exclude_if=lambda value: value is None)
+    waterfall_scale: WaterfallScale | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    radar: RadarPresentation | None = Field(default=None, exclude_if=lambda value: value is None)
+    heatmap_scale: HeatmapScaleResult | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    spec: VisualizationSpec | BasicVisualizationSpec | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    datasets: dict[str, VisualizationDataset] = Field(
+        default_factory=dict, exclude_if=lambda value: not value
+    )
     additional_series: list[SeriesField] = Field(
         default_factory=list, exclude_if=lambda value: not value
     )
@@ -123,6 +236,7 @@ class DashboardVisualizationCreate(BaseModel):
 
 
 class IndependentVisualizationSave(BaseModel):
+    request_id: uuid.UUID | None = None
     workflow_id: uuid.UUID
     publication_id: uuid.UUID
     expected_workflow_revision: int = Field(ge=1)
@@ -130,6 +244,15 @@ class IndependentVisualizationSave(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     type: ChartType
     config: VisualizationConfig
+
+    @field_validator(
+        "config",
+        mode="before",
+        json_schema_input_type=VisualizationConfig | BasicVisualizationInput,
+    )
+    @classmethod
+    def normalize_bindings(cls, value: Any, info: ValidationInfo) -> Any:
+        return canonical_visualization_input(value, info.data.get("type"))
 
 
 class IndependentVisualizationPreview(IndependentVisualizationSave):
@@ -150,6 +273,9 @@ class DashboardNavigationSave(BaseModel):
 
 
 class PublicationSchema(BaseModel):
+    suggested_specs: list[VisualizationSpec] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
     workflow_revision: int
     kind: str
     columns: list[ResolvedColumnRead]

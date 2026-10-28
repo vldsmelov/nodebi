@@ -21,7 +21,7 @@ test("author parameters and switch slices without saving the workflow", async ({
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await showAllOperations(page); await page.getByTitle("Add Excel Source").click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-    await showAllOperations(page); await page.getByTitle("Add Filter").click();
+    await showAllOperations(page); await page.getByTitle("Add Filter", { exact: true }).click();
     await page.getByLabel("Input input").selectOption({ index: 1 });
     await page.getByRole("button", { name: "Add condition", exact: true }).click();
     await page.getByLabel("Filter column 1").selectOption({ label: "country · string" });

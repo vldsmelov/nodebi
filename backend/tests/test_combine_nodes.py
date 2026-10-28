@@ -10,6 +10,7 @@ from app.domain.errors import NodeExecutionError
 from app.domain.nodes import ExecutionContext, NodeRegistry, ValidationResult
 from app.domain.workflows import NodeInstance, Position, WorkflowEdge, WorkflowGraph
 from app.nodes import get_node_registry
+from app.nodes.exact_pivot import exact_pivot_definition
 from app.nodes.excel_source import excel_source_definition
 from app.nodes.pivot import pivot_definition
 from app.nodes.select_columns import select_columns_definition
@@ -169,8 +170,19 @@ def test_pivot_aggregations(operation: str, expected: float) -> None:
     assert result.frame["pivot_x"][0] == expected
 
 
-def test_pivot_schema_propagates_actual_values_to_downstream_and_reuses_execution() -> None:
+@pytest.mark.parametrize("version", [1, 2])
+def test_pivot_schema_propagates_actual_values_to_downstream_and_reuses_execution(version) -> None:
     source = pivot_source()
+    if version == 2:
+        source = Dataset(
+            source.frame.with_columns(pl.col("value").cast(pl.Int64)),
+            DatasetSchema(
+                (
+                    *source.schema.columns[:-1],
+                    replace(source.schema.columns[-1], logical_type=LogicalType.INTEGER),
+                )
+            ),
+        )
     executor = Mock()
     executor.validate.return_value = ValidationResult()
     executor.infer_schema.return_value = source.schema
@@ -178,6 +190,7 @@ def test_pivot_schema_propagates_actual_values_to_downstream_and_reuses_executio
     registry = NodeRegistry()
     registry.register(replace(excel_source_definition(), executor=executor, cache_identity=None))
     registry.register(pivot_definition())
+    registry.register(exact_pivot_definition())
     registry.register(select_columns_definition())
     source_node = NodeInstance(
         uuid4(),
@@ -189,7 +202,7 @@ def test_pivot_schema_propagates_actual_values_to_downstream_and_reuses_executio
     pivot = NodeInstance(
         uuid4(),
         "pivot",
-        1,
+        version,
         Position(0, 0),
         {
             "index_column_id": "i",

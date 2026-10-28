@@ -29,21 +29,26 @@ def drain_deletions(session: Session, storage: StorageProvider) -> int:
     return completed
 
 
+def recover_staging_artifacts(session: Session, storage: StorageProvider) -> int:
+    """Startup-only recovery, before accepting requests in the single-worker deployment."""
+    from app.models import ReportDocument
+
+    for intent in session.scalars(
+        select(ReportDocument).where(
+            ReportDocument.kind == "artifact", ReportDocument.status == "staging"
+        )
+    ).all():
+        for key in intent.payload.get("artifact_keys", []):
+            enqueue_deletion(session, key)
+        session.delete(intent)
+    session.commit()
+    return drain_deletions(session, storage)
+
+
 if __name__ == "__main__":
     from app.infrastructure.database import SessionFactory
     from app.infrastructure.storage import get_storage_provider
 
     with SessionFactory() as database_session:
-        # Executed once before the single application worker starts, never during jobs.
-        from app.models import ReportDocument
-
-        for intent in database_session.scalars(
-            select(ReportDocument).where(
-                ReportDocument.kind == "artifact", ReportDocument.status == "staging"
-            )
-        ).all():
-            for artifact_key in intent.payload.get("artifact_keys", []):
-                enqueue_deletion(database_session, artifact_key)
-            database_session.delete(intent)
-        database_session.commit()
-        print(f"Removed {drain_deletions(database_session, get_storage_provider())} artifacts")
+        removed = recover_staging_artifacts(database_session, get_storage_provider())
+        print(f"Removed {removed} artifacts")

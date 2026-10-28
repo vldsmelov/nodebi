@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Protocol
 
 from pydantic import BaseModel
 
+from app.domain.dataset_access import DatasetAccess
 from app.domain.datasets import Dataset, DatasetSchema
 from app.domain.parameters import ParameterDefinition, ParameterValue
 from app.domain.sources import SourceAccess
@@ -66,6 +67,7 @@ class ExecutionContext:
     settings: "Settings | None" = None
     parameter_definitions: tuple[ParameterDefinition, ...] = ()
     parameters: dict[str, ParameterValue] = field(default_factory=dict)
+    datasets: DatasetAccess | None = None
 
 
 @dataclass(frozen=True)

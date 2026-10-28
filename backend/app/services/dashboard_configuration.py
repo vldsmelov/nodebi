@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.domain.dashboards import DashboardConfiguration, NavigationAction
 from app.domain.errors import ApplicationError
-from app.domain.parameters import ParameterDefinition
+from app.domain.parameters import ParameterDefinition, compatible_parameters
 from app.models import Dashboard, Workflow, WorkflowNode
 from app.schemas.dashboards import WidgetPayload
 
@@ -43,7 +43,7 @@ def validate_configuration(
             source = declared.get(binding.dashboard_parameter)
             if target is None or source is None:
                 raise ValueError("A dashboard binding references an undeclared parameter.")
-            if not compatible(source.logical_type, target.logical_type):
+            if not compatible_parameters(source, target):
                 raise ValueError("Dashboard and workflow parameter types are incompatible.")
 
         def validate_action(action: NavigationAction, *, row_available: bool) -> None:
@@ -67,15 +67,13 @@ def validate_configuration(
                     if (
                         target.required
                         and target.default is None
-                        and not (
-                            inherited and compatible(inherited.logical_type, target.logical_type)
-                        )
+                        and not (inherited and compatible_parameters(inherited, target))
                     ):
                         raise ValueError("Provide every required destination parameter.")
                     continue
                 if value.source == "parameter":
                     source = declared.get(value.name)
-                    if source is None or not compatible(source.logical_type, target.logical_type):
+                    if source is None or not compatible_parameters(source, target):
                         raise ValueError(
                             "Navigation parameter is missing or has an incompatible type."
                         )

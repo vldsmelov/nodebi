@@ -9,6 +9,8 @@ import { ConditionBuilder } from "./ConditionBuilder";
 import type { GraphIssue, ResolvedColumn } from "./types";
 
 type Props = {
+  nodeId?: string;
+  version?: number;
   provenance?: ProvenanceMap;
   issues?: GraphIssue[];
   validationPending?: boolean;
@@ -40,18 +42,24 @@ export function LimitConfiguration({ config, onChange }: Props) {
   return <div className="mt-6"><h2>{t("Limit")}</h2><label className="mt-3 block text-xs">{t("Maximum rows")}<input aria-label={t("Maximum rows")} className={control} type="number" min={1} step={1} value={typeof config.limit === "number" ? config.limit : ""} onChange={e => onChange({ limit: e.target.value === "" ? null : Number(e.target.value) })} /></label></div>;
 }
 
-export function CalculatedColumnConfiguration({ config, columns, onChange, issues, validationPending, provenance }: Props) {
+export function CalculatedColumnConfiguration({ config, columns, onChange, issues, validationPending, provenance, version = 1, nodeId }: Props) {
   const { t } = useI18n();
   const expression = typeof config.expression === "string" ? config.expression : "";
-  return <div className="mt-6"><h2>{t("Calculated Column")}</h2>
+  const exact = version === 2;
+  return <div className="mt-6"><h2>{t(exact ? "Exact Calculated Column" : "Calculated Column")}</h2>
     <label className="mt-3 block text-xs">{t("Output field name")}<input aria-label={t("Output field name")} className={control} value={String(config.name ?? "")} onChange={e => onChange({ ...config, name: e.target.value })} /></label>
-    <FormulaEditor provenance={provenance} issues={issues} validationPending={validationPending} expression={expression} columns={columns} onChange={expression => onChange({ ...config, expression })} />
-    <ConditionBuilder columns={columns ?? []} onApply={expression => onChange({ ...config, expression })} />
-    <p className="mt-3 text-xs leading-5 text-muted">{t("Formula functions: trim, lower, coalesce, safe_divide. Field references survive renaming.")}</p>
+    {exact ? <fieldset className="mt-3 space-y-3"><legend>{t("Exact output settings")}</legend>
+      <p className="text-xs text-muted">{t("Decimal and integer fields only. Rounding happens once at the output: ties go to the nearest even digit. Existing formulas are unchanged.")}</p>
+      <label className="block text-xs">{t("Total digits (precision)")}<input aria-label={t("Total digits (precision)")} className={control} type="number" min={1} max={38} step={1} value={config.precision === null ? "" : Number(config.precision ?? 38)} onChange={e => onChange({ ...config, precision: e.target.value === "" ? null : Number(e.target.value) })} /></label>
+      <label className="block text-xs">{t("Decimal places")}<input aria-label={t("Decimal places")} className={control} type="number" min={0} max={Number(config.precision ?? 38)} step={1} value={config.scale === null ? "" : Number(config.scale ?? 2)} onChange={e => onChange({ ...config, scale: e.target.value === "" ? null : Number(e.target.value) })} /></label>
+    </fieldset> : null}
+    <FormulaEditor exact={exact} provenance={provenance} issues={issues} validationPending={validationPending} expression={expression} columns={columns} onChange={expression => onChange({ ...config, expression })} />
+    <ConditionBuilder draftKey={nodeId ? `nodebi:condition:${nodeId}:${version}` : undefined} exact={exact} columns={columns ?? []} onApply={expression => onChange({ ...config, expression })} />
+    <p className="mt-3 text-xs leading-5 text-muted">{t(exact ? "Exact formulas require decimal or integer fields. Configure decimal at import; Float64 is not converted automatically." : "Formula functions: trim, lower, coalesce, safe_divide. Field references survive renaming.")}</p>
   </div>;
 }
 
-export function GroupByConfiguration({ config, columns, onChange }: Props) {
+export function GroupByConfiguration({ config, columns, onChange, version = 1 }: Props) {
   const { t } = useI18n();
   const dimensions = strings(config.dimensions);
   const aggregations = records(config.aggregations);
@@ -60,14 +68,16 @@ export function GroupByConfiguration({ config, columns, onChange }: Props) {
     <div className="mt-3 space-y-2">{columns?.map(c => <label key={c.column_id} className="flex gap-2 text-xs"><input type="checkbox" checked={dimensions.includes(c.column_id)} onChange={() => onChange({ ...config, dimensions: dimensions.includes(c.column_id) ? dimensions.filter(id => id !== c.column_id) : [...dimensions, c.column_id] })} />{c.display_name}</label>)}</div>
     {aggregations.map((aggregation, index) => {
       const field = columns?.find(c => c.column_id === aggregation.column_id);
-      const numeric = field && ["integer", "float", "unknown"].includes(field.logical_type);
+      const numericTypes = version >= 2 ? ["integer", "float", "decimal", "unknown"] : ["integer", "float", "unknown"];
+      const numeric = field && numericTypes.includes(field.logical_type);
       return <div key={index} className="mt-4 rounded-lg border border-outline p-2">
-        <select aria-label={t("Aggregate field {0}", {"0": index + 1})} className={control} value={String(aggregation.column_id ?? "")} onChange={e => { const next = columns?.find(c => c.column_id === e.target.value); const operation = !next || (["sum", "average"].includes(String(aggregation.operation)) && !["integer", "float", "unknown"].includes(next.logical_type)) ? "count" : aggregation.operation; update(index, { column_id: e.target.value || null, operation }); }}><option value="">{t("All rows")}</option>{columns?.map(c => <option key={c.column_id} value={c.column_id}>{c.display_name}</option>)}</select>
+        <select aria-label={t("Aggregate field {0}", {"0": index + 1})} className={control} value={String(aggregation.column_id ?? "")} onChange={e => { const next = columns?.find(c => c.column_id === e.target.value); const operation = !next || (["sum", "average"].includes(String(aggregation.operation)) && !numericTypes.includes(next.logical_type)) ? "count" : aggregation.operation; update(index, { column_id: e.target.value || null, operation }); }}><option value="">{t("All rows")}</option>{columns?.map(c => <option key={c.column_id} value={c.column_id}>{c.display_name}</option>)}</select>
         <select aria-label={t("Aggregation {0}", {"0": index + 1})} className={control} value={String(aggregation.operation ?? "count")} onChange={e => update(index, { operation: e.target.value })}>{["count", "sum", "average", "min", "max", "distinct_count"].map(op => <option key={op} value={op} disabled={op !== "count" && (!field || (["sum", "average"].includes(op) && !numeric))}>{t(op.replaceAll("_", " "))}</option>)}</select>
         <input aria-label={t("Aggregate name {0}", {"0": index + 1})} className={control} value={String(aggregation.name ?? "")} onChange={e => update(index, { name: e.target.value })} placeholder={t("Output name")} />
         <button className={action} onClick={() => onChange({ ...config, aggregations: aggregations.filter((_, i) => i !== index) })}>{t("Remove aggregation")}{" "}{index + 1}</button>
       </div>;
     })}
-    <button className={action} onClick={() => onChange({ ...config, aggregations: [...aggregations, { column_id: null, operation: "count", name: `count_${aggregations.length + 1}` }] })}>{t("Add aggregation")}</button>
+    <button className={action} onClick={() => onChange({ ...config, aggregations: [...aggregations, { ...(version >= 3 ? { output_id: crypto.randomUUID() } : {}), column_id: null, operation: "count", name: `count_${aggregations.length + 1}` }] })}>{t("Add aggregation")}</button>
+    {version >= 2 && <label className="mt-3 block text-sm">{t("Decimal average scale (half-even rounding)")}<input className={control} type="number" min={0} max={18} value={Number(config.decimal_average_scale ?? 6)} onChange={event => onChange({ ...config, decimal_average_scale: Number(event.target.value) })} /></label>}
   </div>;
 }

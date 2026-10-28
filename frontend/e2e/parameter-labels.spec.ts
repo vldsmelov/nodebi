@@ -12,6 +12,7 @@ test("configure ID and label fields in the UI while URL selections remain typed 
     expect((await request.put(`${api}/api/v1/workflows/${flow.id}`, { data: { name: flow.name, expected_revision: flow.revision, nodes: [{ id: nodeId, type: "excel_source", version: 1, position: { x: 0, y: 0 }, config: { source_id: source.id, sheet_name: source.workbook.sheets[0].name } }], edges: [] } })).ok()).toBe(true);
     const board = await (await request.post(`${api}/api/v1/projects/${project.id}/dashboards`, { data: { name: "Orders" } })).json();
     await page.goto(`/projects/${project.id}/dashboard?dashboard=${board.id}`);
+    await page.getByText("Advanced dashboard settings", { exact: true }).click();
     await page.getByText("Dashboard settings", { exact: true }).click();
     await page.getByRole("button", { name: "Add dashboard parameter", exact: true }).click();
     await page.getByLabel("Dashboard parameter name 1").fill("order");

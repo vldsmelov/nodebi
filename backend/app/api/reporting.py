@@ -1,15 +1,27 @@
 import uuid
-from typing import Annotated
+from collections.abc import Iterator
+from typing import Annotated, Literal
+from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
 from app.api.workflows import AppSettings, Storage
 from app.domain.errors import ApplicationError
+from app.domain.ingestion import ReadOptions
 from app.infrastructure.database import get_session
 from app.models import DataSource, ReportDocument, SourceVersion
+from app.schemas.browser_editor import (
+    EditorAction,
+    EditorPage,
+    EditorSave,
+    EditorSearch,
+    EditorWorkspace,
+)
 from app.schemas.dashboards import DashboardRead, VisualizationResult
+from app.schemas.file_exchange import FileExchangeStart
 from app.schemas.projects import ProjectRead
 from app.schemas.reporting import (
     ApplyRequest,
@@ -26,6 +38,8 @@ from app.schemas.reporting import (
     UpdateSave,
     VersionRead,
 )
+from app.services.browser_editor import browser_editor_service
+from app.services.file_exchange import FileExchangeService
 from app.services.projects import ProjectService
 from app.services.report_checks import rules_read
 from app.services.report_jobs import WORKER_INSTANCE, create_job, read_job, run_job
@@ -41,6 +55,111 @@ from app.services.source_updates import (
 
 router = APIRouter(tags=["report cycle"])
 Database = Annotated[Session, Depends(get_session)]
+
+
+@router.get("/api/v1/updates/{identity}/editor/workspace", response_model=EditorWorkspace)
+def editor_workspace(identity: uuid.UUID, session: Database, storage: Storage) -> EditorWorkspace:
+    row = document(session, identity, "update")
+    return browser_editor_service(session, storage, row).workspace(row)
+
+
+@router.get("/api/v1/updates/{identity}/editor/find", response_model=EditorSearch)
+def find_editor_cells(
+    identity: uuid.UUID,
+    session: Database,
+    storage: Storage,
+    resource: str,
+    text: Annotated[str, Query(min_length=1, max_length=200)],
+) -> EditorSearch:
+    row = document(session, identity, "update")
+    return browser_editor_service(session, storage, row).find(row, resource, text)
+
+
+@router.get("/api/v1/updates/{identity}/editor", response_model=EditorPage)
+def editor_page(
+    identity: uuid.UUID,
+    session: Database,
+    storage: Storage,
+    resource: str | None = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> EditorPage:
+    row = document(session, identity, "update")
+    return browser_editor_service(session, storage, row).page(row, resource, offset, limit)
+
+
+@router.post("/api/v1/updates/{identity}/editor", response_model=EditorPage)
+def save_editor(
+    identity: uuid.UUID,
+    payload: EditorSave,
+    session: Database,
+    storage: Storage,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> EditorPage:
+    row = document(session, identity, "update")
+    return browser_editor_service(session, storage, row).save(row, payload, offset, limit)
+
+
+@router.post("/api/v1/updates/{identity}/editor/prepare", response_model=UpdateRead)
+def prepare_editor(
+    identity: uuid.UUID,
+    payload: EditorAction,
+    session: Database,
+    storage: Storage,
+    settings: AppSettings,
+) -> UpdateRead:
+    row = document(session, identity, "update")
+    return browser_editor_service(session, storage, row).commit(row, payload, settings)
+
+
+@router.post("/api/v1/updates/{identity}/editor/discard", response_model=UpdateRead)
+def discard_editor(
+    identity: uuid.UUID, payload: RevisionRequest, session: Database, storage: Storage
+) -> UpdateRead:
+    row = document(session, identity, "update")
+    return browser_editor_service(session, storage, row).discard(row, payload.expected_revision)
+
+
+@router.post("/api/v1/projects/{project_id}/file-updates", response_model=UpdateRead)
+def start_file_update(
+    project_id: uuid.UUID, payload: FileExchangeStart, session: Database, storage: Storage
+) -> UpdateRead:
+    return read_update(FileExchangeService(session, storage).start(project_id, payload))
+
+
+@router.get("/api/v1/updates/{identity}/files/{kind}")
+def download_update_file(
+    identity: uuid.UUID, kind: Literal["current", "template"], session: Database, storage: Storage
+) -> StreamingResponse:
+    row = document(session, identity, "update")
+    service = FileExchangeService(session, storage)
+    source = service.source(row)
+    if kind == "template":
+        stream, filename = service.template(source)
+
+        def chunks() -> Iterator[bytes]:
+            with stream:
+                while block := stream.read(65536):
+                    yield block
+    else:
+        filename = row.payload["file_exchange"]["filename"]
+
+        def chunks() -> Iterator[bytes]:
+            with storage.open(source.storage_key) as stream:
+                while block := stream.read(65536):
+                    yield block
+
+    return StreamingResponse(
+        chunks(),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": "attachment; filename=source-file; filename*=UTF-8''"
+            + quote(filename, safe=""),
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.get("/api/v1/projects/{project_id}/report-state", response_model=ReportState)
@@ -118,6 +237,8 @@ def version_read(row: SourceVersion) -> VersionRead:
         sha256=row.sha256,
         created_at=row.created_at,
         sheet_names=[sheet["name"] for sheet in row.workbook.get("sheets", [])],
+        resources=row.workbook.get("resources", []),
+        read_options=row.workbook.get("read_options"),
     )
 
 
@@ -142,10 +263,15 @@ def upload_version(
     storage: Storage,
     settings: AppSettings,
     file: Annotated[UploadFile, File()],
+    read_options: Annotated[str | None, Form()] = None,
 ) -> VersionRead:
+    try:
+        options = ReadOptions.model_validate_json(read_options) if read_options else None
+    except ValueError as exc:
+        raise ApplicationError("INVALID_IMPORT_OPTIONS", "Check encoding and delimiter.") from exc
     return version_read(
         SourceUpdateService(session, storage).upload_version(
-            source_id, file.filename or "workbook.xlsx", file.file, settings
+            source_id, file.filename or "workbook.xlsx", file.file, settings, options
         )
     )
 
@@ -422,7 +548,39 @@ def release_result(
             "limit": limit,
             "truncated": offset + limit < result["total_rows"],
         }
-    return VisualizationResult.model_validate(result)
+    if result["type"] == "box_plot":
+        points = result["datasets"]["outliers"]
+        result = {
+            **result,
+            "datasets": {
+                **result["datasets"],
+                "outliers": {
+                    **points,
+                    "rows": points["rows"][offset : offset + limit],
+                    "offset": offset,
+                    "limit": limit,
+                    "truncated": offset + limit < points["total_rows"],
+                },
+            },
+        }
+    parsed = VisualizationResult.model_validate(result)
+    if parsed.type == "bullet_chart":
+        from app.services.bullet_visualizations import page_frozen_bullet
+
+        return page_frozen_bullet(parsed, offset, limit)
+    if parsed.type == "pareto_chart":
+        from app.services.pareto_visualizations import page_frozen_pareto
+
+        return page_frozen_pareto(parsed, offset, limit)
+    if parsed.type == "bubble_chart":
+        from app.services.bubble_visualizations import page_frozen_bubble
+
+        return page_frozen_bubble(parsed, offset, limit)
+    if parsed.type == "analytical_table":
+        from app.services.analytical_tables import page_frozen_analytical_table
+
+        return page_frozen_analytical_table(parsed, offset, limit)
+    return parsed
 
 
 @router.post("/api/v1/releases/{identity}/restore", response_model=ProjectRead)

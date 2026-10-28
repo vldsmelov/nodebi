@@ -1,5 +1,502 @@
 # TASKS.md
 
+## Persistent spreadsheet formatting · ADR-219
+
+* [x] Editable XLSX font/fill/alignment/wrap with source persistence.
+  * [x] Typed style operations, row identity/protection, surgical OOXML style writing.
+  * [x] Range toolbar, unified undo/redo, paged draft restoration and save/reopen.
+  * [x] Exact numeric source preservation, browser acceptance, checks/build/deployment and live QA.
+
+## Editable showcase and editor usability · ADR-218
+
+* [x] Repair the source picker and verify editing across all three business demos.
+  * [x] Reproduce blocked mouse input; verify all seven existing source files are readable.
+  * [x] Interactive picker, file switch, narrow layout, active-input toolbar and search feedback.
+  * [x] Restore deleted rows before preparation, append/edit/save/reopen and exact data recovery.
+  * [x] New sales demos derive Pareto from the same prepared sales data; regression covers updates.
+  * [x] Repair the existing sales Pareto binding, finish browser/regression checks and deploy.
+
+## Highest priority · Excel-like browser workspace · ADR-217
+
+* [x] Native formula interaction, synchronized selection and faithful data display.
+  * [x] Replace duplicate formula input with native formula bar/inline editor and reference UI.
+  * [x] Correct text/empty cell types, typed number display, raw editing, source formats/colours/borders.
+  * [x] Selection operation bridge, qualified addresses, readiness and cached row painting.
+  * [x] Native formula clipboard with relative references and literal values-only alternative.
+  * [x] Mouse/reference/render regressions, compatibility, production build/deploy and real-book QA.
+* [ ] Subsequent editor parity: persisted physical worksheet structural commands, advanced
+  spreadsheet capabilities and independent business-user acceptance; keep ahead of new BI features.
+
+## Editable workbook calculations · owner request 2026-10-26 · ADR-216
+
+* [x] Replace blanket formula/merged/protected rejection with explicit calculation editing.
+  * [x] Typed formula/value/override operations; sparse draft/history compatibility.
+  * [x] Formula bar/native entry, merged anchors, Russian formula normalization and safe server checks.
+  * [x] Surgical formula replacement, chain invalidation and existing atomic recalculate/check/apply.
+  * [x] Resolve and edit shared formula masters/followers without changing neighbouring references.
+  * [x] Finish regressions, isolated browser acceptance, production build/deployment and live opening.
+
+## Spreadsheet window · owner correction 2026-10-26 · ADR-215
+
+* [x] Replace modal editor with a standalone familiar spreadsheet interface.
+  * [x] Evaluate compatible libraries; integrate pinned Univer OSS without Pro/cloud/file conversion.
+  * [x] Native grid/tabs/ranges/editing; corporate ribbon, formula/address bar, shortcuts and view tools.
+  * [x] On-demand typed blocks/appearance, literal search, exact values/protection and atomic paste.
+  * [x] Guarded chunked save/check/apply, warnings, continued editing and parent-tab refresh.
+  * [x] CSV header/row operations, undo/redo and cancel-all; SDK lifecycle isolation and view restore.
+  * [x] Isolated native F2/clipboard/long-ID/literal-formula/Ctrl+S/save and popup/CSV acceptance.
+  * [x] Native hidden-editor clipboard routing; await active-cell commit for Ctrl+S/button save.
+  * [x] Two reproducible browser regressions: exact clipboard, active-cell save and reload.
+  * [x] Final regression/build/deployment and read-only live verification.
+
+## Direct workbook editing · owner correction 2026-10-26 · ADR-214
+
+* [x] Replace data_example download fallback with actual browser worksheets.
+  * [x] Bounded cell access, preserved original parts, formula/protection/merge guards.
+  * [x] Server recalculation, original precision, explicit saved external-cache handling.
+  * [x] Worksheet selection, formula/value bar, paste/undo, paging/row jump and one-action save.
+  * [x] Regression and real25-sheet isolated edit/check/apply; original cache comparison13219/13219.
+  * [x] Final Linux/runtime deployment, real live25-sheet opening, sticky save actions and390px acceptance.
+
+## Reliability, UX and maintainability audit · owner request 2026-10-26
+
+* [x] ADR-213 technical audit fixes, deployment and verification delivered.
+  * [x] Restore frontend regression after corporate UI changes; fix real contrast/localization issues.
+  * [x] Exact check-job/revision guard, lost-response reconciliation and unmount cancellation.
+  * [x] Visible project deletion failures, retry/dismiss actions and consistent project terminology.
+  * [x] Upgrade vulnerable runtime/dev dependencies; verify npm/OSV results without claiming a pentest.
+  * [x] Native editor and clipboard regressions; full backend/frontend runs and targeted PostgreSQL.
+  * [x] Safe update command, volume/database preflight, build-before-stop, consistent backups,
+    checksum manifest and readiness; restore copied data in a disposable PostgreSQL database.
+  * [x] Pin Node/Python base digests; prepare CI quality gates and updater failure-path checks.
+  * [x] Finish final read-only browser/health/inventory and audit handoff.
+  * [ ] Remaining independent human/accessibility/load and complete PostgreSQL/E2E matrix in R6;
+    full formula-workbook editing and remote hosting require separate scoped work.
+
+## Fast, actionable data correction · owner feedback 2026-10-21
+
+* [x] ADR-212 implementation/manual acceptance delivered; automated regression resumed in ADR-213.
+  * [x] Independent editor/template gates and safe plain legacy Excel input editing/native types.
+  * [x] Direct editor opening, source cards and same-base draft reuse; collapse history/advanced UI.
+  * [x] Save changes orchestrates staged file/check/apply; errors and warning confirmation inline.
+  * [x] Complex-workbook download/replacement form uses the same one-action save flow.
+  * [x] Manual legacy opening without template, draft reuse, native integer/float/text preservation,
+    browser direct open/single-save apply and empty-data warning confirmation without JS errors.
+  * [x] Corrected-file upload/check/apply within fallback dialog; warning acknowledgement and
+    390px layout checked. Types/lint/generated API/production build pass; no automatic suites run.
+  * [x] Automated lifecycle/conflict/retry/native-type regression resumed and passed in ADR-213.
+  * [ ] Separately scope full formula-workbook editing/recalculation; not silently supported here.
+
+## Browser source-table editor · owner request 2026-10-21
+
+* [~] ADR-211 implementation and manual verification; automated regression remains deferred.
+  * [x] Typed paged read/save/prepare/discard contracts; sparse persisted revisioned drafts.
+  * [x] Cell edits, Excel TSV paste, row add/delete/restore, local undo and reload/resume controls.
+  * [x] Protected headers, literal strings/IDs/decimal values, safe plain-XLSX boundary and CSV
+    encoding/control validation; original-file fallback and bounded processing.
+  * [x] Integrate staged version generation with existing checks/apply, preserving mappings,
+    source-base/CAS/replay guards and preventing mixed pending editor/upload operations.
+  * [x] Manual CSV and XLSX prepare/check/apply; browser save/reload/add/delete/restore/undo/paste,
+    full apply and 390px containment without JS errors. Demo content unchanged.
+  * [x] Disposable PostgreSQL prepare/check/apply, field binding preservation/replay/discard/stale
+    guard, cross-sheet formula fallback and untouched-sheet integrity. 100k-row CSV paged read.
+  * [x] Backend lint/format/mypy, frontend generated API/types/lint and production builds/deployment.
+  * [ ] Targeted automated draft/conflict/retry/pagination/serialization regression when suites
+    resume; broader accessibility/localization/load and economist acceptance remain open.
+
+## Download/edit/upload file updates · owner approval 2026-10-21
+
+* [~] ADR-210 implementation/manual verification delivered; automated regression remains deferred.
+  * [x] Dashboard/Data/history entry and source selection, idempotent saved source-bound draft.
+  * [x] Byte-exact current input downloads and compatible CSV/simple XLSX blank templates;
+    safe headers, retained input names/options and legacy/complex/XLSM original-file fallback.
+  * [x] Reuse upload/mapping/check/apply; preserve source/field identities and base-version guards;
+    single-source whole replacement, empty-replacement warning and explicit acknowledgement.
+  * [x] Manual CSV original/template/replacement/stale checks and legacy byte-exact fallback;
+    browser XLSX download/fill/upload/check/apply, KPI 0.30→0.40 without JavaScript errors.
+  * [x] Backend lint/format/mypy, generated API consistency, frontend types/lint and production build.
+  * [ ] Targeted automated regression, broader accessibility/locale/load acceptance when suites resume.
+
+## Stable dashboard editing and protected layouts · owner request 2026-10-21
+
+* [~] ADR-209 implementation delivered with manual checks; automated regression remains deferred.
+  * [x] Disable drag/resize neighbour pushing, retain explicit undo/redo and existing layouts.
+  * [x] Add collapse-gaps and type-based auto-size/arrange operations; direct numeric placement,
+    single-widget sizing and explicit insertion at beginning through widget-menu dialog.
+  * [x] Add immutable default/named layout persistence, additive API, generated types and migration.
+    Normal saves preserve default; named capture is atomic, revision-checked and replay-safe.
+  * [x] Include layouts in release snapshot/remapping; verify one restored default after saving.
+  * [x] Check API save/replay/conflict/restore, browser drag/resize/undo/variant/reload/default restore,
+    390px dialog containment, PostgreSQL clean upgrade/down/up and SQLite new-migration reversal.
+  * [x] Backend lint/format/type checks, frontend API/types/lint/production build; deploy demo after
+    local database backup without rewriting existing dashboard layouts.
+  * [ ] Automated regression for collision behaviour and layout lifecycle when suites resume;
+    broader accessibility/human acceptance and full release-creation regression remain R6 gates.
+
+## Functional and guided-use-case review · owner request 2026-10-21
+
+* [~] Functional/UX audit increment (ADR-208): implementation and manual verification delivered;
+  automated regression acceptance remains deferred, not satisfied.
+  * [x] Connect overview/import/report/update journey; select the current imported dataset;
+    explain totals, distributions and dataset comparison entry points in RU/EN/TT.
+  * [x] Guard missing measures and incompatible KPI/Bar/Line grouping before preview, with
+    explicit recovery; show recovery for empty/unavailable datasets.
+  * [x] Put wizard settings/step navigation before preview on narrow screens while preserving
+    the wide three-panel composition and the same form/draft instances.
+  * [x] Open reports in view mode; prefer a populated summary over required-selection detail;
+    keep explicit edit and direct report URLs compatible.
+  * [x] Distinguish missing required filters, invalid selections, loading, read failures and
+    confirmed empty reports. Preserve selection controls and expose read retry.
+  * [x] Manually verify exact decimals, ratio of totals, idempotent apply, stale-edit rejection,
+    column-reorder replacement and dependent recalculation on an isolated temporary API.
+  * [x] Browser walkthrough of save/reload, OPIOP summary/detail, unavailable source and
+    empty project; frontend types/lint and production build/deployment.
+  * [ ] Add/run targeted regression suites when owner resumes automated testing; continue R6
+    accessibility, broader edge cases/load and economist acceptance. This is not full R6 completion.
+
+## Corporate frontend · owner request 2026-10-21
+
+* [x] Inspect and pin the Alabuga Framework package, tokens, fonts and brand assets.
+* [x] Integrate shared corporate shell, project navigation/catalog, controls, tables,
+  dashboard widget styling and chart typography; retain both themes and RU/EN/TT.
+* [x] Production build, browser presentation review and update of the running demo frontend.
+* [x] Correct report-builder hydration divergence found during review; browser reload/restore
+  preserves a changed report name without creating a saved report or raising React #418.
+* [ ] Resume R6 contrast/accessibility and regression gates when automated testing resumes.
+
+## Current owner priority · business demonstration
+
+* [x] Add existing OPIOP to the showcase as a separate preserved copy: six screens,
+  original Excel/graph, 53 visualizations and 55 widgets, internal drill-through links.
+  Browser summary → class/service walkthrough completed; no automated suite run.
+* [x] Prepare three persistent demo projects: executive finance, commercial portfolio/funnel,
+  and delivery quality/SLA; 22 widgets across 17 presentation types, Excel and CSV sources.
+* [x] Start isolated PostgreSQL-backed demo on localhost:3030 with persistent storage;
+  provide direct links and a business-oriented walkthrough in README.
+* [ ] Resume remaining R6 acceptance gates after demonstration priority; automated tests
+  explicitly deferred by owner for this delivery, not waived or counted as passing.
+
+## Product evolution R0–R6 (approved 2026-10-08)
+
+Implementation contract: docs/PRODUCT_EVOLUTION.md. Existing MVP acceptance stays historical.
+
+Current finite residuals are reconciled in docs/PRODUCT_EVOLUTION.md (2026-10-13):
+* [x] A5 chart-render recovery: reproduced sticky error after changed result and absent retry;
+  result-scoped failure, local retry, failed-resource disposal and one-shot keyboard focus.
+  Two unit regressions and both-theme real canvas-failure injection/keyboard retry pass;
+  exact table and graph retained. Full 643 frontend tests; 3 browser cases (10.4s).
+* [x] A4-L1: Shared keyboard visibility controls mirror interactive canvas legends using public
+  renderer actions/events. Native buttons, pressed states, Escape focus return and EN/RU/TT.
+  Full frontend 647 tests pass; 20 scoped browser cases pass. Actual Tab/Space bar/line and
+  pie/donut hide/restore preserve exact tables and saved graphs. Human screen-reader trial
+  remains H2, not certified by these automated checks.
+* [ ] A4-M1: Representative mark/boundary contrast, separate from completed text/base-fill checks.
+  * [x] Waterfall/combo/Pareto normal mark paint: both-theme real SVG covers waterfall
+    solid/outlined/zero/tiny marks in both orientations, all eight combo colours, Pareto
+    contribution/share/reference and absence of drawable share/reference at zero total.
+    No runtime edit; arbitrary antialiasing/overpainting remains outside this measurement.
+  * [x] Basic bar/line/area/scatter and radar paint: real SVG verifies normal fills/strokes
+    after alpha composition, area contour against its translucent interior, eight radar
+    profile colours and 24 markers in both themes. Radar selected/muted contour opacity is
+    explicitly checked. No runtime edits; arbitrary profile overlap is not certified.
+  * [x] Box-plot/histogram contours: real SVG checks both orientations/themes, normal and
+    context-highlighted states. Normal outlines pass >=3:1 against CSS surfaces and composited
+    translucent interiors; muted stroke alpha is checked separately. No runtime change needed.
+  * [x] Bubble normal-alpha composition: both-theme real SVG samples all eight group colours
+    and verifies fill opacity 0.75 against CSS panel/surface backgrounds at >=3:1. Highlight
+    metadata preserves selected normal opacity and explicit muted 0.2. No palette/radius/
+    coordinate change was necessary. Arbitrary overlapping or antialiased pixels not certified.
+  * [x] Pie/donut normal fills and separators: SVG reproduced default colours below 3:1
+    (light lime 1.659:1). Shared thematic palette, stable category colours and 2px boundaries
+    now pass four real SVG cases in both themes; full frontend 651 tests pass.
+    Pattern paint, antialiased edge pixels and intentionally dimmed states are not certified
+    by this base-fill check. Remaining renderer inventory is in docs/PRODUCT_EVOLUTION.md.
+* [x] A4-T1: Actual pointer hover contrast for line/area/scatter/pie/donut/Pareto passes in
+  both themes. Seven browser cases pass (42.1s), including Pareto zero/populated regressions.
+  Opaque popup backing and computed text contrast measured; existing graph remains unchanged.
+* [x] P2 Pareto short-card axis crowding: real canvas geometry regression first failed;
+  native axis-label collision handling preserves endpoints/server scales and restores labels
+  on height increase. Full 647 frontend tests pass; 3 browser cases (30.0s) verify populated/
+  zero Pareto, real container resize and executive demo. Zero scale explicitly retains one
+  exact zero tick. Light/narrow-dark screenshots inspected; saved widget sizes unchanged.
+* [ ] A1/A3-R: Named release date/checkbox/focus-return and native-zoom residuals.
+* [ ] A5-S1: Seven-screen-family EN/RU/TT state-to-evidence ledger; distinguish inapplicable states.
+* [ ] A6 final candidate regression; H1/H2 observed human trials remain separate.
+
+* [x] R6 scoped pie/donut category cues and scatter missing-coordinate verification:
+  eight patterns stable under row reordering, repeated-label rows retained, native legend
+  decals verified by real SVG in both themes; over-eight EN/RU/TT warning keeps all table rows.
+  Scatter SVG verifies signed point and true origin remain, incomplete coordinate pairs do not
+  turn into origin points. Full frontend 641/114 passes (41.78s); five browser cases pass
+  (25.5s), .backups/r6-pie-category-cues-20261013. Light pie/dark donut screenshots inspected.
+  Arbitrary dense charts/mark contrast and human perception remain outside these scoped checks.
+
+* [x] R6 pie/donut zero-share correctness: real SVG tests reproduced two invented sectors
+  after hiding the only positive category. Disable zero-sum/empty-circle synthesis and retain
+  missing drawing values; add EN/RU/TT guidance. Both-theme browser pixel checks verify
+  disappearance/restoration, zero-vs-null exact tables and unchanged graph after reload.
+  Full 635 frontend tests, 3 browser cases (17.4s), 10 existing backend input checks pass.
+  .backups/r6-pie-zero-shares-20261013. Remaining mark distinctions/A4/A5/H1/H2 stay separate.
+
+* [x] R6 scoped rendered tooltip contrast: common settled-HTML assertion checks actual text
+  and background colours, refuses translucent popup ancestry as insufficient evidence, and
+  has positive/negative browser oracles. Both-theme checks now cover bar, box plot, heatmap,
+  histogram, radar, waterfall, combo, bubble, bullet, funnel, treemap and sunburst.
+  25-case browser batch passes (2.1m); separate box-plot/oracle/executive batch 3 passes (21.9s).
+  Executive demo validates eight real widgets, exact KPI refresh and unchanged saved layout.
+  Initial bar harness captured pre-resize width; live bounding-box polling fixed the harness.
+  No application behavior changed; other chart/mark checks and human acceptance remain open.
+
+* [x] R6 scoped basic multi-series cues: eight bar patterns/line markers, stable under field
+  reordering, unique repeated-field series IDs. Regression tests reproduce one cue instead
+  of eight before the fix; real SVG checks both-theme bar/legend patterns and hide/restore.
+  Both-theme production-browser review completed for eight-series fixtures: settled screenshots,
+  actual canvas label disappearance/return through legend toggles, exact table values and reload.
+  Four browser regressions pass (33.3s), .backups/r6-basic-series-contrast-20261013.
+  Light palette contrast regression first fails at 2.1423:1; darker hues now pass 3:1 against
+  panel/surface backgrounds. Full 633 frontend tests pass; this does not close whole-chart accessibility.
+
+* [x] R6 scoped statistical/hierarchy keyboard alternatives: box-plot summary/outlier pagination,
+  radar profiles/scales/scroll-region entry, treemap/sunburst group exploration and return;
+  4 production-browser cases passed (17.7s), .backups/r6-statistical-keyboard-20261012.
+  Setup remains pointer/API driven; this does not close A4 canvas contrast or human acceptance.
+
+2026-10-12 evidence reconciliation: R2–R5 functional deliverables below are complete;
+R1 boundary/readability audits and the cross-cutting R6 accessibility/human acceptance
+remain open. Feature delivery is not a claim of whole-product usability certification.
+
+* [x] R0: Record approved scope, architectural boundaries and compatibility (ADR-114).
+* [~] R1: Neutral light/dark design system, project workspace, accessible navigation and five journeys.
+  * [x] Light-default neutral tokens, theme preservation, project navigation, distinct data states and density controls.
+  * [~] Complete overview/report workspace redesign and all five journeys; accessibility audit.
+    * [x] Task-oriented overview: saved reports, isolated check/data states, resumable imports, view/edit links and keyboard rename; localization/component/production-browser acceptance (ADR-139).
+    * [~] Report editor: fields left, preview center, contextual settings right; preserve drafts and advanced calculations.
+      * [x] Shared-draft three-region workbench, typed field buttons/search, central preview, responsive keyboard anchors and schema-failure states (ADR-140).
+      * [x] Guard workspace links from the report editor and recover new/edited/copied visualization drafts across reload/history with original CAS revision (ADR-141).
+      * [ ] Audit remaining authoring forms and unavailable-storage history navigation; tab-local recovery is not durable server storage.
+        * [x] Release-form settings recovery (ADR-195): name/period label/comment/dashboard IDs/applied date period/parameters, explicit restore/discard, malformed/missing-reference guards, denied-storage fallback and departure protection; component and production freeze/restore/navigation regression.
+        * [x] Review unapplied date-control scratch and recovery focus in release/dashboard forms. Keep background-job receipt/retry semantics distinct from form persistence.
+          * [x] Release date scratch survives recovery independently from the applied period; pending dates block freezing until explicit Apply/All time, validation retains input, recovery/discard focuses name once (ADR-195 follow-up).
+          * [x] Dashboard date scratch recovery/departure (ADR-196): isolated dashboards, explicit restoration, changed-URL warning, denied-storage fallback, native unload protection and stable Apply focus; no implicit filters or dashboard saves.
+        * [x] Dashboard configuration recovery boundary (ADR-197): render-safe nested shapes, same-project identity, preserved original CAS, explicit retry/discard/saved-state choice and focused feedback. Component cases and production malformed-JSON/nested-shape/real-conflict regression pass; executive showcase unchanged.
+        * [x] Reconcile the remaining R1 authoring/five-journey acceptance matrix: finite A1–A6 and H1–H2 packages in docs/PRODUCT_EVOLUTION.md; earlier missing PostgreSQL/restart/load evidence is historical, not a new implementation backlog.
+        * [ ] A1: Sequential keyboard/focus audit across the named screen families; distinguish real Tab navigation from programmatic focus.
+          * [x] Release primary actions/name/label/comment/selection/restore/freeze/open and storage-denied in-app recovery use real keyboard navigation; 5 cases passed (1.0m). Frozen five rows remain isolated from four working rows. Date entry, warning checkbox and some surrounding setup/restore still use harness/pointer actions; not whole-suite keyboard certification. Move next to A4 while keeping residual A1 exceptions explicit.
+          * [x] Dashboard keyboard creation/table/save/view/reload/edit: 2 desktop/narrow scenarios pass (4.8s), five rows and source graph preserved. Six malformed/stale-draft cases use real keyboard actions (10.0s), including explicit discard/reload after 409 and name focus restoration. Native confirmation handling is a harness action; release history/focus-return reconciliation remains.
+          * [x] Both graph editors: keyboard add/connect/preview/reconnect/reload plus node-local condition scratch/edit/discard across both formula versions, 6 cases passed (1.2m). Preparation type/missing/error-repair/undo/redo uses keyboard in 3 layouts (54.1s), exact large integer retained. Wizard regression 4 passed (50.7s). Dashboard/release and focus-return completion remain separate.
+          * [x] Overview/import/repair/report-create/edit/source-update path uses real Tab/Shift+Tab, radio/select keys and typed input instead of focus/click/fill/selectOption shortcuts. Four layout/theme scenarios pass (50.4s), exact 0.30 -> 0.15 -> 0.35 retained. API project fixture and file payload injection remain explicit; both graph editors/preparation and other A1 paths still open.
+        * [x] A2: Inventoried graph/dashboard drag actions have ordinary pointer/keyboard-capable controls; functional acceptance covers placement, panning, groups, connections, operation/sheet insertion, panel width and widget layout. Complete sequential traversal remains A1, not implied by this gate.
+          * [x] Final non-drag authoring matrix: 10 production scenarios passed; selector-only 420px calculation equals independent 1121 fixture total, panel clicks/End do not save the graph, eight widget controls preserve data and bounds. Full frontend 563 passed; collision/minimum-size component regression added. docs/PRODUCT_EVOLUTION.md records evidence scope.
+          * [x] ADR-200 classic grouping checkboxes: controlled selection, bounded search, explicit all-selection scope. 560 frontend tests, 12-case graph/reflow regression and final two-path grouping journey (checkboxes at 420px) passed; unchanged computation/edges, rename/undo/dissolve and selection-only no-save verified.
+          * [x] ADR-201 readable repeated captions and viewport direction buttons: 562 frontend tests and final 14-case both-editor distant-node/pan/unchanged-graph/reflow matrix pass. Duplicate-caption/filter stability and exact saved-graph equality verified; no calculation changes.
+          * [x] ADR-199 placement controls reuse ordinary graph history/save; production tests verify nodes plus field book/block/result positions and unchanged calculation results. Initial action inventory in docs/PRODUCT_EVOLUTION.md; group selection/canvas navigation remain separate. Full frontend 559 passed; separate 10-case reflow, 10-case container/history and final 2-case placement runs pass.
+        * [ ] A3: Reproduce and fix graph-editor narrow-layout/reflow issues, then audit the remaining named screens and dialogs.
+          * [x] Advanced dashboard parameter/navigation forms, shared legacy visualization consent/conflict dialog and modern publication navigation: five scoped scenarios pass across three runs (14.6s/17.0s/17.1s), preserving selected slices, revision protection, period, KPI 10.00 and graph identity. Primary named form geometry inventory covered; native zoom and broader accessibility are not certified. Next acceptance priority is A1 sequential journeys.
+          * [x] ADR-204 dashboard workbench: stacked fields/settings/full-width preview at narrow/enlarged layout, retained desktop locale/theme geometry. Final 11 browser cases (36.2s) include malformed/stale draft and period recovery; 563 frontend tests passed. Root-font-before-resize simulation, not native browser zoom. Advanced/navigation dialogs and finite inventory reconciliation remain.
+          * [x] Publication/group helpers and dashboard period controls: two full single/composite Join-to-dashboard journeys (52.1s), all dialog bounds and sequential publication Tab; four normal/enlarged/denied-storage period journeys (9.5s), explicit draft restore leaves URL filters/revisions unchanged. Other dashboard authoring/recovery states remain open.
+          * [x] Overview and analytics/grouped-Unpivot helpers: 9 final browser journeys passed (1.7m) across desktop/narrow/doubled text; preserve share scope, stable ranks, repeated labels and reload. Fixed overview heading/pagination overflow at 390px/32px RU. Full frontend 563 passed. Dashboard states and remaining helpers still need reconciliation.
+          * [x] ADR-203 preparation table: fixed 420px dialog overflow with one-tree stacked labeled cells; calculated-field dialog checked across three layouts. Final 8 preparation/calculation/single-and-composite-Join journeys passed (1.5m); exact large integers/undo/reload retained. Full frontend 563 passed; other helpers and overview/dashboard states remain to reconcile.
+          * [x] Waterfall/analytical-template/Excel acquisition: 12 desktop/narrow/doubled-text journeys passed (1.4m), with exact balances, template mapping/retry, multi-header ranges, conflict retention and invalid-update protection. Preparation dialogs and remaining overview/dashboard state coverage still require reconciliation.
+          * [x] Alignment + heatmap/analytical-table/Pareto/funnel/treemap/sunburst authoring: final 22 cases passed (1.4m), desktop/420px/doubled-root-text, retained viewport through retry/save/reload. Whole-input diagnostics, upstream preservation, exact totals and missing-cell semantics retained. Waterfall/analytical-template/Excel/preparation-dialog checks remain separate.
+          * [x] Template catalog and combo/radar reuse: nine desktop/narrow/doubled-text scenarios pass (46.4s), including recovery, competing revisions, archive/restore and exact 6.00/10.00/0.6000 results on renamed fields. Fixed catalog pagination and global theme/language controls overflowing at 390px/32px root text in RU; geometry regression checks both left and right overflow. Full frontend 563 passed.
+          * [x] Statistical histogram/box-plot forms: screenshot review found cramped enlarged-text preview despite passing control bounds. ADR-202 container follow-up fixes it; two pre-fix geometry failures, final 10 browser cases and 563 frontend tests pass. Includes range/outlier pagination, recovery and duplicate-safe retry. Remaining statistical types/template/alignment/Excel forms are not implied covered.
+          * [x] Populated release form: desktop/420px/doubled-root-text update/check/recovery/period/freeze/restore journeys pass; five frozen rows remain unchanged after working graph drops to four, including reload and restored project. Final 4 cases passed (49.7s) with two-book mapping regression; All-time freeze, not filtered-release certification.
+          * [x] CSV import/update/rollback reflow: three full journeys at desktop, 420px and 1280px with 32px root text pass (39.6s), including expanded field metadata, RUB currency/key draft restoration, remapped columns and exact 0.30 -> 0.70 -> 0.30 results. Release authoring, Excel-specific acquisition and other report/template forms remain separate.
+          * [x] ADR-202 report wizard populated-form reflow: fixed doubled-text page overflow with a text-relative container query. Three creation/edit journeys pass at desktop, 420px and doubled text (36.5s); independent average-of-ratios 2.0000, ratio-of-totals 2.5000 and edited difference 6.0000 retained. Full frontend 563 passed. Import/history/template and other report families remain open.
+          * [x] Populated classic filter/formula/grouping/decimal-parameter controls fit their panels at desktop, 420px and doubled root text. Three full calculation/reload journeys passed (43.3s), exact parameter persistence and preview-only no-save verified; independent total 500 retained. Report/import/history/template forms remain open.
+          * [x] ADR-198 graph reflow: corrected page/panel overflow and enlarged-text canvas/preview overlap without remounting editors. Final 15 production scenarios pass, including 320/420/1280 doubled-text/1600 layouts, resize/save/reload, canvas containment and field wiring/pins/conflicts. Other populated configuration forms remain to audit.
+        * [ ] A4: Rendered contrast, target size, focus and non-colour chart/table meaning in both themes.
+          * [x] Basic-chart tooltips: long-name right clipping reproduced in a narrow horizontal bar widget. Shared bounded escaped HTML now reads original row/series values, retaining exact decimal, numeric X, dates and missing values. Eight new regressions cover six types/additional series/source coordinates. Full 627 frontend tests and two browser journeys pass (18.4s); both-theme 420px content/bounds and dark screenshot inspected. Browser long-hover case is bar-specific; other types retain unit/functional coverage.
+          * [x] Six basic chart label families: actual SVG regressions reproduce alpha 0.35, then verify normal/muted themed opaque text in both themes and both bar orientations; marks retain original opacity. Full 619 frontend tests pass; two browser journeys pass (11.3s) with labels enabled, canvas 4.00 paint observed and settled light screenshot inspected. Browser muted-state coverage remains SVG-based, not six independent selection journeys.
+          * [x] Analytical-table conditional-format contrast: four UI-authored persisted tones retain labels/symbols, computed composited text contrast >=4.5 in both themes, including grand-total badge/value. Exact 4410 totals, empty measures, pinning and paging retained. Eight analytical/shared-contrast browser cases pass (35.4s), ten focused unit tests pass. No runtime change needed; shared sampler extracted with independent colour/alpha oracles preserved. Highlight-background permutations remain separate.
+          * [x] Histogram long-interval tooltip: 16-digit endpoints fit; 30-digit decimal endpoints reproduced right clipping. Shared bounded escaped HTML retains both exact endpoints, bracket and count at 420px in both themes. New real CSV decimal(38,2) journey preserves cent differences, counts [1,2,2,3] and missing/below/above accounting. Full 613 frontend tests and four histogram/hierarchy browser cases pass (30.7s).
+          * [x] Histogram count-label opacity: real SVG regressions reproduce inherited alpha 0.3, then pass both themes/orientations with opaque text/backing and unchanged counts/bar opacity. Actual browser canvas confirms 2/3 labels under injected highlight metadata; dark narrow screenshot inspected. Full 612 frontend tests and three histogram/hierarchy browser cases pass (20.9s). Exact long-interval hover audit remains separate.
+          * [x] P2 hierarchy label contrast: themed opaque text with a neutral text halo fixes white-on-pastel labels in both variants without covering tiles. SVG normal/emphasis tests and actual canvas A/B/C paint after hover pass in both themes; full 610 frontend tests and two browser journeys pass (14.0s). First background-based attempt hid treemap fills despite passing tests; screenshot review caught it and final halo screenshots preserve fills. Dense-label/mark-boundary audit remains separate.
+          * [x] Hierarchy tooltip clipping: both treemap/sunburst 420px screenshots reproduce right-clipped long measure names. Shared bounded escaped HTML retains path/value/share and viewport bounds in both themes; two source-escaping/exact-decimal regressions and full 608 frontend tests pass. Two browser journeys pass (11.0s), including keyboard group navigation/reload/zero leaf.
+          * [x] Bubble/bullet tooltips: 420px screenshots reproduce long bubble field-name right clipping and bullet band-text bottom clipping. Shared bounded escaped HTML fixes both-theme full content/bounds; exact values and source-text escaping protected by two new regressions. Full 606 frontend tests and six bubble/bullet/funnel browser cases pass (40.9s). Other tooltip permutations and the finite family audit remain open.
+          * [x] Funnel tooltip clipping: narrow scrolled-stage screenshot reproduced hidden initial-retention/loss rows. Shared bounded escaped HTML fixes full content and viewport bounds in both themes at 420px. Unit regression protects exact large decimals and source-text escaping; full 604 frontend tests and four funnel/bullet browser cases pass (25.0s). Bubble/bullet tooltip audit remains separate.
+          * [x] Bullet first-label clipping: real renderer reproduces y=8.48 text against y=15 clip, then passes six supported heights after including existing top padding when labels are enabled. Marks/scales unchanged. Full 603 frontend tests and four bullet/funnel browser scenarios pass (38.0s); narrow dark -50.00 screenshot inspected. Other label/tooltip states remain separate.
+          * [x] Bubble label opacity: two real SVG regressions first fail at normal alpha 0.75, then pass normal/muted in both themes with opaque text/backing and unchanged radii/mark opacity. Actual browser canvas paint confirms A/B under injected highlight/legend metadata. Full 602 frontend tests and six bubble/bullet/funnel browser cases pass (49.8s). Bullet/funnel optional label geometry remains separate.
+          * [x] Combo long-name tooltip clipping reproduced after waiting for canvas resize; shared bounded escaped HTML fixes both-theme 420px content/bounds. Five combo/Pareto browser cases pass (33.5s), full frontend rerun 600 passes. Initial unrelated catalog focus race corrected by awaiting the existing focus requirement. Pareto adapter reuse/functional regression is not a dedicated long-name hover test.
+          * [x] Combo non-colour series cues: field-ID-stable line symbols/bar patterns with matching legend; two regressions first fail then pass for seven same-kind series. Full 599 frontend tests and five browser cases pass (38.2s), including eight-series authoring/reload. Four-bar/four-line screenshot inspected; full perceptual discrimination still needs human observation.
+          * [x] Fix P2 dense numeric-label overlap: ECharts collision layout hides conflicting labels and restores them after resize. Real SVG regression first fails, then checks short/tall states and exact tooltip values. Full 600 frontend tests and five browser cases pass (34.9s); eight-series screenshot inspected and all first-row table values retained. Shared Pareto adapter follows the same layout.
+          * [x] Waterfall long-name tooltip: wide normal hover fits, but 420px screenshot reproduced title/right and running-balance/bottom clipping. Shared radar bounded escaped-HTML renderer fixes it. Four browser scenarios pass (32.1s), including both-theme content/bounds and radar regression; full 597 frontend tests pass. Very short viewports/arbitrary text length remain separate.
+          * [x] Combo/Pareto/waterfall muted-label readability: four regressions first fail at alpha 0.3, then pass; exact text now opaque while marks stay muted. Two Pareto adapter cases retain exact contribution/share values. Full 597 frontend tests and six browser scenarios pass (35.7s), including both-theme canvas paint observation for combo/waterfall under injected highlight metadata. Not selection-wiring or dense-label certification.
+          * [x] Eight-axis radar tooltip: screenshot reproduced clipped last axis, then narrow HTML rerun reproduced x=-195 overflow. Escaped body-level text, chart-width wrapping and confinement pass content/bounds in both themes at 1600/420px. Four browser regressions pass (36.0s), full 591 frontend tests pass. Box-plot legend/median synchronization also verified with real SVG rendering. Not all tooltip/contrast states certified.
+          * [x] Box-plot optional median labels: actual SVG renderer reproduced ignored native labels; silent scatter text layer fixes both orientations with exact opaque themed text and no null-to-zero conversion. Full 590 frontend tests pass; browser canvas paint in both themes and existing tables/reload/tooltip journey pass (7.4s). Muted-label evidence is SVG-based; wider A4 remains open.
+          * [x] New wizard-created radar widgets use 12 grid rows instead of 8, without resizing saved layouts. Failing-then-passing backend regression preserves manually changed size during calculation editing. Full backend 1542 passed/32 separately gated skipped (149.90s); browser creation/edit/reload and canvas height >=300px pass (5.5s). Other chart creation paths unchanged.
+          * [x] Radar optional numeric labels keep opaque themed ink/backing under profile highlighting. Two failing-then-passing unit cases; full 588 tests pass. Real canvas paint-alpha checks in both themes pass after fixture binds actual category_field (8.6s). Dense overlap and selection wiring are not claimed.
+          * [x] Radar non-colour cues: explicit 7px marker shapes and matching legend icons, combined with existing line styles. Failing-then-passing 20-profile uniqueness/reorder/missing-profile regression; full 586 frontend tests and 2 browser cases (18.5s) pass. Dense-profile human perception and comprehensive contrast remain separate.
+          * [x] Box-plot tooltip clipping reproduced in short widget; shared escaped HTML tooltip with heatmap fixes it. Both-theme exact quartile/last-line/viewport checks pass; 3 browser cases pass (22.2s), full frontend 585 pass. Settled chart marks and wider radar contrast remain open.
+          * [x] P2 heatmap numeric-label contrast: luminance-selected foreground and opaque muted-label backing; explicit hover fill prevents ECharts darkening from breaking contrast. Three full scale sweeps first fail then pass, canvas text-alpha observations and both-theme numeric/missing hover pixel comparisons pass (6.8s). Full 585 tests pass. This closes the scoped label defect, not all A4 chart readability.
+            * [x] Foreground luminance selection and opaque muted-label backing implemented. Three scale sweeps (1001 positions/both themes) now pass, plus two missing-marker checks; full frontend 584 tests pass (32.43s). Keep parent open until rendered/highlight/hover verification.
+            * [x] Actual hover captures reproduced canvas-clipped tooltip rows; escaped body-level HTML tooltip fixes this (ADR-205). Both-theme last-line/viewport assertions and executive regression pass: 2 cases (18.1s); full frontend 585 tests pass. Numeric hover/highlight contrast remains separate.
+            * [x] Canvas fillText observer verifies opaque black/white numeric labels under injected highlight metadata in both themes; real numeric hover tooltip and screenshots pass (1 browser case, 7.2s). No selection-wiring claim. Check automatic emphasis fill lift before closing full colour-contrast scope.
+          * [x] Narrow settings footer occlusion reproduced by centre hit-test, then fixed using normal-flow actions below the existing 80rem threshold. Workbench browser case passes (18.8s): narrow/enlarged name-field hit-testing and sequential Tab. Full 585 frontend tests pass. Wide panels unchanged; not whole-form occlusion certification.
+          * [x] A5 version-list failure/retry: disabled unknown version selection/bindings, pending feedback and read-only retry without changing selected update. Three EN/RU/TT regressions first fail then pass; full 576 frontend tests and 3 CSV update lifecycle browser cases pass (40.7s). Browser outage injection not claimed.
+          * [x] A5 report history: confirmed-empty/loading/error and retry, job/state/update readiness gates for update/check/apply and release-history gate for freeze. Failing-then-passing delayed/error/retry component regression; 573 frontend tests and 5 browser lifecycle cases pass (1.3m). Injected browser history outage remains separate from this evidence.
+          * [x] A5 alignment create/edit parity: pending/empty/stale feedback, hide prior results during recalculation/error, preserve matching-preview save gate. Two failing-then-passing component regressions; full 572 tests and 3 browser cases pass (4.8s), including delayed real responses. Empty alignment browser fixture not newly exercised.
+          * [x] A5 statistical state correction: no contradictory incomplete panel on failed preview; edited settings have explicit outdated state; retained paging data labelled during loading. Regression reproduced before fix; 570 frontend tests and 3 statistical/alignment browser cases pass (4.7s). Pending-page notice not separately delayed-browser certified.
+          * [x] Previous-result notice contrast and actual delayed plain-table paging: 7 browser cases pass (25.0s) in .backups/r6-pagination-state-20261012. Fixed enabled-looking no-op pagination without setOffset; failing-then-passing regression and full 567 frontend tests pass.
+          * [x] A5: successful zero-row ReportBuilder preview now has an explicit localized explanation while preserving schema and saveability. EN/RU/TT failing-then-passing regressions; 2 real filtered-zero-row save/open/reload cases pass in both narrow themes (4.1s). Full frontend 570 tests pass.
+          * [x] Six comparison/contribution families and analytical-table viewer controls use sequential Tab/Enter: 13 cases passed (1.1m), .backups/r6-comparison-keyboard-20261012. Authoring setup and geometry scroll probes are not keyboard evidence; chart/tooltip contrast still open.
+          * [x] A5 follow-up P2: retained previous visualization data has visible EN/RU/TT status; stale row/chart selection suspended. Locale delayed-refetch/error/retry component regressions, delayed-pagination browser test and 10-case regression pass. Final existing-token background cleanup checked by build; wider A5 remains open.
+          * [x] Inventory all 21 ChartType entries with explicit evidence limits and remaining checks in PRODUCT_EVOLUTION.md. Heatmap/histogram sequential switching, missing-versus-zero semantics and interval accounting: 2 cases passed (10.4s), .backups/r6-cell-interval-keyboard-20261012. Canvas/tooltip contrast remains open.
+          * [x] Report exact data-table contrast and switch focus/target sizes in light/dark; native Tab/Enter chart/table access retains exact decimals and graph identity. Canvas numeric-label resize/locale geometry regression retained. Combined 6 cases pass (24.0s); chart mark/tooltip contrast and remaining visualization families not implied covered.
+          * [x] Overview browser-computed text/background alpha composition, focus and button dimensions: light/dark initial/error states plus independent numeric oracles, 3 passed (18.0s). Browser handles Oklab-to-sRGB conversion; unsupported paint fails. Canvas/hover/placeholders/pseudo-elements and other screens remain separate.
+        * [ ] A5: Finite three-language state/copy audit.
+          * [x] Reconcile seven surface families to actual state/locale evidence and explicit remaining boundaries in PRODUCT_EVOLUTION.md (2026-10-13). Common five-state accessible labels/roles now checked in EN/RU/TT; 119 focused tests pass (6.43s). This does not close all locale/browser/human gaps.
+          * [x] Translate heatmap sum/average/min/max labels in RU/TT; four component regressions check EN/RU/TT rendering and unchanged exact values.
+        * [~] A6: Fresh consolidated public browser regression; preserve separate PostgreSQL/restart/performance evidence scope.
+          * [x] 2026-10-13 public checkpoint: 253 passed in one run (23.5m), .backups/r6-public-state-reconciled-20261013. Includes executive showcase and 100k-row browser cases; private opt-in files excluded. Projects cleaned, owned services stopped, default build passes. 579 frontend tests passed before three new red heatmap contrast regressions; the identified P2 and remaining acceptance gates keep A6/R6 open.
+          * [x] Uninterrupted isolated regression: 170 passed / 2 private-data opt-ins skipped (13.1 min), .backups/r6-public-reconciled-20261012. Translation-only follow-up: rebuilt executive/heatmap 2 passed; final frontend 558 passed plus lint/types/API/build. Earlier PostgreSQL/restart evidence remains separate.
+        * [ ] H2: Observed screen-reader trials; H1 economist gate remains separately listed below.
+        * [x] Node/version-scoped inspector condition recovery (ADR-191): validated tab-local snapshots, current-schema insertion guards, explicit discard and bounded memory fallback. 46 affected cases and five production return/reload/exact-calculation scenarios passed. Not server-durable storage or full-reload cleanup-denial recovery.
+        * [x] Scope generic inspector local state to node identity/version; classic editor no longer leaks condition scratch between same-type nodes. Field editor retains existing isolation. 30 affected tests and four graph/formula browser combinations passed. Scratch restoration is delivered in ADR-191 above.
+        * [x] Parent calculation save explicitly confirms omitting unapplied nested conditions; declined save leaves graph and draft intact. Visible localized guidance, create/edit regressions and two production single/composite-Join journeys passed (33.5s).
+        * [x] Parent calculation dismissal includes nested condition-builder scratch changes, even before insertion; baseline/revert/unmount contract and real declined Escape/Cancel verified (11 affected tests, two complete authoring scenarios). Inspector recovery and parent-submit policy are delivered in the separate completed items above.
+        * [x] Guard changed Join/calculation/group helper settings on Cancel/Escape/reload, isolate keyboard events and name dialogs. Three failing regressions corrected; 11 affected tests and two complete production authoring journeys passed. Confirmation is not persistence; nested condition drafts and other helpers remain separate.
+          * [x] Verify these three dialogs at 420px and doubled root text: no horizontal overflow, real Tab traversal to fully visible Cancel, Enter-triggered declined discard, retained settings and final graph/dashboard parity. Both single/composite Join production journeys pass (36.6s); other forms remain outside this acceptance slice.
+        * [x] Dashboard bounded document/history recovery, latest-over-stale copy, original CAS through layout undo, safe discard and successful-delete cleanup (ADR-189). 27 affected tests and 3 production scenarios passed, including competing-save rejection and workspace authoring. Helper dialogs and full-document recovery remain separate.
+        * [x] Extend bounded document-memory recovery to classic/field graph history (ADR-188): latest copy over stale disk, original revision, persistent volatile notice, confirmed-save retirement and oversized disk compatibility. 37 affected tests and 9 production recovery scenarios passed. Dashboard/helper forms and full-document recovery remain separate.
+        * [x] Denied sessionStorage property no longer prevents classic/field graph startup or server autosave; guarded discard retains edits on failure and cancels discarded queued drafts on success (ADR-187). 16 unit/localization and 15 production regression scenarios passed. Same-document history recovery follows in completed ADR-188; full-document storage-denial limitations remain explicit.
+        * [x] Report/visualization same-document fallback on denied/quota storage, newest-draft precedence, exact pending retry and confirmed-save tombstones (ADR-173); component and production Back/Forward regression. Legacy dashboard/graph/helper forms remain to audit.
+        * [x] Atomic independent-visualization save receipts and exact pending-request recovery after lost responses; PostgreSQL concurrency and commit-then-disconnect browser acceptance (ADR-143).
+        * [x] Recover ReportBuilder/AlignmentReportBuilder drafts and original pending requests across reload; reuse existing receipts and preserve CAS/graph semantics, with unavailable-metadata and keyboard/browser acceptance (ADR-144).
+        * [x] Extend the same recovery guarantees to named-measure report authoring; preserve compatible-measure/grain guards (ADR-145).
+      * [x] Responsive legacy numeric axes/category labels and same-result raw tables; real Canvas overlap/resize and keyboard/browser acceptance (ADR-142).
+    * [ ] Complete all five journeys and audit keyboard/focus/contrast/drag alternatives; human usability gate remains separate.
+      * [x] Addressable update history/direct rollback continuation (ADR-194), entry/error focus and unavailable references. Five new component cases, 504-test regression, six import/report journeys and four legacy/report-cycle/executive-showcase scenarios pass; no automatic apply or discarded revision guards.
+      * [x] Import validation repair actions: deduplicated field/key review, one-shot focus/open-details, explicit sampled-issue count and named keyboard preview table. Two focused component cases, 499-test frontend regression and six production import/report/range journeys pass, including 420px/doubled-root-text correction focus and visible preview focus.
+      * [x] Align complex-chart data-table typography with the 14–16 px reading baseline: all twelve component families use 14 px primary text, numeric header alignment and shrinkable scroll containers. Radar/histogram narrow production acceptance plus 46 affected component cases and 17 remaining-family browser scenarios pass. Boxplot additionally checks 420 px scrolling/both themes; analytical table retains pinned columns and totals. Full accessibility is separate below.
+      * [~] Audit named table regions/captions and keyboard horizontal scrolling: complex and basic tables have localized captions/named tab stops. Radar production test exercises actual Tab/visible focus/native arrows at 420 px. Basic header alignment corrected; analytical-table pinning now reserves room for measures and restores saved intent on expansion (ADR-192), covered by boundary and browser full-cell/hit tests. Remaining: broader keyboard/zoom/narrow-layout checks and actual screen-reader trial; do not claim whole-page accessibility.
+        * [x] Analytical table text enlargement: shared pixel geometry avoids rem/pixel pin mismatch; actual 14-to-28 px text and restored offsets verified in five production repeats. Narrow-cell test awaits real grid transitions, with settled exact-value screenshot; this is not whole-app browser zoom acceptance.
+      * [x] Calculated-field helper dynamic focus: add/remove/reorder keep a usable target, stable row identity and no typing focus theft. Three reproduced failures fixed with the existing shared hook; 11 affected tests and 3 production authoring scenarios pass. Full helper-dialog audit remains open.
+      * [x] Correct import/basic report wizard step focus (ADR-168); production regression for import, invalid-type correction, report creation/edit and refresh in one scenario. Whole-app tab order and human testing remain open.
+        * [x] Extend this complete journey to 420px/dark and doubled-root-text/light alongside desktop/compact cases: four production passes (23.9s), exact sum-to-mean/update parity, no import-field page horizontal overflow and native End-key access to a fully visible final table row. Not browser zoom or all-dialog acceptance.
+      * [x] Correct standard report table typography: 14 px, schema-driven right-aligned numeric headers/cells and tabular digits; text-code, selection and pagination regression.
+      * [x] Import/basic-report failure feedback and dynamic measure/filter focus (ADR-169): retained settings, latest-action errors, existing idempotent import retry and read-only report checks; component and production browser acceptance.
+      * [x] Analytical/alignment dynamic control focus and latest-check feedback (ADR-172): preserved settings/identities, grouping/measure reordering, Join/alignment keys and failed previews; component and production create/edit/recovery regression pass.
+* [x] R2: Common connector/resource/profile/snapshot contracts, Excel/CSV, import wizard, exact types,
+  immutable Parquet, refresh/history/release integration and migration acceptance.
+  * [x] Common contracts, file adapters, strict full-data normalization, exact decimal and safe large integer transport.
+  * [x] Migration 0011, immutable snapshots, generic source node, five-step initial-import wizard.
+  * [x] Optional composite row-key authoring through existing profile key_fields: identity-safe rename/remove, saved draft recovery, duplicate/null rejection during initial import and refresh. Four full keyboard/report journeys and API/component tests pass; no implicit deduplication.
+  * [x] Expose header-count and leading/trailing row exclusions in the import wizard; draft/request/component/adapter tests and production keyboard/reload acceptance pass.
+  * [x] Explicit Excel rectangular cell-range selection (ADR-193): physical IDs, merged-header guards, bounded formula checks, old-profile receipt hashes, exact report refresh/rollback and frozen release restoration. Two production range journeys plus four existing CSV report journeys pass; whole-workbook safety caps remain.
+  * [x] Per-dataset range/header-count/row-exclusion overrides in replacement-file mapping (ADR-193). Changed options clear that dataset's bindings and hide stale suggestions; sibling settings survive. Relocated/renamed fields, blocked invalid range, saved reload, exact update and rollback pass in API and two production browser journeys, plus four CSV regressions.
+  * [x] Idempotent/CAS profile apply, affected workflow revision bump, source/project cleanup and release restoration.
+  * [x] File replacement/mapping UI, staged complete checks, atomic apply/rollback and monotonic source/workflow revisions.
+    * [x] Timezone-aware refresh boundary: ambiguous/nonexistent local times reject staged apply without changing active data/report; explicit UTC-offset fold identities survive rename/reorder mapping, Parquet, aggregation and rollback with advancing revisions. 49 related regressions pass; two PostgreSQL concurrency cases remain separately gated, not counted as local passes.
+  * [x] Durable artifact intents for replacement files/staged Parquet; repeat-check reuse and caught write-failure cleanup.
+  * [x] Resume initial-import drafts with revision guards and stable apply receipts; crash-recoverable initial raw/Parquet writes (ADR-116).
+  * [x] Extend decimal beyond aggregation/filtering to safe expressions and the remaining analytical operations.
+    * [x] Explicit calculated_column@2 exact arithmetic, final half-even rounding, UI, graph/release/browser regression and 100k-row benchmark (ADR-118).
+    * [x] Typed conditional exact expressions, lazy branches, null logic, shared editor and literal-safe release restoration (ADR-160); unit/API/PostgreSQL/browser and 100k-row checks pass.
+    * [x] Exact window@3 partition/running totals, maxima, previous rows and numbering with deterministic order, null/overflow rules, editor, release restore and 100k-row narrow/wide benchmark (ADR-161).
+    * [x] Version-aware exact share/rank helper for decimal and opt-in integer fields, explicit scale and unchanged trailing selection scope (ADR-162).
+    * [x] Fix decimal Unpivot truncation and missing scale metadata; preserve digits/common units or fail explicitly (ADR-163).
+    * [x] Exact pivot@2 dynamic cross-tabs with decimal sums/extrema, explicit average scale, compatible IDs, editor and release/browser/100k-row verification (ADR-164).
+    * [x] Fix fractional decimal-to-integer conversion to respect existing error/null policy (ADR-165).
+    * [x] Fix decimal Union truncation, Join false matches and diagnostic key precision; common scale/unit checks, exact transport and SQLite/PostgreSQL release regression (ADR-166).
+    * [x] Audit decimal field-wire boundaries; fix lost projection/conditional/append metadata and downstream rounding, and reject unsupported scalar output in preflight (ADR-167).
+    * [x] Exact field/scalar constants, arithmetic, sum and single-value v2, metadata/transport through Append and bound KPI; unchanged v1, graph editor, release/restore, SQLite/PostgreSQL/browser and 100k-row narrow/wide checks (ADR-176).
+    * [x] Exact field_formula@2 reuses bounded expressions over a/b/c, preserves row contexts and final rounding; editor, independent unit references, release/restore and production reload/KPI verified (ADR-177).
+    * [x] Decimal workflow/dashboard parameters with explicit precision/scale and string transport; scalar/cache/filter/binding/choice/release integration, unchanged legacy contracts and editor/URL/KPI reload acceptance (ADR-178).
+    * [x] Reconcile delivered exact-node contracts and source/authoring boundaries: independent statistical/contribution oracles below, exact composition/window/field/parameter suites, timezone refresh and range/key authoring. Cross-cutting R1/R6 human/accessibility acceptance remains open, not waived.
+      * [x] Preserve condition-builder numeric tokens; expose typed exact conditions in existing calculated_column@2, with numeric results and explicit legacy Float64 warning (ADR-190). 37 frontend/59 backend cases, production exact signed-value/reload checks and two Join journeys passed. No implicit v1 upgrade.
+      * [x] Cross-statistic histogram/boxplot/heatmap audit against independent cent/rational references: 9 seeded signed/large-offset cases, full counts/nulls/outliers/quartiles/bounds/sums and low Decimal context. No new numeric defect. Full pre-addition backend 1506 pass/31 PostgreSQL skips and frontend 449 pass; new 9 cases passed separately.
+      * [x] Cross-node Pareto/waterfall/funnel monetary parity: six seeded populations with normal/large values, ties/zero contributions, exact ranked/cumulative shares, independent half-even percent rounding, signed cancellation/checkpoints and zero-denominator retention under Decimal precision 3. No new defect; 119 related node/API/visualization regressions pass. Remaining source/type/authoring audit is separate.
+* [x] R3: Guided report preview/atomic apply, editable DAG, dimensions/measures/filters,
+  simple/steps/graph views and preservation of advanced calculations.
+  * [x] Initial dataset/measure/dimension/filter/presentation wizard, non-persistent preview and atomic idempotent apply.
+  * [x] Ordinary dataset_source -> optional filter -> group_by@2 graph, publication, visualization and dashboard.
+  * [x] Exact decimal aggregation, preview/save guards, graph access and browser reload acceptance.
+  * [x] Edit the recognized suffix of existing reports; preserve advanced upstream steps, appearance/layout and revision conflicts (ADR-117).
+  * [x] Expand graph editing beyond the supported suffix; published-dataset inputs, formulas/comparisons and reusable measures.
+    * [x] Stable aggregation output identities and graph-backed row/after-total formulas, schema-aware authoring and round-trip editing (ADR-119).
+    * [x] Guided chained after-total formulas with optional schema-only create/edit API, unchanged-prefix field choices, dynamic formula focus and financial-chain production round-trip (ADR-170).
+    * [x] Published-dataset input selection and a shared ordinary graph branch with preview/CAS/apply, release restore and browser acceptance (ADR-120).
+    * [x] Named graph-backed measures with explicit grain, direct reuse without reaggregation, persisted report guards and API/release/browser regression (ADR-121).
+    * [x] Dedicated period comparisons and broader reusable-measure composition.
+      * [x] Calendar bucketing and exact previous-period/year comparison nodes; table-report creation, graph configuration and API/release/browser regression (ADR-122).
+      * [x] Safe comparison round-trip editing with shared/manual graph protection and revision checks (ADR-123); explicit add/remove rebinding, SQLite/PostgreSQL and production browser regression.
+      * [x] Comparison Bar/Line charts with explicit current/baseline bindings, safe wizard edits, release restore and production browser regression (ADR-124).
+      * [x] Multiple reusable measures from one publication and identical grain in a guarded table; full-data validation, legacy receipts, copy/release and browser regression (ADR-125).
+      * [x] Cross-result measure composition with explicit alignment and calculation semantics.
+        * [x] Explicit full one-to-one measure alignment node and graph controls; exact values, unmatched-row visibility, full-data diagnostics and release restoration (ADR-126).
+        * [x] Wizard selection of separate prepared results and explicit alignment within one workflow; atomic/CAS/idempotent apply, preserved branches, release and browser acceptance (ADR-127).
+        * [x] Guided derived cross-measure formulas and safe alignment round-trip editing; unsupported advanced/shared suffixes remain in the graph.
+          * [x] Exact formula chains after explicit alignment, server field inference, ordinary graph apply and draft/release compatibility (ADR-158); full-data boundaries, SQLite/PostgreSQL concurrency and production-browser checks pass.
+          * [x] Safe alignment wizard round-trip preserving shared branches, manual steps and visualization bindings (ADR-159); keys/formulas/rebinding, CAS/retry/release, SQLite/PostgreSQL and production browser regression pass.
+* [x] R4: Versioned visualization registry, statistical nodes, heatmap/boxplot/radar/histogram,
+  waterfall/combo/analytical tables, full snapshot and legacy compatibility.
+  * [x] Extend guided first-wave creation to combo/radar/waterfall; reuse existing renderers/specs and ordinary graph calculations.
+    * [x] Plan-fact combo: exact graph aggregation/formulas, explicit axes/series, chart/table preview, guarded edits and draft/release recovery (ADR-179); SQLite/PostgreSQL and production browser acceptance. Fix shared formula insertion focus race found during regression.
+    * [x] Guided radar creation/editing with explicit normalization/scales, ordinary graph aggregation/formulas, preview/draft/release recovery (ADR-180); SQLite/PostgreSQL, 100k-row correctness and production browser acceptance. Persist typed spec/orientation on explicit radar/combo rebinding.
+    * [x] Guided waterfall creation/editing through existing preparation with explicit step order/roles and exact reconciliation (ADR-181); legacy input-order compatibility, template mapping, releases, SQLite/PostgreSQL and production-browser regression.
+  * [x] Guided histogram/box-plot creation from imports or prepared results; full-data preview, upstream filters, atomic apply and draft/retry recovery (ADR-146).
+  * [x] Guided heatmap/analytical-table creation with explicit aggregation, ordered hierarchy, exact totals, preview/recovery, shared-branch guards and browser/release regression (ADR-147).
+  * [x] Safe statistical/analytical wizard round-trip editing: structural terminal recognition, preserved manual preparation/appearance, explicit table rebinding, CAS/receipts/recovery and release/PostgreSQL/browser regression (ADR-148). Shared/advanced terminal bindings remain explicit graph steps.
+  * [x] Full-data box-plot statistics with exact quartiles, stable group/point identities and named summary/outlier outputs; graph settings, release/API/browser regression (ADR-128).
+  * [x] Versioned visualization registry and typed role bindings; explicit rows/named-datasets transport contracts for rendering (ADR-174/175).
+    * [x] Typed box-plot/histogram/heatmap/radar/waterfall/combo/analytical-table specs and registry, common-execution named datasets, exact tables and complete frozen datasets (ADR-129/130/132/133/135/136/138).
+    * [x] Extend registry/specs to remaining charts; existing eight legacy contracts stay compatible, not automatically migrated.
+      * [x] Read-side versioned specs for all eight basic types and registry coverage of all 21 families; stable-ID rendering, legacy frozen-result fallback, exact paging/release/restore and SQLite/PostgreSQL/browser regression (ADR-174).
+      * [x] Basic typed input contracts and canonical write adapter; preserve editor/wizard field rebinding, pending receipts, graph-bound nodes and old projects without dual binding sources (ADR-175). Explicit all-fields/scalar semantics, first-series names, atomic invalid-save rejection, SQLite/PostgreSQL and production-browser regression.
+  * [x] Histogram: exact equal-width preparation, full observation accounting, typed chart/table, release/restore and production browser regression (ADR-130).
+  * [x] Heatmap preparation and typed rendering.
+    * [x] Explicit full-data aggregation, exact numbers and distinct absent/null/zero cells; graph settings, table publications, release/restore and browser regression (ADR-131).
+    * [x] Typed heatmap specification/renderer, exact colour normalization, explicit scales and saturation counts, table/tooltips, stable navigation and release/browser regression (ADR-132).
+  * [x] Radar: prepared unique profiles, 3–8 explicit axes/scales, mixed-unit normalization, exact table, stable selection, release/restore and production browser regression (ADR-133).
+  * [x] Waterfall: backend preparation with explicit intermediate/final totals, exact signed contributions and typed rendering/table.
+    * [x] Ordered waterfall_steps@1, exact balances, configurable row-type markers and reconciled totals; graph settings, table publication, complete release/restore and browser regression (ADR-134).
+    * [x] Typed waterfall spec/registry and graphical renderer with exact table, negative/cross-zero bars, stable selection, upstream-only contexts, keyboard viewport controls and release/browser regression (ADR-135).
+  * [x] Combo and analytical table preparation/rendering.
+    * [x] Typed prepared bar/line combo, explicit secondary axis, exact scale/table, full release/restore and production browser regression (ADR-136).
+    * [x] Analytical table: graph-owned grouping/totals, pinned columns and conditional formatting.
+      * [x] table_rollup@1 observation-based hierarchy, exact measures/ratios, graph configuration, full-release/restore/browser checks and 100k-row benchmark (ADR-137).
+      * [x] Typed analytical-table renderer with hidden technical roles, pinning, conditional formatting and full-release/browser acceptance (ADR-138).
+* [x] R5: Bubble/Pareto/treemap/sunburst/bullet/funnel and reusable graph-backed templates.
+  * [x] Bubble chart: typed prepared observations, full-input scales and explicit area encoding (ADR-149/150).
+    * [x] Backend preparation contract, stable keys/groups, exact paged table, full-input validation and 100k-row narrow/wide benchmark (ADR-149); 46 focused cases, SQLite/PostgreSQL regression, lint/types and unchanged OpenAPI verified.
+    * [x] Integrate public specs/registry, full-data save validation, rendering API, complete frozen releases and restore; CAS/retry, matching point/row pages and navigation fields verified (ADR-150).
+    * [x] Schema-aware editor, chart/table/page controls, EN/RU/TT, stable selection and production browser acceptance; large-number relative labels and viewport clearance preserve readability (ADR-150). Comprehensive accessibility/human gate remains open.
+  * [x] Pareto: exact graph preparation and typed chart/table (ADR-151); full-input validation, deterministic ranks, explicit zero-total state, reference line, stable paging/selection, save/release/restore, 100k-row benchmark and production browser acceptance. Compact cards retain visible navigation without chart overlap.
+  * [x] Treemap/sunburst: shared rollup preparation, typed complete tree, exact table and keyboard branch exploration (ADR-152); full-input/additive guards, complete release/restore, 100k-row benchmark and production browser acceptance. Shares retain the full-root denominator during exploration.
+  * [x] Bullet: typed actual/target/explicit ranges, exact full-input guards, responsive keyboard windows, exact table, save/retry/copy and complete release/restore (ADR-153); narrow/wide 100k-row benchmark and production browser acceptance.
+  * [x] Funnel: explicit ordered-stage node, exact retention/loss, typed complete chart/table, keyboard scrolling and release/restore (ADR-154); 100k-row grouping-to-funnel benchmark and production-browser regression.
+  * [x] Guided Pareto/funnel/treemap/sunburst creation through the existing atomic analytical route; explicit prepared roles/additive totals, shared-branch revision guards, draft/retry recovery, release/restore and production browser regression (ADR-155). Compatible Pareto/funnel suffix editing preserves manual preparation/appearance.
+  * [x] Hierarchical wizard round-trip preserving advanced rollups (ADR-156): explicit field rebinding, protected manual/shared/multi-measure settings, atomic/CAS/retry, exact release restoration, SQLite/PostgreSQL and production browser regression.
+  * [x] Initial reusable graph-backed analytical templates for eight guided analytical types: immutable project-local capture, explicit schema/grain mapping, ordinary wizard application, retry/release/restore and SQLite/PostgreSQL/browser acceptance (ADR-157).
+  * [x] Extend standard/analytical template families and catalog management; calculation definitions remain immutable and project-local (shared limit 200). Other calculation-family/cross-project templates remain future work.
+    * [x] Include waterfall in analytical templates with explicit label/value/row-type/order mapping and release restoration (ADR-181).
+    * [x] Extend templates to standard grouped/formula reports, including combo/radar, with stable output bindings and explicit input schema/grain mapping; preserve existing statistical template contracts (ADR-182). Formula/calendar/legacy/prepared-input mapping, release/recovery, shared catalog cap, SQLite/PostgreSQL concurrency and production browser acceptance passed.
+    * [x] Project-local catalog management: discover/filter templates and safely rename/archive entries without affecting already-created reports; preserve immutable calculation definitions and revision guards (ADR-183/184).
+      * [x] Typed catalog API, immutable definitions, exact edit receipts, archive/revision prepare guards and compatible release metadata (ADR-183); full backend/frontend regression, affected SQLite/PostgreSQL matrix, lint/types/API/build passed. Dedicated catalog UI/E2E remains below.
+      * [x] Dedicated catalog screen with search/family/state filters, rename/archive/restore, keyboard feedback and same-tab pending-edit recovery; Reports navigation and production-browser acceptance, both families, lost response/offline metadata, competing edits, light/wide and dark/narrow verified (ADR-184).
+* [~] R6: PostgreSQL/migrations, browser/restart/numeric regression and 100k-row/width benchmarks.
+  * [x] Owned-container PostgreSQL/API restart acceptance for eight-widget executive demo: clean migrations, exact financial/statistical controls, metadata/frozen-result identity and release restoration. Opt-in fixture never restarts a configured/user database; SQLite/shared HTTP regressions included (8 passed). Graceful restart, not crash recovery.
+  * [x] Rerun current PostgreSQL selection in disposable PostgreSQL 17: 517 passed, 2 SQLite-name-match skips, 1544 deselected (2026-10-12, 392.19s). Clean UUID-schema migrations, locking and integration checks passed; zero schemas left, owned container removed. Database-process restart and human gates remain separate.
+  * [x] Verify graph search sequential Tab focus via actual computed outline in both themes, search -> keyboard operation creation -> persisted workflow. Two production cases passed; suspected outline-none defect disproved, no runtime rewrite.
+  * [x] Guard 86 actual CSS opaque theme color pairs plus contrast-math oracles; improve dark outline/raised from 2.8449 to 3.2698. 23 affected tests and 2 production keyboard journeys passed. Transparent layers/chart colors and whole-page compliance are not covered by this token policy.
+  * [x] Fix missing accessible grouping of repeated import controls using native fieldset/legend; locale-aware names/blank-name fallback, rename identity and actual Tab/Shift+Tab/details traversal. 18 component tests and 2 light/dark keyboard scenarios passed; both 100k browser regressions remained green. Full screen-reader/contrast audit remains open.
+  * [x] Isolated HTTP CSV/Parquet/report benchmark: 100000 x 3 and x 20, exact grouped totals and real process replacement. Seven targeted tests passed; script lint/format/types passed. No import-limit bypass or production database access.
+  * [x] Verify explicit HTTP graph-preview cache counters at 100k x 3/20: cold/warm, staged original, one-cent source refresh and rollback; exact visualization totals after changes. Twenty affected tests and targeted lint/format/types passed.
+  * [x] Verify actual-browser import/report responsiveness at 100k x 3/20: bounded preview, leading zeros, exact grouped totals, saved/reloaded report, per-stage long-task evidence; 2 production scenarios passed. Native disk selection avoids measuring Playwright Buffer injection overhead. Not every chart/device or human acceptance.
+  * [x] Fresh-process 100k-row narrow/wide normalization and exact-formula benchmark with native peak memory; Windows baseline and correctness verified, scope separate from file ingestion/end-to-end latency (133 relevant tests passed).
+  * [x] Optimize measured wide normalization with unchanged strict conversion and row-error semantics (ADR-186): identical clean 100000 × 100 text-to-decimal fixture ~38.5 s -> ~0.5 s; full backend 1500 passed/31 PostgreSQL skips, seven affected production-browser scenarios passed. Mixed/invalid columns retain scalar fallback.
+  * [x] Extend 100k-row evidence within configured limits: file import, Parquet, API execution/cache/update/rollback and real-browser import/report responsiveness delivered; broader accessibility and human gates remain open.
+  * [~] Consolidate evidence and run the five report-first journeys plus executive showcase on isolated production builds; audit remaining R1/R2/R3 gaps and fix verified defects. Keep human trials distinct.
+    * [x] Real API process replacement over private persisted SQLite/storage: independent financial/statistical expectations, frozen widget results and restored project recalculation survive replacement (test_process_restart.py).
+    * [x] Refresh historical browser journeys for versioned operations and current report-first controls without changing legacy numeric expectations; final uninterrupted public-fixture run: 144 passed, 2 private-data opt-ins skipped (2026-10-12, 11.3 min).
+    * [x] Map all five scripted report-first journeys to production-browser evidence; fix eight missing RU/TT operation descriptions discovered by the live catalog check. Economist trials and full accessibility remain separate open gates.
+    * [x] Fix R6-reproduced dashboard P2 regressions: layout undo preserves later metadata; empty navigation destinations expose configured parameter controls; reverted edits cannot leave a clean stale draft hiding a committed copy after reload (ADR-185). Seven final production-browser scenarios passed, including modern workspace, v1/v2 compatibility, two multi-book business journeys and independent-copy lost-response recovery.
+  * [x] Reproducible eight-widget executive demo through public APIs, immutable synthetic fixtures, independent financial/statistical oracles, SQLite/PostgreSQL and production refresh/reload/theme checks (ADR-171).
+  * [x] Fix exact KPI currency/percent formatting without Float64 conversion; retain raw tables, text codes and calculation rounding (ADR-171).
+* [ ] R6 human gate: five economists, >=4 independent successes and no unnoticed data errors.
+
+
 ## Synthetic business walkthrough (2026-09-24)
 
 * [x] Write the economist guide before dashboard construction; define independent expected values.

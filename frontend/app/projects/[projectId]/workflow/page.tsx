@@ -52,13 +52,13 @@ function WorkflowPageContent() {
 
   return (
     <main className="min-h-[calc(100vh-2.75rem)] bg-page text-foreground">
-      <header className="flex h-20 items-center justify-between gap-5 px-6">
+      <header className="flex min-h-20 flex-wrap items-center justify-between gap-5 px-4 py-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-5">
           <Link href={`/projects/${projectId}`} className="text-sm text-muted hover:text-foreground">{t("← Project")}</Link>
           <div className="h-6 w-px bg-raised" />
           <div className="min-w-0"><p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">{t("Workflow")}</p><h1 className="truncate text-lg font-medium">{workflow.data?.name ?? t("Workflow editor")}</h1></div>
         </div>
-        <div className="flex items-center gap-3"><Link className="text-sm text-accent" href={`/projects/${projectId}/visualizations`}>{t("Visualizations")}</Link>
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-3 [&_select]:max-w-full"><Link className="text-sm text-accent" href={`/projects/${projectId}/visualizations`}>{t("Visualizations")}</Link>
           <button disabled={createFields.isPending} className="rounded-full border border-outline px-4 py-2 text-sm" onClick={() => createFields.mutate()}>{t("New field workflow")}</button>
           {workflow.data?.version === 2 && <Link className="text-sm underline" href={`/projects/${projectId}/workflow?workflow=${workflow.data.id}${fieldMode ? "" : "&mode=fields"}`}>{t(fieldMode ? "Classic editor" : "Field editor")}</Link>}
           {workflows.data && workflows.data.length > 1 ? <select aria-label={t("Workflow")} value={effectiveWorkflowId} onChange={(event) => setSelectedWorkflowId(event.target.value)} className="rounded-full border border-outline bg-surface px-4 py-2 text-sm">{workflows.data.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select> : null}

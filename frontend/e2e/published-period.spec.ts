@@ -1,7 +1,8 @@
-import { showAllOperations } from "./operation-catalog";
+import { legacyOperationTitle, showAllOperations } from "./operation-catalog";
 import { expect, test } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { expectDialogFits } from "./form-reflow";
 const api = process.env.NODEBI_E2E_API ?? "http://127.0.0.1:8000";
 
 test("one date binding drives independently authored chart and scalar KPI before aggregation", async ({ page, request }) => {
@@ -12,10 +13,10 @@ test("one date binding drives independently authored chart and scalar KPI before
     await page.goto(`/projects/${project.id}/workflow`);
     await page.getByRole("button", { name: "New field workflow", exact: true }).click();
     const saved = async () => { await expect(page.getByText("Saved", { exact: true })).toBeVisible(); await expect(page.getByText("Updating fields", { exact: true })).toHaveCount(0); };
-    const add = async (name: string) => { await showAllOperations(page); await page.getByTitle(`Add ${name}`, { exact: true }).click(); };
+    const add = async (name: string) => { await showAllOperations(page); await page.getByTitle(`Add ${legacyOperationTitle(name)}`, { exact: true }).click(); };
     const connect = async (port: string, label: string) => { await page.getByLabel(`Input ${port}`, { exact: true }).selectOption({ label }); await saved(); };
     await add("Excel Source"); await saved();
-    await add("Group By"); await connect("input", "Excel Source / Dataset");
+    await add("Group By · v1"); await connect("input", "Excel Source / Dataset");
     await page.getByLabel("service", { exact: true }).check();
     await page.getByRole("button", { name: "Add aggregation", exact: true }).click();
     await page.getByLabel("Aggregate field 1").selectOption({ label: "amount" });
@@ -52,7 +53,7 @@ test("one date binding drives independently authored chart and scalar KPI before
       await page.getByRole("button", { name: "Create visualization", exact: true }).click();
       const dialog = page.getByRole("complementary", { name: "Visualization settings" });
       await dialog.getByLabel("Visualization name").fill(title);
-      const published = dialog.getByLabel("Published result", { exact: true });
+      const published = page.getByRole("complementary", { name: "Report fields", exact: true }).getByLabel("Prepared dataset", { exact: true });
       await published.selectOption({ label: await published.locator("option").filter({ hasText: result }).innerText() });
       if (title === "Services") await dialog.getByLabel("Visualization type").selectOption("table");
       else if (result === "Sales by service") {
@@ -107,6 +108,16 @@ test("one date binding drives independently authored chart and scalar KPI before
     const navigation = page.getByRole("dialog", { name: "Configure navigation", exact: true });
     await navigation.getByLabel("Destination dashboard").selectOption({ label: overviewName });
     await expect(navigation.getByRole("combobox").nth(1).locator("option:checked")).toHaveText("Field: service");
+    const navigationSize = page.viewportSize()!;
+    for (const enlarged of [false, true]) {
+      await page.evaluate(value => { document.documentElement.style.fontSize = value ? "32px" : "16px"; }, enlarged);
+      await page.setViewportSize({ width: enlarged ? 1280 : 420, height: 1000 });
+      await expectDialogFits(page, navigation);
+      await expect(navigation.getByRole("combobox").nth(1).locator("option:checked")).toHaveText("Field: service");
+      await page.screenshot({ path: test.info().outputPath(`navigation-${enlarged ? "large-text" : "narrow"}.png`) });
+    }
+    await page.evaluate(() => document.documentElement.style.removeProperty("font-size"));
+    await page.setViewportSize(navigationSize);
     await navigation.getByRole("button", { name: "Apply", exact: true }).click();
     await page.getByRole("button", { name: "Save dashboard", exact: true }).click(); await saved();
     await widget.locator("tbody tr").first().click();

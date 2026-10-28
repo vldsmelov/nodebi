@@ -2,7 +2,7 @@ import type { GraphDraft } from "./autosave";
 import type { WorkflowNode, WorkflowSchemaResult } from "./types";
 
 /** Presentation names follow current configuration; user labels always take precedence. */
-export function nodeCaption(graph: GraphDraft, node: WorkflowNode, schema: WorkflowSchemaResult | undefined, nodeName: (type: string) => string): string {
+export function nodeCaption(graph: GraphDraft, node: WorkflowNode, schema: WorkflowSchemaResult | undefined, nodeName: (type: string, version?: number) => string): string {
   const own = node.ui?.label || node.config?.name || node.config?.sheet_name;
   if (typeof own === "string" && own.trim()) return own;
   const incoming = graph.edges.filter(edge => edge.target_node_id === node.id);
@@ -17,5 +17,5 @@ export function nodeCaption(graph: GraphDraft, node: WorkflowNode, schema: Workf
     const labels = dimensions.map(id => columns?.find(column => column.column_id === id)?.display_name).filter(Boolean);
     return `${nodeName(node.type)}${labels.length ? `: ${labels.join(", ")}` : ""}`;
   }
-  return nodeName(node.type);
+  return nodeName(node.type, node.version);
 }

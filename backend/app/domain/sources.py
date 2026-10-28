@@ -6,7 +6,7 @@ from app.domain.workbooks import DEFAULT_WORKSHEET_LAYOUT, WorksheetLayout
 
 
 class SourceAccess(Protocol):
-    """Project-scoped immutable dataset access, independent of ORM and Excel."""
+    """Legacy worksheet access. New normalized sources use the DatasetAccess contract."""
 
     def validate(self, source_id: uuid.UUID, sheet_name: str) -> None: ...
     def identity(

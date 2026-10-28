@@ -7,9 +7,10 @@ import type { Update } from "@/features/report-cycle/api";
 import { apiRequest } from "@/lib/api";
 vi.mock("@/lib/api", () => ({ apiRequest: vi.fn() }));
 vi.mock("@/features/data-sources/api", () => ({ listSources: async () => [] }));
+vi.mock("@/features/ingestion/api", () => ({ listImports: async () => [], listDatasets: async () => [] }));
 vi.mock("@/features/workflow/api", () => ({ listWorkflows: async () => [], getWorkflow: vi.fn() }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
-const row: Update = { id: "update", project_id: "project", revision: 4, status: "checked", name: "Restore previous data", created_at: "2026-09-24", items: [{ source_id: "source", version_id: "version", mode: "replace", period: "", baseline_period: "" }], check: { token: "current", issues: [] } };
+const row: Update = { id: "update", project_id: "project", revision: 4, browser_editor_pending: false, status: "checked", name: "Restore previous data", created_at: "2026-09-24", items: [{ source_id: "source", version_id: "version", mode: "replace", period: "", baseline_period: "" }], check: { token: "current", issues: [] } };
 function show(value = row, token = "current") {
   return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><I18nProvider initialLocale="en"><UpdateEditor row={value} currentToken={token} busy={false} refresh={async () => {}} onDirty={() => {}} /></I18nProvider></QueryClientProvider>);
 }
@@ -23,6 +24,7 @@ describe("report update safety", () => {
     fireEvent.change(screen.getByLabelText("Update name"), { target: { value: "Corrected mapping" } });
     fireEvent.click(screen.getByRole("button", { name: "Save update draft" }));
     await screen.findByRole("alert");
+    expect(screen.getByRole("alert")).toHaveFocus();
     expect(JSON.parse(vi.mocked(apiRequest).mock.calls[0][1]!.body as string).expected_revision).toBe(5);
   });
   it("checks unchanged rollback without overwriting the server-owned snapshot", async () => {
@@ -46,5 +48,15 @@ describe("report update safety", () => {
     expect(screen.getByLabelText("Update name")).toHaveValue("My draft");
     expect(JSON.parse(vi.mocked(apiRequest).mock.calls[0][1]!.body as string).expected_revision).toBe(4);
     expect(screen.getByRole("button", { name: "Apply data update" })).toBeDisabled();
+  });
+  it("opens only a successfully created rollback and retains its revision guard", async () => {
+    const created = { ...row, id: "rollback", status: "draft" as const, revision: 1 };
+    vi.mocked(apiRequest).mockResolvedValue(created);
+    const open = vi.fn();
+    render(<QueryClientProvider client={new QueryClient()}><I18nProvider initialLocale="en"><UpdateEditor row={{ ...row, status: "applied" }} busy={false} refresh={async () => {}} onDirty={() => {}} onRollbackCreated={open} /></I18nProvider></QueryClientProvider>);
+    expect(screen.getByRole("heading", { name: "Data update" })).toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: "Prepare rollback" }));
+    await waitFor(() => expect(open).toHaveBeenCalledWith(created));
+    expect(apiRequest).toHaveBeenCalledWith("/api/v1/updates/update/rollback", { method: "POST", body: JSON.stringify({ expected_revision: 4 }) });
   });
 });
