@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Котики — отчёт о работе приюта</title>
+  <link rel="stylesheet" href="report.css">
+  <script src="palette.js" defer></script>
+  <script src="report.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#report">К отчёту</a>
+  <header class="masthead">
+    <div class="shell masthead-inner">
+      <a class="brand" href="#report"><span class="paw" aria-hidden="true"><i></i></span>Котики</a>
+      <nav aria-label="Разделы отчёта">
+        <a href="#report">Обзор</a>
+        <a href="#legend">Легенда</a>
+      </nav>
+      <time datetime="2026-11-26">Опубликовано 26.11.2026</time>
+    </div>
+  </header>
+  <main class="shell" id="report">
+    <section class="intro" aria-labelledby="title">
+      <div>
+        <p class="eyebrow">Вымышленный приют · Июнь — ноябрь 2026</p>
+        <h1 id="title">Котики</h1>
+        <p class="intro-copy">Как приют находит котикам дом, заботится о них и расходует пожертвования.</p>
+      </div>
+      <div class="illustration" aria-hidden="true">
+        <div class="cat-tail"></div>
+        <div class="cat-body"></div>
+        <div class="cat-ear cat-ear-left"></div>
+        <div class="cat-ear cat-ear-right"></div>
+        <div class="cat-face"><i></i><b></b><i></i></div>
+        <div class="cat-whiskers"></div>
+        <span class="cat-spark">✦</span>
+      </div>
+    </section>
+    <div class="toolbar">
+      <label class="period">Период
+        <select id="period">
+          <option value="all">Июнь — ноябрь</option>
+          <option value="summer">Июнь — август</option>
+          <option value="autumn">Сентябрь — ноябрь</option>
+        </select>
+      </label>
+      <div class="style-control">
+        <span id="style-label">Стиль столбиков</span>
+        <div class="segmented" role="group" aria-labelledby="style-label">
+          <button type="button" data-mode="plain" aria-pressed="true">Без узора</button>
+          <button type="button" data-mode="pattern" aria-pressed="false">С узором</button>
+        </div>
+      </div>
+    </div>
+    <noscript><p>Для просмотра диаграмм включите JavaScript в браузере.</p></noscript>
+    <p id="report-status" class="visually-hidden" role="status"></p>
+    <section class="kpis" id="kpis" aria-label="Ключевые показатели"></section>
+    <section class="chart-grid" aria-label="Работа приюта">
+      <article class="panel" aria-labelledby="placements-title">
+        <header class="panel-header">
+          <div><h2 id="placements-title">Нашли дом</h2><p>Котики по месяцам</p></div>
+          <div class="chart-key" id="placements-key"></div>
+        </header>
+        <div id="placements"></div>
+      </article>
+      <article class="panel" aria-labelledby="care-title">
+        <header class="panel-header">
+          <div><h2 id="care-title">Ветеринарная помощь</h2><p>Процедуры по видам</p></div>
+          <div class="chart-key" id="care-key"></div>
+        </header>
+        <div id="care"></div>
+      </article>
+    </section>
+    <section class="chart-grid finances" aria-label="Финансы приюта">
+      <article class="panel" aria-labelledby="funding-title">
+        <header class="panel-header">
+          <div><h2 id="funding-title">Собрали и потратили</h2><p>Поступления и расходы · тыс. ₽</p></div>
+        </header>
+        <div id="funding"></div>
+      </article>
+      <article class="panel" aria-labelledby="budget-title">
+        <header class="panel-header">
+          <div><h2 id="budget-title">Расходы на заботу</h2><p>По статьям · тыс. ₽</p></div>
+        </header>
+        <div id="budget"></div>
+      </article>
+    </section>
+    <p class="period-note" id="period-note">Факт за ноябрь — по 26 ноября включительно. План — на весь месяц.</p>
+    <section class="legend" id="legend" aria-labelledby="legend-title">
+      <header class="legend-header">
+        <div><h2 id="legend-title">Легенда столбиков</h2><p>35 обозначений. Для каждого показаны факт и план.</p></div>
+        <a class="outline-button" href="#report">К диаграммам ↑</a>
+      </header>
+      <div id="legend-catalog"></div>
+    </section>
+  </main>
+  <footer class="shell footer">
+    <span>Котики · Демонстрационный отчёт</span>
+    <span>Данные вымышлены · <time datetime="2026-11-26">26.11.2026</time></span>
+  </footer>
+</body>
+</html>
