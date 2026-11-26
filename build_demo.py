@@ -13,6 +13,8 @@ import json
 from pathlib import Path
 import re
 
+from prepare_snapshot import prepare
+
 SOURCE = Path(__file__).resolve().parent
 MAX_INPUT = 12 * 1024 * 1024
 SECTIONS = {"finance", "cash", "taxes"}
@@ -65,7 +67,15 @@ def main():
     if len(raw) > MAX_INPUT:
         parser.error("snapshot is too large")
     # Preserve the exact bytes covered by CSP hashes on all operating systems.
-    page = render(json.loads(raw)).encode("utf-8")
+    try:
+        snapshot = json.loads(raw)
+        if not isinstance(snapshot, dict):
+            raise ValueError("Expected a JSON object")
+        if "format" in snapshot:
+            snapshot = prepare(snapshot)
+        page = render(snapshot).encode("utf-8")
+    except (TypeError, ValueError, KeyError, IndexError) as error:
+        parser.error(f"Invalid snapshot: {error}")
     with args.output.open("xb") as output:
         output.write(page)
 
