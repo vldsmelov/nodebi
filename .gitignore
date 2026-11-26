@@ -1,8 +1,6 @@
 /*
 !/.gitignore
 !/README.md
-!/build_demo.py
-!/index.template.html
-!/report.css
-!/report.js
 !/prepare_snapshot.py
+!/native_tables.py
+!/restore_project.py
